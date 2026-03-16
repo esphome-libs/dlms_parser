@@ -1,0 +1,6 @@
+version: "1.0.0"
+description: "A lightweight, standalone C++ library for parsing DLMS/COSEM AXDR payloads."
+url: "https://github.com/esphome-libs/dlms_parser"
+dependencies:
+  idf:
+    version: ">=4.0.0"

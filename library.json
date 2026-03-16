@@ -1,0 +1,30 @@
+{
+  "name": "dlms_parser",
+  "version": "1.0.0",
+  "description": "A lightweight, standalone C++ library for parsing DLMS/COSEM AXDR payloads.",
+  "keywords": ["dlms", "cosem", "axdr", "esphome", "smartmeter"],
+  "authors": [
+    {
+      "name": "Tomer27cz",
+      "email": "tomer19cz@gmail.com",
+      "url": "https://github.com/Tomer27cz",
+    },
+    {
+      "name": "latonita",
+      "url": "https://github.com/latonita"
+    },
+    {
+      "name": "ESPHome Community",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/esphome-libs/dlms_parser.git"
+  },
+  "frameworks": ["arduino", "espidf"],
+  "platforms": ["espressif32", "espressif8266"],
+  "build": {
+    "srcFilter": ["+<src/*>"]
+  }
+}
