@@ -15,7 +15,7 @@ float data_as_float(const DlmsDataType value_type, const uint8_t *ptr, const uin
     case DLMS_DATA_TYPE_ENUM:
     case DLMS_DATA_TYPE_UINT8: return ptr[0];
     case DLMS_DATA_TYPE_INT8: return static_cast<int8_t>(ptr[0]);
-    case DLMS_DATA_TYPE_BIT_STRING: return (len > 0 && ptr) ? static_cast<float>(ptr[0]) : 0.0f;
+    case DLMS_DATA_TYPE_BIT_STRING: return len > 0 ? static_cast<float>(ptr[0]) : 0.0f;
     case DLMS_DATA_TYPE_UINT16: return len >= 2 ? static_cast<float>(be16(ptr)) : 0.0f;
     case DLMS_DATA_TYPE_INT16: return len >= 2 ? static_cast<float>(static_cast<int16_t>(be16(ptr))) : 0.0f;
     case DLMS_DATA_TYPE_UINT32: return len >= 4 ? static_cast<float>(be32(ptr)) : 0.0f;
@@ -92,10 +92,10 @@ void data_to_string(const DlmsDataType value_type, const uint8_t *ptr, const uin
       if (len >= 4) snprintf(buffer, max_len, "%ld", static_cast<long>(static_cast<int32_t>(be32(ptr))));
       break;
     case DLMS_DATA_TYPE_UINT64:
-      if (len >= 8) snprintf(buffer, max_len, "%llu", be64(ptr));
+      if (len >= 8) snprintf(buffer, max_len, "%llu", static_cast<unsigned long long>(be64(ptr)));
       break;
     case DLMS_DATA_TYPE_INT64:
-      if (len >= 8) snprintf(buffer, max_len, "%lld", static_cast<int64_t>(be64(ptr)));
+      if (len >= 8) snprintf(buffer, max_len, "%lld", static_cast<long long>(be64(ptr)));
       break;
     case DLMS_DATA_TYPE_FLOAT32:
     case DLMS_DATA_TYPE_FLOAT64: {
