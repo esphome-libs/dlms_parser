@@ -24,7 +24,11 @@ target_link_libraries(dlms_parser_test PRIVATE dlms_parser_test_warnings)
 
 # enable sanitizers: address, leak, undefined behaviour
 add_library(dlms_parser_test_sanitizers INTERFACE)
-myproject_enable_sanitizers(dlms_parser_test_sanitizers ON ON ON OFF OFF)
+if(WIN32)
+  myproject_enable_sanitizers(dlms_parser_test_sanitizers OFF OFF OFF OFF OFF)
+else()
+  myproject_enable_sanitizers(dlms_parser_test_sanitizers ON ON ON OFF OFF)
+endif()
 target_link_libraries(dlms_parser_test PRIVATE dlms_parser_test_sanitizers)
 
 # Register the test for CTest
