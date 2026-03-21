@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <cstring>
 
-namespace dlms::parser {
+namespace dlms_parser {
 
 float data_as_float(const DlmsDataType value_type, const uint8_t* ptr, const uint8_t len) {
   if (!ptr || len == 0) return 0.0f;

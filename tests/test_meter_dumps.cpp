@@ -9,7 +9,7 @@ void run_meter_test(const uint8_t* payload, size_t payload_size,
                     const std::map<std::string, std::string>& expected_strings,
                     const std::map<std::string, float>& expected_floats) {
 
-  dlms::parser::DlmsParser parser;
+  dlms_parser::DlmsParser parser;
   std::map<std::string, float> captured_floats;
   std::map<std::string, std::string> captured_strings;
 

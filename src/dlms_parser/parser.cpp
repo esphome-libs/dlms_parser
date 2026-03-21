@@ -7,7 +7,7 @@
 #include <cstring>
 #include <utility>
 
-namespace dlms::parser {
+namespace dlms_parser {
 
 static const char* const TAG = "dlms_parser";
 

@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace dlms::parser {
+namespace dlms_parser {
 
 enum DlmsDataType : uint8_t {
   DLMS_DATA_TYPE_NONE = 0,

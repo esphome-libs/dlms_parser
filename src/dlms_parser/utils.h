@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace dlms::parser {
+namespace dlms_parser {
 
 inline uint16_t be16(const uint8_t* p) { return static_cast<uint16_t>(p[0] << 8 | p[1]); }
 inline uint32_t be32(const uint8_t* p) {

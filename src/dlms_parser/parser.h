@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace dlms::parser {
+namespace dlms_parser {
 
 class DlmsParser {
 public:
