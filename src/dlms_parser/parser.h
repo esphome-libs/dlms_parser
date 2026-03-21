@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pattern.h"
+#include "utils.h"
 #include "types.h"
 #include <cstddef>
 #include <cstdint>
@@ -10,7 +11,7 @@
 
 namespace dlms_parser {
 
-class DlmsParser {
+class DlmsParser final : NonCopyableAndNonMovable {
 public:
   DlmsParser();
 
@@ -22,7 +23,7 @@ public:
   void set_decryption_key(const std::vector<uint8_t> &key);
 
   // Parses the buffer and fires callbacks for each found sensor value
-  size_t parse(const uint8_t* buffer, size_t length, DlmsDataCallback callback, bool show_log);
+  size_t parse(const uint8_t* buffer, size_t length, DlmsDataCallback callback);
 
 private:
   void register_pattern_dsl_(const std::string& name, const std::string& dsl, int priority);
@@ -51,7 +52,6 @@ private:
 
   size_t pos_{0};
   DlmsDataCallback callback_;
-  bool show_log_{false};
   size_t objects_found_{0};
   uint8_t last_pattern_elements_consumed_{0};
 

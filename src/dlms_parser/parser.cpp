@@ -15,8 +15,6 @@
 
 namespace dlms_parser {
 
-static const char* const TAG = "dlms_parser";
-
 DlmsParser::DlmsParser() {
   this->load_default_patterns_();
 }
@@ -44,9 +42,9 @@ void DlmsParser::set_decryption_key(const std::vector<uint8_t> &key) {
   }
 }
 
-size_t DlmsParser::parse(const uint8_t* buffer, const size_t length, DlmsDataCallback callback, const bool show_log) {
+size_t DlmsParser::parse(const uint8_t* buffer, const size_t length, DlmsDataCallback callback) {
   if (buffer == nullptr || length == 0) {
-    if (show_log) DLMS_LOGV(TAG, "Buffer is null or empty");
+    Logger::log(LogLevel::VERBOSE, "Buffer is null or empty");
     return 0;
   }
 
@@ -54,10 +52,9 @@ size_t DlmsParser::parse(const uint8_t* buffer, const size_t length, DlmsDataCal
   this->buffer_len_ = length;
   this->pos_ = 0;
   this->callback_ = std::move(callback);
-  this->show_log_ = show_log;
   this->objects_found_ = 0;
 
-  if (this->show_log_) DLMS_LOGD(TAG, "Starting to parse buffer of length %zu", length);
+  Logger::log(LogLevel::DEBUG, "Starting to parse buffer of length %zu", length);
 
   const uint8_t apdu_tag = this->find_apdu_tag_();
 
@@ -66,13 +63,11 @@ size_t DlmsParser::parse(const uint8_t* buffer, const size_t length, DlmsDataCal
   } else if (apdu_tag == DLMS_APDU_GENERAL_GLO_CIPHERING || apdu_tag == DLMS_APDU_GENERAL_DED_CIPHERING) {
     this->parse_ciphered_apdu_(apdu_tag);
   } else {
-    if (this->show_log_) DLMS_LOGW(TAG, "No supported APDU tag found in buffer.");
+    Logger::log(LogLevel::WARNING, "No supported APDU tag found in buffer.");
     return 0;
   }
 
-  if (this->show_log_) {
-    DLMS_LOGD(TAG, "Parsing completed. Processed %zu bytes, found %zu objects", this->pos_, this->objects_found_);
-  }
+  Logger::log(LogLevel::DEBUG, "Parsing completed. Processed %zu bytes, found %zu objects", this->pos_, this->objects_found_);
 
   return this->objects_found_;
 }
@@ -84,7 +79,7 @@ uint8_t DlmsParser::find_apdu_tag_() {
     if (apdu_tag == DLMS_APDU_DATA_NOTIFICATION ||
         apdu_tag == DLMS_APDU_GENERAL_GLO_CIPHERING ||
         apdu_tag == DLMS_APDU_GENERAL_DED_CIPHERING) {
-      if (this->show_log_) DLMS_LOGD(TAG, "Found APDU tag 0x%02X at position %zu", apdu_tag, this->pos_ - 1);
+      Logger::log(LogLevel::DEBUG, "Found APDU tag 0x%02X at position %zu", apdu_tag, this->pos_ - 1);
       return apdu_tag;
     }
   }
@@ -101,13 +96,11 @@ void DlmsParser::parse_data_notification_() {
   if (this->pos_ < this->buffer_len_) {
     const uint8_t has_datetime = this->read_byte_();
     if (has_datetime != 0x00) { // Flag is set (usually 0x01), strictly skip the next 12 bytes
-      if (this->show_log_) {
-        DLMS_LOGV(TAG, "Datetime presence flag is set (0x%02X), skipping 12-byte datetime object at position %zu", has_datetime, this->pos_);
-      }
+      Logger::log(LogLevel::VERBOSE, "Datetime presence flag is set (0x%02X), skipping 12-byte datetime object at position %zu", has_datetime, this->pos_);
       this->pos_ += 12;
       if (this->pos_ > this->buffer_len_) this->pos_ = this->buffer_len_; // Prevent overflow
     } else {
-      if (this->show_log_) DLMS_LOGV(TAG, "Datetime presence flag is 0x00, no datetime object to skip.");
+      Logger::log(LogLevel::VERBOSE, "Datetime presence flag is 0x00, no datetime object to skip.");
     }
   }
 
@@ -116,21 +109,19 @@ void DlmsParser::parse_data_notification_() {
   // First byte after header should be the data type (usually Structure or Array)
   const uint8_t start_type = this->read_byte_();
   if (start_type != DLMS_DATA_TYPE_STRUCTURE && start_type != DLMS_DATA_TYPE_ARRAY) {
-    if (this->show_log_) {
-      DLMS_LOGW(TAG, "Expected STRUCTURE or ARRAY after header, found type %02X at position %zu", start_type, this->pos_ - 1);
-    }
+    Logger::log(LogLevel::WARNING, "Expected STRUCTURE or ARRAY after header, found type %02X at position %zu", start_type, this->pos_ - 1);
     return;
   }
 
   // Trigger recursive parsing
-  if (const bool success = this->parse_element_(start_type, 0); !success && this->show_log_) {
-    DLMS_LOGV(TAG, "Some errors occurred parsing DLMS data, or unexpected end of buffer.");
+  if (const bool success = this->parse_element_(start_type, 0); !success) {
+    Logger::log(LogLevel::VERBOSE, "Some errors occurred parsing DLMS data, or unexpected end of buffer.");
   }
 }
 
 void DlmsParser::parse_ciphered_apdu_(const uint8_t apdu_tag) {
   if (!this->has_decryption_key_) {
-    if (this->show_log_) DLMS_LOGW(TAG, "Encrypted APDU (0x%02X) detected but no key set.", apdu_tag);
+    Logger::log(LogLevel::WARNING, "Encrypted APDU (0x%02X) detected but no key set.", apdu_tag);
     return;
   }
 
@@ -157,12 +148,12 @@ void DlmsParser::parse_ciphered_apdu_(const uint8_t apdu_tag) {
 
   std::vector<uint8_t> plain_text(payload_len);
   if (!this->decrypt_gcm_(iv, &this->buffer_[this->pos_], payload_len, plain_text.data())) {
-    if (this->show_log_) DLMS_LOGE(TAG, "Decryption failed");
+    Logger::log(LogLevel::ERROR, "Decryption failed");
     return;
   }
 
   if (plain_text.empty() || plain_text[0] != DLMS_APDU_DATA_NOTIFICATION) {
-    if (this->show_log_) DLMS_LOGE(TAG, "Decrypted payload invalid (no DATA_NOTIFICATION)");
+    Logger::log(LogLevel::ERROR, "Decrypted payload invalid (no DATA_NOTIFICATION)");
     return;
   }
 
@@ -170,7 +161,7 @@ void DlmsParser::parse_ciphered_apdu_(const uint8_t apdu_tag) {
   DlmsParser inner_parser;
   inner_parser.set_decryption_key(this->decryption_key_);
   inner_parser.patterns_ = this->patterns_;
-  this->objects_found_ += inner_parser.parse(plain_text.data(), plain_text.size(), this->callback_, this->show_log_);
+  this->objects_found_ += inner_parser.parse(plain_text.data(), plain_text.size(), this->callback_);
 
   this->pos_ += payload_len; // Advance parent position to keep sanity checks intact
 }
@@ -246,10 +237,8 @@ bool DlmsParser::skip_data_(uint8_t type) {
 
     if (this->pos_ + skip_bytes > this->buffer_len_) return false;
 
-    if (this->show_log_) {
-      DLMS_LOGVV(TAG, "Skipping variable data of type %s (bytes: %u) at position %zu",
+    Logger::log(LogLevel::VERY_VERBOSE, "Skipping variable data of type %s (bytes: %u) at position %zu",
                 dlms_data_type_to_string(static_cast<DlmsDataType>(type)), skip_bytes, this->pos_);
-    }
     this->pos_ += skip_bytes;
   }
   return true;
@@ -265,14 +254,12 @@ bool DlmsParser::parse_element_(const uint8_t type, const uint8_t depth) {
 bool DlmsParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
   const uint8_t elements_count = this->read_byte_();
   if (elements_count == 0xFF) {
-    if (this->show_log_) DLMS_LOGVV(TAG, "Invalid sequence length at position %zu", this->pos_ - 1);
+    Logger::log(LogLevel::VERY_VERBOSE, "Invalid sequence length at position %zu", this->pos_ - 1);
     return false;
   }
 
-  if (this->show_log_) {
-    DLMS_LOGD(TAG, "Parsing %s with %d elements at position %zu (depth %d)",
+  Logger::log(LogLevel::DEBUG, "Parsing %s with %d elements at position %zu (depth %d)",
              type == DLMS_DATA_TYPE_STRUCTURE ? "STRUCTURE" : "ARRAY", elements_count, this->pos_ - 1, depth);
-  }
 
   uint8_t elements_consumed = 0;
   while (elements_consumed < elements_count) {
@@ -285,10 +272,8 @@ bool DlmsParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
     }
 
     if (this->pos_ >= this->buffer_len_) {
-      if (this->show_log_) {
-        DLMS_LOGV(TAG, "Unexpected end while reading element %d of %s", elements_consumed + 1,
+      Logger::log(LogLevel::VERBOSE, "Unexpected end while reading element %d of %s", elements_consumed + 1,
                  type == DLMS_DATA_TYPE_STRUCTURE ? "STRUCTURE" : "ARRAY");
-      }
       return false;
     }
 
@@ -297,10 +282,8 @@ bool DlmsParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
     elements_consumed++;
 
     if (this->pos_ == original_position) {
-      if (this->show_log_) {
-        DLMS_LOGV(TAG, "No progress parsing element %d at position %zu, aborting to avoid infinite loop",
+      Logger::log(LogLevel::VERBOSE, "No progress parsing element %d at position %zu, aborting to avoid infinite loop",
                  elements_consumed, original_position);
-      }
       return false;
     }
   }
@@ -457,30 +440,28 @@ void DlmsParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
     val_f *= static_cast<float>(std::pow(10, c.scaler));
   }
 
-  if (this->show_log_) {
-    DLMS_LOGD(TAG, "Pattern match '%s' at idx %u ===============", pat.name.c_str(), c.elem_idx);
-    const uint16_t cid = c.class_id ? c.class_id : pat.default_class_id;
+  Logger::log(LogLevel::DEBUG, "Pattern match '%s' at idx %u ===============", pat.name.c_str(), c.elem_idx);
+  const uint16_t cid = c.class_id ? c.class_id : pat.default_class_id;
 
-    DLMS_LOGI(TAG, "Found attribute descriptor: class_id=%d, obis=%s", cid, obis_str_buf);
+  Logger::log(LogLevel::INFO, "Found attribute descriptor: class_id=%d, obis=%s", cid, obis_str_buf);
 
-    if (c.has_scaler_unit) {
-      DLMS_LOGI(TAG, "Value type: %s, len %d, scaler %d, unit %d",
+  if (c.has_scaler_unit) {
+    Logger::log(LogLevel::INFO, "Value type: %s, len %d, scaler %d, unit %d",
                dlms_data_type_to_string(c.value_type), c.value_len, c.scaler, c.unit_enum);
-    } else {
-      DLMS_LOGI(TAG, "Value type: %s, len %d", dlms_data_type_to_string(c.value_type), c.value_len);
-    }
+  } else {
+    Logger::log(LogLevel::INFO, "Value type: %s, len %d", dlms_data_type_to_string(c.value_type), c.value_len);
+  }
 
-    if (c.value_ptr && c.value_len > 0) {
-      char hex_buf[512];
-      format_hex_pretty_to(hex_buf, sizeof(hex_buf), c.value_ptr, c.value_len);
-      DLMS_LOGI(TAG, " as hex dump : %s", hex_buf);
-    }
-    DLMS_LOGI(TAG, " as string   :'%s'", val_s_buf);
-    DLMS_LOGI(TAG, " as number   : %f", static_cast<double>(raw_val_f));
+  if (c.value_ptr && c.value_len > 0) {
+    char hex_buf[512];
+    format_hex_pretty_to(hex_buf, sizeof(hex_buf), c.value_ptr, c.value_len);
+    Logger::log(LogLevel::INFO, " as hex dump : %s", hex_buf);
+  }
+  Logger::log(LogLevel::INFO, " as string   :'%s'", val_s_buf);
+  Logger::log(LogLevel::INFO, " as number   : %f", static_cast<double>(raw_val_f));
 
-    if (c.has_scaler_unit && is_numeric) {
-      DLMS_LOGI(TAG, " as number * scaler  : %f", static_cast<double>(val_f));
-    }
+  if (c.has_scaler_unit && is_numeric) {
+    Logger::log(LogLevel::INFO, " as number * scaler  : %f", static_cast<double>(val_f));
   }
 
   this->callback_(obis_str_buf, val_f, val_s_buf, is_numeric);

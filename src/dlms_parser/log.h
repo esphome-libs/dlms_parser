@@ -1,19 +1,39 @@
 #pragma once
 
-#ifdef USE_ESPHOME
-  #include "esphome/core/log.h"
-  #define DLMS_LOGD(TAG, ...) ESP_LOGD(TAG, __VA_ARGS__)
-  #define DLMS_LOGI(TAG, ...) ESP_LOGI(TAG, __VA_ARGS__)
-  #define DLMS_LOGW(TAG, ...) ESP_LOGW(TAG, __VA_ARGS__)
-  #define DLMS_LOGV(TAG, ...) ESP_LOGV(TAG, __VA_ARGS__)
-  #define DLMS_LOGVV(TAG, ...) ESP_LOGVV(TAG, __VA_ARGS__)
-  #define DLMS_LOGE(TAG, ...) ESP_LOGE(TAG, __VA_ARGS__)
-#else
-  #include <cstdio>
-  #define DLMS_LOGD(TAG, ...) do { printf("[D][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); } while(0)
-  #define DLMS_LOGI(TAG, ...) do { printf("[I][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); } while(0)
-  #define DLMS_LOGW(TAG, ...) do { printf("[W][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); } while(0)
-  #define DLMS_LOGV(TAG, ...) do { printf("[V][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); } while(0)
-  #define DLMS_LOGVV(TAG, ...) do { printf("[VV][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); } while(0)
-  #define DLMS_LOGE(TAG, ...) do { printf("[E][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); } while(0)
-#endif
+#include <cstdarg>
+#include <cstdio>
+#include <functional>
+#include "utils.h"
+
+namespace dlms_parser {
+
+enum class LogLevel {
+  DEBUG,
+  VERY_VERBOSE,
+  VERBOSE,
+  INFO,
+  WARNING,
+  ERROR,
+};
+
+class Logger final {
+public:
+  static void set_log_function(std::function<void(LogLevel log_level, const char* fmt, va_list args)> func) { _log_function = std::move(func); }
+
+  #if defined(__clang__) || defined(__GNUC__)
+  __attribute__((format(printf, 2, 3)))
+  #endif
+  static void log(LogLevel log_level, const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    _log_function(log_level, fmt, args);
+    va_end(args);
+  }
+
+private:
+  Logger() = default;
+
+  inline static std::function<void(LogLevel log_level, const char* fmt, va_list args)> _log_function = [](LogLevel, const char*, va_list) {};
+};
+
+}

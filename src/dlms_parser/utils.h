@@ -6,6 +6,29 @@
 
 namespace dlms_parser {
 
+class NonCopyable {
+protected:
+  NonCopyable() = default;
+  ~NonCopyable() = default;
+
+public:
+  NonCopyable(NonCopyable&&) = default;
+  NonCopyable& operator=(NonCopyable&&) = default;
+
+  NonCopyable(const NonCopyable&) = delete;
+  NonCopyable& operator=(const NonCopyable&) = delete;
+};
+
+class NonCopyableAndNonMovable : NonCopyable {
+protected:
+  NonCopyableAndNonMovable() = default;
+  ~NonCopyableAndNonMovable() = default;
+
+public:
+  NonCopyableAndNonMovable(NonCopyableAndNonMovable&&) = delete;
+  NonCopyableAndNonMovable& operator=(NonCopyableAndNonMovable&&) = delete;
+};
+
 inline uint16_t be16(const uint8_t* p) { return static_cast<uint16_t>(p[0] << 8 | p[1]); }
 inline uint32_t be32(const uint8_t* p) {
   return static_cast<uint32_t>(p[0]) << 24 | static_cast<uint32_t>(p[1]) << 16 |

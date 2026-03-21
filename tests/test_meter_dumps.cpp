@@ -21,7 +21,7 @@ void run_meter_test(const uint8_t* payload, size_t payload_size,
     }
   };
 
-  size_t objects_found = parser.parse(payload, payload_size, callback, false);
+  size_t objects_found = parser.parse(payload, payload_size, callback);
 
   CHECK(objects_found == expected_count);
 
