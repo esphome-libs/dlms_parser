@@ -45,7 +45,7 @@ include(${cmake_template_SOURCE_DIR}/cmake/Sanitizers.cmake)
 # dlms_parser_test
 file(GLOB_RECURSE dlms_parser_test_src_files CONFIGURE_DEPENDS "src/*.h" "src/*.cpp" "tests/*.h" "tests/*.cpp")
 add_executable(dlms_parser_test ${dlms_parser_test_src_files})
-target_include_directories(dlms_parser_test PRIVATE src ${CMAKE_BINARY_DIR}/doctest)
+target_include_directories(dlms_parser_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} src ${CMAKE_BINARY_DIR}/doctest)
 target_compile_features(dlms_parser_test PRIVATE cxx_std_20)
 target_link_libraries(dlms_parser_test PRIVATE mbedtls bearssl)
 target_include_directories(dlms_parser_test SYSTEM PUBLIC $<TARGET_PROPERTY:mbedtls,INTERFACE_INCLUDE_DIRECTORIES>) # disable warnings for mbedtls headers

@@ -2,7 +2,7 @@
 #include <map>
 #include <string>
 #include "dlms_parser/parser.h"
-#include "dumps/sagemcom_xt211.h"
+#include "tests/dumps/sagemcom_xt211.h"
 
 void run_meter_test(const uint8_t* payload, size_t payload_size,
                     size_t expected_count,
