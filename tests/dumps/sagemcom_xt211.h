@@ -4,7 +4,6 @@
 #include <map>
 #include <string>
 
-
 namespace dlms::test_data {
 
 const uint8_t sagemcom_xt211_raw_frame[355] = {
@@ -63,4 +62,4 @@ const std::map<std::string, float> sagemcom_xt211_expected_floats = {
     {"1.0.2.8.0.255", 52.0f}
 };
 
-} // namespace dlms::test_data
+}

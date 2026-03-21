@@ -1,20 +1,17 @@
 #include "parser.h"
-#include "utils.h"
 #include "log.h"
-#include <cmath>
-#include <cstring>
-#include <cstdio>
+#include "utils.h"
 #include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
 #include <utility>
-
 
 namespace dlms::parser {
 
-static const char *const TAG = "dlms_parser";
+static const char* const TAG = "dlms_parser";
 
-DlmsParser::DlmsParser() {
-  this->load_default_patterns_();
-}
+DlmsParser::DlmsParser() { this->load_default_patterns_(); }
 
 void DlmsParser::load_default_patterns_() {
   this->register_pattern_dsl_("T1", "TC,TO,TS,TV", 10);
@@ -23,11 +20,11 @@ void DlmsParser::load_default_patterns_() {
   this->register_pattern_dsl_("U.ZPA", "F,C,O,A,TV", 10);
 }
 
-void DlmsParser::register_custom_pattern(const std::string &dsl) {
+void DlmsParser::register_custom_pattern(const std::string& dsl) {
   this->register_pattern_dsl_("CUSTOM", dsl, 0); // Priority 0 to try this first
 }
 
-size_t DlmsParser::parse(const uint8_t *buffer, const size_t length, DlmsDataCallback callback, const bool show_log) {
+size_t DlmsParser::parse(const uint8_t* buffer, const size_t length, DlmsDataCallback callback, const bool show_log) {
   if (buffer == nullptr || length == 0) {
     if (show_log) DLMS_LOGV(TAG, "Buffer is null or empty");
     return 0;
@@ -217,7 +214,7 @@ bool DlmsParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
   return true;
 }
 
-bool DlmsParser::capture_generic_value_(AxdrCaptures &c) {
+bool DlmsParser::capture_generic_value_(AxdrCaptures& c) {
   uint8_t vt = this->read_byte_();
   if (!is_value_data_type(static_cast<DlmsDataType>(vt))) return false;
 
@@ -260,7 +257,7 @@ bool DlmsParser::capture_generic_value_(AxdrCaptures &c) {
 }
 
 bool DlmsParser::try_match_patterns_(const uint8_t elem_idx) {
-  for (const auto &p : this->patterns_) {
+  for (const auto& p : this->patterns_) {
     const size_t saved_position = this->pos_;
     if (uint8_t consumed = 0; this->match_pattern_(elem_idx, p, consumed)) {
       this->last_pattern_elements_consumed_ = consumed;
@@ -271,73 +268,73 @@ bool DlmsParser::try_match_patterns_(const uint8_t elem_idx) {
   return false;
 }
 
-bool DlmsParser::match_pattern_(const uint8_t elem_idx, const AxdrDescriptorPattern &pat,
-                                uint8_t &elements_consumed_at_level0) {
+bool DlmsParser::match_pattern_(const uint8_t elem_idx, const AxdrDescriptorPattern& pat,
+                                uint8_t& elements_consumed_at_level0) {
   AxdrCaptures cap{};
   elements_consumed_at_level0 = 0;
   uint8_t level = 0;
-  auto consume_one = [&]{ if (level == 0) elements_consumed_at_level0++; };
+  auto consume_one = [&] { if (level == 0) elements_consumed_at_level0++; };
   const uint32_t initial_position = static_cast<uint32_t>(this->pos_);
 
-  for (const auto &step : pat.steps) {
+  for (const auto& step : pat.steps) {
     switch (step.type) {
-      case AxdrTokenType::EXPECT_TO_BE_FIRST:
-        if (elem_idx != 0) return false;
-        break;
-      case AxdrTokenType::EXPECT_TYPE_EXACT:
-        if (this->read_byte_() != step.param_u8_a) return false;
-        consume_one();
-        break;
-      case AxdrTokenType::EXPECT_TYPE_U_I_8: {
-        if (const uint8_t t = this->read_byte_(); t != DLMS_DATA_TYPE_INT8 && t != DLMS_DATA_TYPE_UINT8) return false;
-        consume_one();
-        break;
-      }
-      case AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED: {
-        const uint16_t v = this->read_u16_();
-        if (v > 0x00FF) return false;
-        cap.class_id = v;
-        break;
-      }
-      case AxdrTokenType::EXPECT_OBIS6_TAGGED:
-        if (this->read_byte_() != DLMS_DATA_TYPE_OCTET_STRING) return false;
-        if (this->read_byte_() != 6) return false;
-        if (this->pos_ + 6 > this->buffer_len_) return false;
-        cap.obis = &this->buffer_[this->pos_];
-        this->pos_ += 6;
-        consume_one();
-        break;
-      case AxdrTokenType::EXPECT_OBIS6_UNTAGGED:
-        if (this->pos_ + 6 > this->buffer_len_) return false;
-        cap.obis = &this->buffer_[this->pos_];
-        this->pos_ += 6;
-        break;
-      case AxdrTokenType::EXPECT_ATTR8_UNTAGGED:
-        if (this->read_byte_() == 0) return false;
-        break;
-      case AxdrTokenType::EXPECT_VALUE_GENERIC:
-        if (!this->capture_generic_value_(cap)) return false;
-        consume_one();
-        break;
-      case AxdrTokenType::EXPECT_STRUCTURE_N:
-        if (this->read_byte_() != DLMS_DATA_TYPE_STRUCTURE) return false;
-        if (this->read_byte_() != step.param_u8_a) return false;
-        consume_one();
-        break;
-      case AxdrTokenType::EXPECT_SCALER_TAGGED:
-        if (this->read_byte_() != DLMS_DATA_TYPE_INT8) return false;
-        cap.scaler = static_cast<int8_t>(this->read_byte_());
-        cap.has_scaler_unit = true;
-        consume_one();
-        break;
-      case AxdrTokenType::EXPECT_UNIT_ENUM_TAGGED:
-        if (this->read_byte_() != DLMS_DATA_TYPE_ENUM) return false;
-        cap.unit_enum = this->read_byte_();
-        cap.has_scaler_unit = true;
-        consume_one();
-        break;
-      case AxdrTokenType::GOING_DOWN: level++; break;
-      case AxdrTokenType::GOING_UP: level--; break;
+    case AxdrTokenType::EXPECT_TO_BE_FIRST:
+      if (elem_idx != 0) return false;
+      break;
+    case AxdrTokenType::EXPECT_TYPE_EXACT:
+      if (this->read_byte_() != step.param_u8_a) return false;
+      consume_one();
+      break;
+    case AxdrTokenType::EXPECT_TYPE_U_I_8: {
+      if (const uint8_t t = this->read_byte_(); t != DLMS_DATA_TYPE_INT8 && t != DLMS_DATA_TYPE_UINT8) return false;
+      consume_one();
+      break;
+    }
+    case AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED: {
+      const uint16_t v = this->read_u16_();
+      if (v > 0x00FF) return false;
+      cap.class_id = v;
+      break;
+    }
+    case AxdrTokenType::EXPECT_OBIS6_TAGGED:
+      if (this->read_byte_() != DLMS_DATA_TYPE_OCTET_STRING) return false;
+      if (this->read_byte_() != 6) return false;
+      if (this->pos_ + 6 > this->buffer_len_) return false;
+      cap.obis = &this->buffer_[this->pos_];
+      this->pos_ += 6;
+      consume_one();
+      break;
+    case AxdrTokenType::EXPECT_OBIS6_UNTAGGED:
+      if (this->pos_ + 6 > this->buffer_len_) return false;
+      cap.obis = &this->buffer_[this->pos_];
+      this->pos_ += 6;
+      break;
+    case AxdrTokenType::EXPECT_ATTR8_UNTAGGED:
+      if (this->read_byte_() == 0) return false;
+      break;
+    case AxdrTokenType::EXPECT_VALUE_GENERIC:
+      if (!this->capture_generic_value_(cap)) return false;
+      consume_one();
+      break;
+    case AxdrTokenType::EXPECT_STRUCTURE_N:
+      if (this->read_byte_() != DLMS_DATA_TYPE_STRUCTURE) return false;
+      if (this->read_byte_() != step.param_u8_a) return false;
+      consume_one();
+      break;
+    case AxdrTokenType::EXPECT_SCALER_TAGGED:
+      if (this->read_byte_() != DLMS_DATA_TYPE_INT8) return false;
+      cap.scaler = static_cast<int8_t>(this->read_byte_());
+      cap.has_scaler_unit = true;
+      consume_one();
+      break;
+    case AxdrTokenType::EXPECT_UNIT_ENUM_TAGGED:
+      if (this->read_byte_() != DLMS_DATA_TYPE_ENUM) return false;
+      cap.unit_enum = this->read_byte_();
+      cap.has_scaler_unit = true;
+      consume_one();
+      break;
+    case AxdrTokenType::GOING_DOWN: level++; break;
+    case AxdrTokenType::GOING_UP: level--; break;
     }
   }
 
@@ -347,7 +344,7 @@ bool DlmsParser::match_pattern_(const uint8_t elem_idx, const AxdrDescriptorPatt
   return true;
 }
 
-void DlmsParser::emit_object_(const AxdrDescriptorPattern &pat, const AxdrCaptures &c) {
+void DlmsParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptures& c) {
   if (!c.obis || !this->callback_) return;
 
   char obis_str_buf[32];
@@ -397,10 +394,10 @@ void DlmsParser::emit_object_(const AxdrDescriptorPattern &pat, const AxdrCaptur
   this->objects_found_++;
 }
 
-void DlmsParser::register_pattern_dsl_(const std::string &name, const std::string &dsl, const int priority) {
+void DlmsParser::register_pattern_dsl_(const std::string& name, const std::string& dsl, const int priority) {
   AxdrDescriptorPattern pat{name, priority, {}, 0};
 
-  auto trim = [](const std::string &s) {
+  auto trim = [](const std::string& s) {
     const size_t b = s.find_first_not_of(" \t\r\n");
     const size_t e = s.find_last_not_of(" \t\r\n");
     if (b == std::string::npos) return std::string();
@@ -435,15 +432,13 @@ void DlmsParser::register_pattern_dsl_(const std::string &name, const std::strin
     else if (tok == "TC") {
       pat.steps.push_back({AxdrTokenType::EXPECT_TYPE_EXACT, DLMS_DATA_TYPE_UINT16});
       pat.steps.push_back({AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED});
-    }
-    else if (tok == "O") pat.steps.push_back({AxdrTokenType::EXPECT_OBIS6_UNTAGGED});
+    } else if (tok == "O") pat.steps.push_back({AxdrTokenType::EXPECT_OBIS6_UNTAGGED});
     else if (tok == "TO") pat.steps.push_back({AxdrTokenType::EXPECT_OBIS6_TAGGED});
     else if (tok == "A") pat.steps.push_back({AxdrTokenType::EXPECT_ATTR8_UNTAGGED});
     else if (tok == "TA") {
       pat.steps.push_back({AxdrTokenType::EXPECT_TYPE_U_I_8});
       pat.steps.push_back({AxdrTokenType::EXPECT_ATTR8_UNTAGGED});
-    }
-    else if (tok == "TS") pat.steps.push_back({AxdrTokenType::EXPECT_SCALER_TAGGED});
+    } else if (tok == "TS") pat.steps.push_back({AxdrTokenType::EXPECT_SCALER_TAGGED});
     else if (tok == "TU") pat.steps.push_back({AxdrTokenType::EXPECT_UNIT_ENUM_TAGGED});
     else if (tok == "TSU") {
       pat.steps.push_back({AxdrTokenType::EXPECT_STRUCTURE_N, 2});
@@ -451,8 +446,7 @@ void DlmsParser::register_pattern_dsl_(const std::string &name, const std::strin
       pat.steps.push_back({AxdrTokenType::EXPECT_SCALER_TAGGED});
       pat.steps.push_back({AxdrTokenType::EXPECT_UNIT_ENUM_TAGGED});
       pat.steps.push_back({AxdrTokenType::GOING_UP});
-    }
-    else if (tok == "V" || tok == "TV") pat.steps.push_back({AxdrTokenType::EXPECT_VALUE_GENERIC});
+    } else if (tok == "V" || tok == "TV") pat.steps.push_back({AxdrTokenType::EXPECT_VALUE_GENERIC});
     else if (tok.size() >= 2 && tok.substr(0, 2) == "S(") {
       const size_t l = tok.find('(');
       if (const size_t r = tok.rfind(')'); l != std::string::npos && r != std::string::npos && r > l + 1) {
@@ -476,15 +470,13 @@ void DlmsParser::register_pattern_dsl_(const std::string &name, const std::strin
           tokens.insert(tokens.begin() + static_cast<std::ptrdiff_t>(i + 1), inner_tokens.begin(), inner_tokens.end());
         }
       }
-    }
-    else if (tok == "DN") pat.steps.push_back({AxdrTokenType::GOING_DOWN});
+    } else if (tok == "DN") pat.steps.push_back({AxdrTokenType::GOING_DOWN});
     else if (tok == "UP") pat.steps.push_back({AxdrTokenType::GOING_UP});
   }
 
   const auto it = std::upper_bound(this->patterns_.begin(), this->patterns_.end(), pat,
-      [](const AxdrDescriptorPattern &a, const AxdrDescriptorPattern &b) { return a.priority < b.priority; });
+                                   [](const AxdrDescriptorPattern& a, const AxdrDescriptorPattern& b) { return a.priority < b.priority; });
   this->patterns_.insert(it, pat);
 }
 
-} // namespace dlms::parser
-
+}
