@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# This script requires clang to be installed:
+# This script requires clang and g++-13 to be installed:
 #   sudo apt-get update && sudo apt-get install -y clang
+#   sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+#   sudo apt-get install -y g++-13
 
 set -o xtrace -o errexit -o nounset -o pipefail
 readonly currentScriptDir=`dirname "$(realpath -s "${BASH_SOURCE[0]}")"`
@@ -20,6 +22,8 @@ build_and_test() {
   "$buildDir/${target}-$build_type/dlms_parser_test"
 }
 
+export CC=gcc-13
+export CXX=g++-13
 build_and_test Debug linux-gcc
 build_and_test Release linux-gcc
 
