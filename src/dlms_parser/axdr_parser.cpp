@@ -319,6 +319,15 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
         this->pos_ += 6;
         consume_one();
         break;
+      case AxdrTokenType::EXPECT_OBIS6_TAGGED_WRONG:
+        // Landis+Gyr firmware bug: sends 06 09 <obis> instead of 09 06 <obis>
+        if (this->read_byte_() != 6) return false;
+        if (this->read_byte_() != DLMS_DATA_TYPE_OCTET_STRING) return false;
+        if (this->pos_ + 6 > this->buffer_len_) return false;
+        cap.obis = &this->buffer_[this->pos_];
+        this->pos_ += 6;
+        consume_one();
+        break;
       case AxdrTokenType::EXPECT_OBIS6_UNTAGGED:
         if (this->pos_ + 6 > this->buffer_len_) return false;
         cap.obis = &this->buffer_[this->pos_];
@@ -331,9 +340,16 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
         if (!this->capture_generic_value_(cap)) return false;
         consume_one();
         break;
-      case AxdrTokenType::EXPECT_VALUE_OCTET_STRING_DTM:
-        if (this->read_byte_() != DLMS_DATA_TYPE_OCTET_STRING) return false;
-        if (this->read_byte_() != 12) return false;
+      case AxdrTokenType::EXPECT_VALUE_DATE_TIME: {
+        // Accepts both: 0x19 (DATETIME tag) + 12 bytes, or 0x09 (OCTET_STRING) + 0x0C + 12 bytes
+        const uint8_t tag = this->read_byte_();
+        if (tag == DLMS_DATA_TYPE_DATETIME) {
+          // Native DATETIME tag (0x19): fixed 12-byte payload, no length byte
+        } else if (tag == DLMS_DATA_TYPE_OCTET_STRING) {
+          if (this->read_byte_() != 12) return false;
+        } else {
+          return false;
+        }
         if (this->pos_ + 12 > this->buffer_len_) return false;
         cap.value_ptr = &this->buffer_[this->pos_];
         cap.value_len = 12;
@@ -341,6 +357,7 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
         this->pos_ += 12;
         consume_one();
         break;
+      }
       case AxdrTokenType::EXPECT_VALUE_OCTET_STRING: {
         const uint8_t vt = this->read_byte_();
         if (vt != DLMS_DATA_TYPE_OCTET_STRING && vt != DLMS_DATA_TYPE_STRING &&
@@ -478,6 +495,7 @@ void AxdrParser::register_pattern_dsl_(const std::string& name, const std::strin
     }
     else if (tok == "O")  pat.steps.push_back({AxdrTokenType::EXPECT_OBIS6_UNTAGGED});
     else if (tok == "TO") pat.steps.push_back({AxdrTokenType::EXPECT_OBIS6_TAGGED});
+    else if (tok == "TOW") pat.steps.push_back({AxdrTokenType::EXPECT_OBIS6_TAGGED_WRONG});
     else if (tok == "A")  pat.steps.push_back({AxdrTokenType::EXPECT_ATTR8_UNTAGGED});
     else if (tok == "TA") {
       pat.steps.push_back({AxdrTokenType::EXPECT_TYPE_U_I_8});
@@ -486,7 +504,7 @@ void AxdrParser::register_pattern_dsl_(const std::string& name, const std::strin
     else if (tok == "TS")     pat.steps.push_back({AxdrTokenType::EXPECT_SCALER_TAGGED});
     else if (tok == "TU")     pat.steps.push_back({AxdrTokenType::EXPECT_UNIT_ENUM_TAGGED});
     else if (tok == "V" || tok == "TV") pat.steps.push_back({AxdrTokenType::EXPECT_VALUE_GENERIC});
-    else if (tok == "TSTR_DTM") pat.steps.push_back({AxdrTokenType::EXPECT_VALUE_OCTET_STRING_DTM});
+    else if (tok == "TDTM") pat.steps.push_back({AxdrTokenType::EXPECT_VALUE_DATE_TIME});
     else if (tok == "TSTR")   pat.steps.push_back({AxdrTokenType::EXPECT_VALUE_OCTET_STRING});
     else if (tok == "TSU") {
       pat.steps.push_back({AxdrTokenType::EXPECT_STRUCTURE_N, 2});

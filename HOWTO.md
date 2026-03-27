@@ -146,11 +146,12 @@ Tokens are comma-separated. Order must match the byte order in the AXDR stream.
 | `TC` | Tagged class ID — type byte `0x12` + 2-byte uint16 | `12 00 03` |
 | `O` | OBIS code — 6-byte octet string, **no** type tag | `01 00 01 08 00 FF` (1.0.1.8.0.255) |
 | `TO` | Tagged OBIS code — type byte `0x09` + length `0x06` + 6 bytes | `09 06 01 00 01 08 00 FF` |
+| `TOW` | Tagged OBIS (wrong byte order) — `0x06` + `0x09` + 6 bytes. Landis+Gyr firmware bug | `06 09 01 00 1F 07 00 FF` |
 | `A` | Attribute index — 1-byte uint8, **no** type tag | `02` (attribute 2) |
 | `TA` | Tagged attribute — type byte (uint8/int8) + 1 byte | `11 02` or `0F 02` |
 | `V` / `TV` | Generic value — any DLMS type, auto-converted to float or string | `06 00 00 07 A4` (uint32 = 1956) |
 | `TSTR` | Tagged string — expects `0x09`, `0x0A`, or `0x0C` type tag + length + bytes | `09 08 38 34 38 39 35 31 32 36` ("84895126") |
-| `TSTR_DTM` | Tagged OCTET_STRING encoding a 12-byte DATETIME | `09 0C 07E7 04 01 06 15 20 23 00 FF 88 80` |
+| `TDTM` | Tagged 12-byte DATETIME — accepts `0x19` + 12B or `0x09 0x0C` + 12B | `19 07E7 04 01 ...` or `09 0C 07E7 04 01 ...` |
 | `TS` | Tagged scaler — `0x0F` (int8) + exponent byte | `0F FF` (scaler = −1 → ×0.1) |
 | `TU` | Tagged unit enum — `0x16` (enum) + unit byte | `16 23` (unit 35 = V) |
 | `TSU` | Tagged scaler-unit pair — shorthand for `S(TS, TU)` | `02 02 0F FF 16 23` (struct{−1, V}) |
@@ -165,7 +166,7 @@ built-ins (priority 10). The first match in priority order wins.
 
 ```cpp
 // Meter sends: class_id(tagged), OBIS(tagged), datetime-as-octet-string
-parser.register_pattern("TC, TO, TSTR_DTM");
+parser.register_pattern("TC, TO, TDTM");
 
 // Untagged flat layout: class_id, OBIS, attr, value, scaler, unit
 parser.register_pattern("C, O, A, V, TS, TU");
@@ -329,4 +330,4 @@ public:
 | `mbedTLS decryption failed` | Wrong decryption key or corrupted ciphertext |
 | Values look wrong (off by 1000×) | Scaler not applied — use `cooked_cb` which applies it automatically |
 | `APDU: unknown tag 0xXX` | Meter uses an unsupported APDU wrapper |
-| All values are strings | Value type is OCTET_STRING containing a DATETIME — use `TSTR_DTM` token |
+| All values are strings | Value type is OCTET_STRING containing a DATETIME — use `TDTM` token |

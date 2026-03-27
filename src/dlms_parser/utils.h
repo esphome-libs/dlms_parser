@@ -42,6 +42,7 @@ inline uint64_t be64(const uint8_t* p) {
 }
 
 float data_as_float(DlmsDataType value_type, const uint8_t* ptr, uint8_t len);
+void datetime_to_string(const uint8_t* ptr, uint8_t len, char* buffer, size_t max_len);
 void data_to_string(DlmsDataType value_type, const uint8_t* ptr, uint8_t len, char* buffer, size_t max_len);
 void obis_to_string(const uint8_t* obis, char* buffer, size_t max_len);
 const char* dlms_data_type_to_string(DlmsDataType vt);

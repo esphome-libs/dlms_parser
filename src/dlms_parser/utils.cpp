@@ -40,6 +40,61 @@ float data_as_float(const DlmsDataType value_type, const uint8_t* ptr, const uin
   }
 }
 
+void datetime_to_string(const uint8_t* ptr, const uint8_t len, char* buffer, const size_t max_len) {
+  if (max_len > 0) buffer[0] = '\0';
+  if (!ptr || len < 12 || max_len == 0) return;
+
+  const uint16_t year = be16(ptr);
+  const uint8_t month = ptr[2], day = ptr[3];
+  const uint8_t hour = ptr[5], minute = ptr[6], second = ptr[7];
+  const uint8_t hundredths = ptr[8];
+  const auto deviation = static_cast<int16_t>(be16(ptr + 9));
+
+  auto advance = [&](size_t& p, int n) { if (n > 0) p += static_cast<size_t>(n); };
+
+  size_t pos = 0;
+  // Date: YYYY-MM-DD
+  if (year != 0x0000 && year != 0xFFFF)
+    advance(pos, snprintf(buffer + pos, max_len - pos, "%04u", year));
+  else
+    advance(pos, snprintf(buffer + pos, max_len - pos, "????"));
+  advance(pos, snprintf(buffer + pos, max_len - pos, "-"));
+  if (month != 0xFF && month >= 1 && month <= 12)
+    advance(pos, snprintf(buffer + pos, max_len - pos, "%02u", month));
+  else
+    advance(pos, snprintf(buffer + pos, max_len - pos, "??"));
+  advance(pos, snprintf(buffer + pos, max_len - pos, "-"));
+  if (day != 0xFF && day >= 1 && day <= 31)
+    advance(pos, snprintf(buffer + pos, max_len - pos, "%02u", day));
+  else
+    advance(pos, snprintf(buffer + pos, max_len - pos, "??"));
+  // Time: HH:MM:SS
+  advance(pos, snprintf(buffer + pos, max_len - pos, " "));
+  if (hour != 0xFF && hour <= 23)
+    advance(pos, snprintf(buffer + pos, max_len - pos, "%02u", hour));
+  else
+    advance(pos, snprintf(buffer + pos, max_len - pos, "??"));
+  advance(pos, snprintf(buffer + pos, max_len - pos, ":"));
+  if (minute != 0xFF && minute <= 59)
+    advance(pos, snprintf(buffer + pos, max_len - pos, "%02u", minute));
+  else
+    advance(pos, snprintf(buffer + pos, max_len - pos, "??"));
+  advance(pos, snprintf(buffer + pos, max_len - pos, ":"));
+  if (second != 0xFF && second <= 59)
+    advance(pos, snprintf(buffer + pos, max_len - pos, "%02u", second));
+  else
+    advance(pos, snprintf(buffer + pos, max_len - pos, "??"));
+  // Hundredths
+  if (hundredths != 0xFF && hundredths <= 99)
+    advance(pos, snprintf(buffer + pos, max_len - pos, ".%02u", hundredths));
+  // Timezone deviation
+  if (deviation != static_cast<int16_t>(0x8000)) {
+    const int abs_dev = deviation >= 0 ? deviation : -deviation;
+    advance(pos, snprintf(buffer + pos, max_len - pos, " %c%02d:%02d",
+                    deviation >= 0 ? '+' : '-', abs_dev / 60, abs_dev % 60));
+  }
+}
+
 void data_to_string(const DlmsDataType value_type, const uint8_t* ptr, const uint8_t len, char* buffer,
                     const size_t max_len) {
   if (max_len > 0) buffer[0] = '\0';
@@ -64,9 +119,11 @@ void data_to_string(const DlmsDataType value_type, const uint8_t* ptr, const uin
     buffer[copy_len] = '\0';
     break;
   }
+  case DLMS_DATA_TYPE_DATETIME:
+    datetime_to_string(ptr, len, buffer, max_len);
+    break;
   case DLMS_DATA_TYPE_BIT_STRING:
   case DLMS_DATA_TYPE_BINARY_CODED_DESIMAL:
-  case DLMS_DATA_TYPE_DATETIME:
   case DLMS_DATA_TYPE_DATE:
   case DLMS_DATA_TYPE_TIME:
     hex_of(ptr, len, buffer, max_len);

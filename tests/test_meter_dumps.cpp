@@ -15,6 +15,9 @@
 #include "tests/expected/hdlc_norway_han_1phase.h"
 #include "tests/expected/hdlc_norway_han_3phase.h"
 #include "tests/expected/mbus_netz_noe_p1.h"
+#include "tests/expected/raw_energomera.h"
+#include "tests/expected/hdlc_landis_gyr_zmf100.h"
+#include "tests/expected/raw_salzburg_netz.h"
 
 void run_meter_test(const char* name,
                     const uint8_t* payload, size_t payload_size,
@@ -148,7 +151,7 @@ TEST_CASE("Integration: Real Meter Dumps") {
   SUBCASE("MBus Netz NOE P1 (encrypted)") {
     // 2 M-Bus frames, General-Glo-Ciphering (0xDB), AES-GCM encrypted.
     // Notification body has structure of 23 objects, all non tagged, one by one: DTM,T2,T2,...,T
-    // 1) Timestamp as TSTR_DTM
+    // 1) Timestamp as TDTM
     // 2) Plain object, no object structure, just: TO, TV, TSU
     // ..) More plain objects
     // last) Last object is Meter number, Ocstet-string, last in the structure
@@ -164,6 +167,47 @@ TEST_CASE("Integration: Real Meter Dumps") {
             dlms::test_data::mbus_netz_noe_p1_key,
             dlms::test_data::mbus_netz_noe_p1_key + 16));
         p.register_pattern("L, TSTR");
+      }
+    );
+  }
+
+  SUBCASE("Energomera (RAW)") {
+    run_meter_test("Energomera (RAW)",
+      dlms::test_data::raw_energomera_frame,
+      sizeof(dlms::test_data::raw_energomera_frame),
+      dlms::test_data::raw_energomera_expected_count,
+      dlms::test_data::raw_energomera_expected_strings,
+      dlms::test_data::raw_energomera_expected_floats
+    );
+  }
+
+  SUBCASE("Landis+Gyr ZMF100 (HDLC)") {
+    run_meter_test("Landis+Gyr ZMF100 (HDLC)",
+      dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame,
+      sizeof(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame),
+      dlms::test_data::hdlc_landis_gyr_zmf100_expected_count,
+      dlms::test_data::hdlc_landis_gyr_zmf100_expected_strings,
+      dlms::test_data::hdlc_landis_gyr_zmf100_expected_floats,
+      dlms_parser::FrameFormat::HDLC,
+      [](dlms_parser::DlmsParser& p) {
+        p.register_pattern("S(TO, TDTM)");
+        p.register_pattern("S(TO, TV)");
+        p.register_pattern("TOW, TV, TSU");  // Landis+Gyr firmware bug: 06 09 instead of 09 06
+      }
+    );
+  }
+
+  SUBCASE("Salzburg Netz (RAW)") {
+    run_meter_test("Salzburg Netz (RAW)",
+      dlms::test_data::raw_salzburg_netz_frame,
+      sizeof(dlms::test_data::raw_salzburg_netz_frame),
+      dlms::test_data::raw_salzburg_netz_expected_count,
+      dlms::test_data::raw_salzburg_netz_expected_strings,
+      dlms::test_data::raw_salzburg_netz_expected_floats,
+      dlms_parser::FrameFormat::RAW,
+      [](dlms_parser::DlmsParser& p) {
+        p.register_pattern("TO, TDTM");   // flat datetime (OBIS + datetime as 2 top-level elements)
+        p.register_pattern("S(TO, TV)");
       }
     );
   }
