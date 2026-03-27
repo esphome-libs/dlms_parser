@@ -22,6 +22,8 @@ class AxdrParser {
 
   // Register a named pattern from the DSL string, e.g. "TC,TO,TS,TV".
   void register_pattern(const std::string& name, const std::string& dsl, int priority = 10);
+  void register_pattern(const std::string& name, const std::string& dsl, int priority,
+                        const uint8_t default_obis[6]);
   void clear_patterns();
 
   // Parse AXDR bytes. Fires cooked_cb and/or raw_cb for each pattern match.

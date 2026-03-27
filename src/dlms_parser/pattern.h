@@ -17,6 +17,8 @@ struct AxdrDescriptorPattern {
   int priority{0};
   std::vector<AxdrPatternStep> steps;
   uint16_t default_class_id{0};
+  bool has_default_obis{false};
+  uint8_t default_obis[6]{};
 };
 
 }

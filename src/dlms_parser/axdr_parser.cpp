@@ -19,6 +19,19 @@ void AxdrParser::register_pattern(const std::string& name, const std::string& ds
   this->register_pattern_dsl_(name, dsl, priority);
 }
 
+void AxdrParser::register_pattern(const std::string& name, const std::string& dsl, int priority,
+                                   const uint8_t default_obis[6]) {
+  this->register_pattern_dsl_(name, dsl, priority);
+  // Find the just-inserted pattern and set its default OBIS.
+  for (auto& pat : this->patterns_) {
+    if (pat.name == name && pat.priority == priority) {
+      pat.has_default_obis = true;
+      std::memcpy(pat.default_obis, default_obis, 6);
+      break;
+    }
+  }
+}
+
 void AxdrParser::clear_patterns() {
   patterns_.clear();
 }
@@ -367,7 +380,9 @@ static constexpr uint8_t ZERO_OBIS[6] = {0, 0, 0, 0, 0, 0};
 
 void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptures& c) {
   // If no OBIS was captured by the pattern, use 0.0.0.0.0.0 as a placeholder.
-  const AxdrCaptures effective = c.obis ? c : [&] { auto copy = c; copy.obis = ZERO_OBIS; return copy; }();
+  // If no OBIS captured, use pattern's default_obis if set, otherwise zero placeholder.
+  const uint8_t* fallback_obis = pat.has_default_obis ? pat.default_obis : ZERO_OBIS;
+  const AxdrCaptures effective = c.obis ? c : [&] { auto copy = c; copy.obis = fallback_obis; return copy; }();
 
   objects_found_++;
 

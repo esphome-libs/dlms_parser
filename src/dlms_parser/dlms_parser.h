@@ -31,6 +31,9 @@ class DlmsParser final : NonCopyableAndNonMovable {
   // Register a custom AXDR pattern (priority 0 — tried before built-in patterns).
   void register_pattern(const std::string& dsl);
   void register_pattern(const std::string& name, const std::string& dsl, int priority = 0);
+  // Register with a default OBIS (used when the pattern captures no OBIS).
+  void register_pattern(const std::string& name, const std::string& dsl, int priority,
+                        const uint8_t default_obis[6]);
 
   // Parse a full frame. Fires cooked_cb for each matched COSEM object.
   // Optionally fires raw_cb with unmodified captures before conversion.

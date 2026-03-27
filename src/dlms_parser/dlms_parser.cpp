@@ -34,6 +34,11 @@ void DlmsParser::register_pattern(const std::string& name, const std::string& ds
   axdr_parser_.register_pattern(name, dsl, priority);
 }
 
+void DlmsParser::register_pattern(const std::string& name, const std::string& dsl, int priority,
+                                   const uint8_t default_obis[6]) {
+  axdr_parser_.register_pattern(name, dsl, priority, default_obis);
+}
+
 size_t DlmsParser::parse(const uint8_t* buf, size_t len,
                          DlmsDataCallback cooked_cb,
                          DlmsRawCallback raw_cb) {

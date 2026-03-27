@@ -18,6 +18,7 @@
 #include "tests/expected/raw_energomera.h"
 #include "tests/expected/hdlc_landis_gyr_zmf100.h"
 #include "tests/expected/raw_salzburg_netz.h"
+#include "tests/expected/hdlc_kaifa_ma304h3e.h"
 
 void run_meter_test(const char* name,
                     const uint8_t* payload, size_t payload_size,
@@ -203,6 +204,17 @@ TEST_CASE("Integration: HDLC") {
     CHECK(n == 0);
   }
 
+  SUBCASE("Kaifa MA304H3E") {
+    run_meter_test("Kaifa MA304H3E",
+      dlms::test_data::hdlc_kaifa_ma304h3e_raw_frame,
+      sizeof(dlms::test_data::hdlc_kaifa_ma304h3e_raw_frame),
+      dlms::test_data::hdlc_kaifa_ma304h3e_expected_count,
+      dlms::test_data::hdlc_kaifa_ma304h3e_expected_strings,
+      dlms::test_data::hdlc_kaifa_ma304h3e_expected_floats,
+      dlms_parser::FrameFormat::HDLC
+    );
+  }
+
 }
 
 // ---------------------------------------------------------
@@ -222,7 +234,8 @@ TEST_CASE("Integration: MBus") {
         p.set_decryption_key(std::vector<uint8_t>(
             dlms::test_data::mbus_netz_noe_p1_key,
             dlms::test_data::mbus_netz_noe_p1_key + 16));
-        p.register_pattern("L, TSTR");
+        const uint8_t meter_obis[] = {0, 0, 96, 1, 0, 255};  // 0.0.96.1.0.255
+        p.register_pattern("MeterID", "L, TSTR", 0, meter_obis);
       }
     );
   }
