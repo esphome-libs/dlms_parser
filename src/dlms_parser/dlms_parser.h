@@ -25,8 +25,12 @@ class DlmsParser final : NonCopyableAndNonMovable {
   void set_decryption_key(const std::array<uint8_t, 16>& key);
   void set_decryption_key(const std::vector<uint8_t>& key);
 
+  // Load built-in patterns (T1, T2, T3, U.ZPA).
+  void load_default_patterns();
+
   // Register a custom AXDR pattern (priority 0 — tried before built-in patterns).
   void register_pattern(const std::string& dsl);
+  void register_pattern(const std::string& name, const std::string& dsl, int priority = 0);
 
   // Parse a full frame. Fires cooked_cb for each matched COSEM object.
   // Optionally fires raw_cb with unmodified captures before conversion.

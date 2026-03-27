@@ -21,6 +21,16 @@
       "email": "anton.viktorov@live.com",
       "url": "https://github.com/latonita",
       "maintainer": true
+    },
+    {
+      "name": "Tomer27cz",
+      "url": "https://github.com/Tomer27cz",
+      "maintainer": true
+    },
+    {
+      "name": "Dmitrii Baranov",
+      "url": "https://github.com/PolarGoose",
+      "maintainer": true
     }
   ],
   "license": "Apache-2.0",

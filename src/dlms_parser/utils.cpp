@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <cstring>
 
-namespace dlms_parser {
+namespace dlms_parser::utils {
 
 float data_as_float(const DlmsDataType value_type, const uint8_t* ptr, const uint8_t len) {
   if (!ptr || len == 0) return 0.0f;
@@ -38,6 +38,39 @@ float data_as_float(const DlmsDataType value_type, const uint8_t* ptr, const uin
   }
   default: return 0.0f;
   }
+}
+
+bool test_if_date_time_12b(const uint8_t* p) {
+  if (p == nullptr) return false;
+
+  const uint16_t year = static_cast<uint16_t>(p[0] << 8 | p[1]);
+  if (!(year == 0x0000 || (year >= 1970 && year <= 2100))) return false;
+
+  const uint8_t month = p[2];
+  if (!(month == 0xFF || (month >= 1 && month <= 12))) return false;
+
+  const uint8_t day = p[3];
+  if (!(day == 0xFF || (day >= 1 && day <= 31))) return false;
+
+  const uint8_t dow = p[4];
+  if (!(dow == 0xFF || (dow >= 1 && dow <= 7))) return false;
+
+  const uint8_t hour = p[5];
+  if (!(hour == 0xFF || hour <= 23)) return false;
+
+  const uint8_t minute = p[6];
+  if (!(minute == 0xFF || minute <= 59)) return false;
+
+  const uint8_t second = p[7];
+  if (!(second == 0xFF || second <= 59)) return false;
+
+  const uint8_t ms = p[8];
+  if (!(ms == 0xFF || ms <= 99)) return false;
+
+  const auto s_dev = static_cast<int16_t>(static_cast<uint16_t>(p[9] << 8 | p[10]));
+  if (!(s_dev == static_cast<int16_t>(0x8000) || (s_dev >= -720 && s_dev <= 720))) return false;
+
+  return true;
 }
 
 void datetime_to_string(const uint8_t* ptr, const uint8_t len, char* buffer, const size_t max_len) {

@@ -13,16 +13,7 @@ namespace dlms_parser {
 // Construction / pattern registry
 // ---------------------------------------------------------------------------
 
-AxdrParser::AxdrParser() {
-  this->load_default_patterns_();
-}
-
-void AxdrParser::load_default_patterns_() {
-  this->register_pattern_dsl_("T1", "TC,TO,TS,TV", 10);
-  this->register_pattern_dsl_("T2", "TO,TV,TSU", 10);
-  this->register_pattern_dsl_("T3", "TV,TC,TSU,TO", 10);
-  this->register_pattern_dsl_("U.ZPA", "F,C,O,A,TV", 10);
-}
+AxdrParser::AxdrParser() = default;
 
 void AxdrParser::register_pattern(const std::string& name, const std::string& dsl, int priority) {
   this->register_pattern_dsl_(name, dsl, priority);
@@ -93,7 +84,7 @@ uint32_t AxdrParser::read_u32_() {
 // ---------------------------------------------------------------------------
 
 bool AxdrParser::skip_data_(uint8_t type) {
-  const int data_size = get_data_type_size(static_cast<DlmsDataType>(type));
+  const int data_size = utils::get_data_type_size(static_cast<DlmsDataType>(type));
 
   if (data_size == 0) return true;
 
@@ -124,7 +115,7 @@ bool AxdrParser::skip_data_(uint8_t type) {
     if (this->pos_ + skip_bytes > this->buffer_len_) return false;
 
     Logger::log(LogLevel::VERY_VERBOSE, "Skipping %s (%u bytes) at pos %zu",
-                dlms_data_type_to_string(static_cast<DlmsDataType>(type)), skip_bytes, this->pos_);
+                utils::dlms_data_type_to_string(static_cast<DlmsDataType>(type)), skip_bytes, this->pos_);
     this->pos_ += skip_bytes;
   }
   return true;
@@ -182,45 +173,18 @@ bool AxdrParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
 // Pattern matching
 // ---------------------------------------------------------------------------
 
+// test_if_date_time_12b_ delegates to the utils function, handling the parser buffer fallback.
 bool AxdrParser::test_if_date_time_12b_(const uint8_t* buf) {
-  if (buf == nullptr && this->pos_ + 12 > this->buffer_len_) return false;
-  const uint8_t* p = buf ? buf : &this->buffer_[this->pos_];
-
-  const uint16_t year = static_cast<uint16_t>(p[0] << 8 | p[1]);
-  if (!(year == 0x0000 || (year >= 1970 && year <= 2100))) return false;
-
-  const uint8_t month = p[2];
-  if (!(month == 0xFF || (month >= 1 && month <= 12))) return false;
-
-  const uint8_t day = p[3];
-  if (!(day == 0xFF || (day >= 1 && day <= 31))) return false;
-
-  const uint8_t dow = p[4];
-  if (!(dow == 0xFF || (dow >= 1 && dow <= 7))) return false;
-
-  const uint8_t hour = p[5];
-  if (!(hour == 0xFF || hour <= 23)) return false;
-
-  const uint8_t minute = p[6];
-  if (!(minute == 0xFF || minute <= 59)) return false;
-
-  const uint8_t second = p[7];
-  if (!(second == 0xFF || second <= 59)) return false;
-
-  const uint8_t ms = p[8];
-  if (!(ms == 0xFF || ms <= 99)) return false;
-
-  const auto s_dev = static_cast<int16_t>(static_cast<uint16_t>(p[9] << 8 | p[10]));
-  if (!(s_dev == static_cast<int16_t>(0x8000) || (s_dev >= -720 && s_dev <= 720))) return false;
-
-  return true;
+  if (buf) return utils::test_if_date_time_12b(buf);
+  if (this->pos_ + 12 > this->buffer_len_) return false;
+  return utils::test_if_date_time_12b(&this->buffer_[this->pos_]);
 }
 
 bool AxdrParser::capture_generic_value_(AxdrCaptures& c) {
   uint8_t vt = this->read_byte_();
-  if (!is_value_data_type(static_cast<DlmsDataType>(vt))) return false;
+  if (!utils::is_value_data_type(static_cast<DlmsDataType>(vt))) return false;
 
-  const int ds = get_data_type_size(static_cast<DlmsDataType>(vt));
+  const int ds = utils::get_data_type_size(static_cast<DlmsDataType>(vt));
   if (ds > 0) {
     if (this->pos_ + static_cast<size_t>(ds) > this->buffer_len_) return false;
     c.value_ptr = &this->buffer_[this->pos_];
@@ -415,13 +379,13 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
   if (!this->cooked_cb_) return;
 
   char obis_str_buf[32];
-  obis_to_string(effective.obis, obis_str_buf, sizeof(obis_str_buf));
+  utils::obis_to_string(effective.obis, obis_str_buf, sizeof(obis_str_buf));
 
-  const float raw_val_f = data_as_float(effective.value_type, effective.value_ptr, effective.value_len);
+  const float raw_val_f = utils::data_as_float(effective.value_type, effective.value_ptr, effective.value_len);
   float val_f = raw_val_f;
 
   char val_s_buf[128];
-  data_to_string(effective.value_type, effective.value_ptr, effective.value_len, val_s_buf, sizeof(val_s_buf));
+  utils::data_to_string(effective.value_type, effective.value_ptr, effective.value_len, val_s_buf, sizeof(val_s_buf));
 
   const bool is_numeric = effective.value_type != DLMS_DATA_TYPE_OCTET_STRING &&
                           effective.value_type != DLMS_DATA_TYPE_STRING &&
@@ -437,15 +401,15 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
 
   if (effective.has_scaler_unit) {
     Logger::log(LogLevel::INFO, "  type=%s len=%d scaler=%d unit=%d",
-                dlms_data_type_to_string(effective.value_type), effective.value_len, effective.scaler, effective.unit_enum);
+                utils::dlms_data_type_to_string(effective.value_type), effective.value_len, effective.scaler, effective.unit_enum);
   } else {
     Logger::log(LogLevel::INFO, "  type=%s len=%d",
-                dlms_data_type_to_string(effective.value_type), effective.value_len);
+                utils::dlms_data_type_to_string(effective.value_type), effective.value_len);
   }
 
   if (effective.value_ptr && effective.value_len > 0) {
     char hex_buf[512];
-    format_hex_pretty_to(hex_buf, sizeof(hex_buf), effective.value_ptr, effective.value_len);
+    utils::format_hex_pretty_to(hex_buf, sizeof(hex_buf), effective.value_ptr, effective.value_len);
     Logger::log(LogLevel::INFO, "  hex  : %s", hex_buf);
   }
   Logger::log(LogLevel::INFO, "  str  : '%s'", val_s_buf);

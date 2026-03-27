@@ -35,7 +35,6 @@ class AxdrParser {
  private:
   // Pattern registry
   std::vector<AxdrDescriptorPattern> patterns_;
-  void load_default_patterns_();
   void register_pattern_dsl_(const std::string& name, const std::string& dsl, int priority);
 
   // Parse-time state — reset at the start of each parse() call

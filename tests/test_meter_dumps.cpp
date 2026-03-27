@@ -55,6 +55,7 @@ void run_meter_test(const char* name,
   });
 
   dlms_parser::DlmsParser parser;
+  parser.load_default_patterns();
   parser.set_frame_format(format);
   if (setup_fn) setup_fn(parser);
 
@@ -93,10 +94,12 @@ void run_meter_test(const char* name,
 // ---------------------------------------------------------
 // Test Suite: Register all meter dumps here
 // ---------------------------------------------------------
-TEST_CASE("Integration: Real Meter Dumps") {
+// RAW APDU tests (no frame transport)
+// ---------------------------------------------------------
+TEST_CASE("Integration: RAW APDU") {
 
-  SUBCASE("Sagemcom XT211 (RAW APDU)") {
-    run_meter_test("Sagemcom XT211 (RAW APDU)",
+  SUBCASE("Sagemcom XT211") {
+    run_meter_test("Sagemcom XT211",
       dlms::test_data::sagemcom_xt211_raw_frame,
       sizeof(dlms::test_data::sagemcom_xt211_raw_frame),
       dlms::test_data::sagemcom_xt211_expected_count,
@@ -105,11 +108,40 @@ TEST_CASE("Integration: Real Meter Dumps") {
     );
   }
 
-  SUBCASE("Iskra 550 (HDLC, 3 segmented frames)") {
-    // Objects 1-2 are 2-element structs {OBIS, octet-string} — serial / id.
-    // Pattern S(TO, TV) matches them at the outer STRUCT(16) level (count=2 check
-    // ensures it does NOT fire for the 3-element structs, letting T2 handle those).
-    run_meter_test("Iskra 550 (HDLC, 3 segmented frames)",
+  SUBCASE("Energomera") {
+    run_meter_test("Energomera",
+      dlms::test_data::raw_energomera_frame,
+      sizeof(dlms::test_data::raw_energomera_frame),
+      dlms::test_data::raw_energomera_expected_count,
+      dlms::test_data::raw_energomera_expected_strings,
+      dlms::test_data::raw_energomera_expected_floats
+    );
+  }
+
+  SUBCASE("Salzburg Netz") {
+    run_meter_test("Salzburg Netz",
+      dlms::test_data::raw_salzburg_netz_frame,
+      sizeof(dlms::test_data::raw_salzburg_netz_frame),
+      dlms::test_data::raw_salzburg_netz_expected_count,
+      dlms::test_data::raw_salzburg_netz_expected_strings,
+      dlms::test_data::raw_salzburg_netz_expected_floats,
+      dlms_parser::FrameFormat::RAW,
+      [](dlms_parser::DlmsParser& p) {
+        p.register_pattern("TO, TDTM");
+        p.register_pattern("S(TO, TV)");
+      }
+    );
+  }
+
+}
+
+// ---------------------------------------------------------
+// HDLC transport tests
+// ---------------------------------------------------------
+TEST_CASE("Integration: HDLC") {
+
+  SUBCASE("Iskra 550 (3 segmented frames)") {
+    run_meter_test("Iskra 550 (3 segmented frames)",
       dlms::test_data::iskra550_raw_frame,
       sizeof(dlms::test_data::iskra550_raw_frame),
       dlms::test_data::iskra550_expected_count,
@@ -120,10 +152,8 @@ TEST_CASE("Integration: Real Meter Dumps") {
     );
   }
 
-  SUBCASE("Norway HAN 1-phase (HDLC, Aidon)") {
-    // ARRAY(9): 3 string objects {OBIS, string} + 6 numeric {OBIS, value, scaler-unit}.
-    // S(TO, TV) captures the 2-element string structs; T2 handles the 3-element numeric ones.
-    run_meter_test("Norway HAN 1-phase (HDLC, Aidon)",
+  SUBCASE("Norway HAN 1-phase (Aidon)") {
+    run_meter_test("Norway HAN 1-phase (Aidon)",
       dlms::test_data::norway_han_1phase_raw_frame,
       sizeof(dlms::test_data::norway_han_1phase_raw_frame),
       dlms::test_data::norway_han_1phase_expected_count,
@@ -134,10 +164,8 @@ TEST_CASE("Integration: Real Meter Dumps") {
     );
   }
 
-  SUBCASE("Norway HAN 3-phase (HDLC, Aidon)") {
-    // ARRAY(27): 1 datetime {OBIS, datetime} + 26 numeric {OBIS, value, scaler-unit}.
-    // S(TO, TV) captures the datetime struct; T2 handles the numeric ones.
-    run_meter_test("Norway HAN 3-phase (HDLC, Aidon)",
+  SUBCASE("Norway HAN 3-phase (Aidon)") {
+    run_meter_test("Norway HAN 3-phase (Aidon)",
       dlms::test_data::norway_han_3phase_raw_frame,
       sizeof(dlms::test_data::norway_han_3phase_raw_frame),
       dlms::test_data::norway_han_3phase_expected_count,
@@ -148,14 +176,42 @@ TEST_CASE("Integration: Real Meter Dumps") {
     );
   }
 
-  SUBCASE("MBus Netz NOE P1 (encrypted)") {
-    // 2 M-Bus frames, General-Glo-Ciphering (0xDB), AES-GCM encrypted.
-    // Notification body has structure of 23 objects, all non tagged, one by one: DTM,T2,T2,...,T
-    // 1) Timestamp as TDTM
-    // 2) Plain object, no object structure, just: TO, TV, TSU
-    // ..) More plain objects
-    // last) Last object is Meter number, Ocstet-string, last in the structure
-    run_meter_test("MBus Netz NOE P1 (encrypted)",
+  SUBCASE("Landis+Gyr ZMF100") {
+    run_meter_test("Landis+Gyr ZMF100",
+      dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame,
+      sizeof(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame),
+      dlms::test_data::hdlc_landis_gyr_zmf100_expected_count,
+      dlms::test_data::hdlc_landis_gyr_zmf100_expected_strings,
+      dlms::test_data::hdlc_landis_gyr_zmf100_expected_floats,
+      dlms_parser::FrameFormat::HDLC,
+      [](dlms_parser::DlmsParser& p) {
+        p.set_skip_crc_check(true);
+        p.register_pattern("S(TO, TDTM)");
+        p.register_pattern("S(TO, TV)");
+        p.register_pattern("TOW, TV, TSU");
+      }
+    );
+  }
+
+  SUBCASE("Landis+Gyr ZMF100 — CRC check rejects bad FCS") {
+    dlms_parser::DlmsParser parser;
+    parser.set_frame_format(dlms_parser::FrameFormat::HDLC);
+    size_t n = parser.parse(
+      dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame,
+      sizeof(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame),
+      [](const char*, float, const char*, bool) {});
+    CHECK(n == 0);
+  }
+
+}
+
+// ---------------------------------------------------------
+// M-Bus transport tests
+// ---------------------------------------------------------
+TEST_CASE("Integration: MBus") {
+
+  SUBCASE("Netz NOE P1 (encrypted)") {
+    run_meter_test("Netz NOE P1 (encrypted)",
       dlms::test_data::mbus_netz_noe_p1_raw_frame,
       sizeof(dlms::test_data::mbus_netz_noe_p1_raw_frame),
       dlms::test_data::mbus_netz_noe_p1_expected_count,
@@ -167,59 +223,6 @@ TEST_CASE("Integration: Real Meter Dumps") {
             dlms::test_data::mbus_netz_noe_p1_key,
             dlms::test_data::mbus_netz_noe_p1_key + 16));
         p.register_pattern("L, TSTR");
-      }
-    );
-  }
-
-  SUBCASE("Energomera (RAW APDU)") {
-    run_meter_test("Energomera (RAW APDU)",
-      dlms::test_data::raw_energomera_frame,
-      sizeof(dlms::test_data::raw_energomera_frame),
-      dlms::test_data::raw_energomera_expected_count,
-      dlms::test_data::raw_energomera_expected_strings,
-      dlms::test_data::raw_energomera_expected_floats
-    );
-  }
-
-  SUBCASE("Landis+Gyr ZMF100 (HDLC)") {
-    run_meter_test("Landis+Gyr ZMF100 (HDLC)",
-      dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame,
-      sizeof(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame),
-      dlms::test_data::hdlc_landis_gyr_zmf100_expected_count,
-      dlms::test_data::hdlc_landis_gyr_zmf100_expected_strings,
-      dlms::test_data::hdlc_landis_gyr_zmf100_expected_floats,
-      dlms_parser::FrameFormat::HDLC,
-      [](dlms_parser::DlmsParser& p) {
-        p.set_skip_crc_check(true);  // log has incorrect FCS transcription
-        p.register_pattern("S(TO, TDTM)");
-        p.register_pattern("S(TO, TV)");
-        p.register_pattern("TOW, TV, TSU");  // Landis+Gyr firmware bug: 06 09 instead of 09 06
-      }
-    );
-  }
-
-  SUBCASE("Landis+Gyr ZMF100 — CRC check rejects bad FCS") {
-    // Same frame without skip_crc_check — parse must return 0 (bad FCS)
-    dlms_parser::DlmsParser parser;
-    parser.set_frame_format(dlms_parser::FrameFormat::HDLC);
-    size_t n = parser.parse(
-      dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame,
-      sizeof(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame),
-      [](const char*, float, const char*, bool) {});
-    CHECK(n == 0);
-  }
-
-  SUBCASE("Salzburg Netz (RAW APDU)") {
-    run_meter_test("Salzburg Netz (RAW APDU)",
-      dlms::test_data::raw_salzburg_netz_frame,
-      sizeof(dlms::test_data::raw_salzburg_netz_frame),
-      dlms::test_data::raw_salzburg_netz_expected_count,
-      dlms::test_data::raw_salzburg_netz_expected_strings,
-      dlms::test_data::raw_salzburg_netz_expected_floats,
-      dlms_parser::FrameFormat::RAW,
-      [](dlms_parser::DlmsParser& p) {
-        p.register_pattern("TO, TDTM");   // flat datetime (OBIS + datetime as 2 top-level elements)
-        p.register_pattern("S(TO, TV)");
       }
     );
   }

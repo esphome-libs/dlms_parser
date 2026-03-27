@@ -10,34 +10,35 @@ APDU unwrapping, and AXDR pattern-matching to extract meter readings.
 
 Understanding the pipeline is essential for implementing meter reading correctly.
 
-```
-UART bytes
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ DlmsParser::parse(buf, len, cooked_cb, raw_cb)                  │
-│                                                                 │
-│  1. Frame decoder (selected by set_frame_format())              │
-│     HDLC  → HdlcDecoder  : strips 0x7E framing, CRC, LLC        │
-│     MBUS  → MBusDecoder  : strips M-Bus header/footer           │
-│     RAW   → pass-through : buf is already the APDU              │
-│                     │                                           │
-│                     ▼  raw APDU bytes                           │
-│  2. ApduHandler::parse()                                        │
-│     0x0F DATA-NOTIFICATION : strips Long-Invoke-ID + datetime   │
-│     0xDB / 0xDF ciphering  : decrypts with GcmDecryptor,        │
-│                              then re-enters step 2              │
-│     0x01 / 0x02 raw AXDR   : passes straight through            │
-│                     │                                           │
-│                     ▼  raw AXDR bytes                           │
-│  3. AxdrParser::parse()                                         │
-│     For each COSEM object in the AXDR stream:                   │
-│       a. Try registered patterns (priority order, lowest first) │
-│       b. On match → raw_cb(AxdrCaptures, pattern)  [if set]     │
-│       c. On match → cooked_cb(obis, float, str, is_numeric)     │
-│                                                                 │
-│  Returns: total number of matched COSEM objects                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    UART["UART bytes"] --> PARSE["DlmsParser::parse(buf, len, cooked_cb, raw_cb)"]
+
+    subgraph PARSE_INNER [" "]
+        direction TB
+        FRAME["1. Frame decoder<br/><i>selected by set_frame_format()</i>"]
+        FRAME -->|"HDLC"| HDLC["HdlcDecoder<br/>strips 0x7E framing, CRC, LLC<br/>reassembles segmented frames"]
+        FRAME -->|"MBUS"| MBUS["MBusDecoder<br/>strips M-Bus header/footer"]
+        FRAME -->|"RAW"| RAW["pass-through<br/>buf is already the APDU"]
+
+        HDLC --> APDU_BYTES["raw APDU bytes"]
+        MBUS --> APDU_BYTES
+        RAW --> APDU_BYTES
+
+        APDU_BYTES --> APDU["2. ApduHandler::parse()"]
+        APDU -->|"0x0F"| DN["DATA-NOTIFICATION<br/>strips Long-Invoke-ID + datetime"]
+        APDU -->|"0xDB / 0xDF"| CIPHER["Ciphered APDU<br/>decrypts with GcmDecryptor"]
+        APDU -->|"0x01 / 0x02"| RAWAXDR["raw AXDR<br/>no APDU wrapper"]
+        CIPHER -->|"re-enters step 2"| APDU
+
+        DN --> AXDR_BYTES["raw AXDR bytes"]
+        RAWAXDR --> AXDR_BYTES
+
+        AXDR_BYTES --> AXDR["3. AxdrParser::parse()"]
+        AXDR --> MATCH["For each COSEM object:<br/>a. Try patterns (priority order, lowest first)<br/>b. On match → raw_cb (if set)<br/>c. On match → cooked_cb"]
+    end
+
+    MATCH --> RESULT["Returns: total matched objects"]
 ```
 
 **Key rules:**
@@ -54,6 +55,7 @@ UART bytes
 #include "dlms_parser/dlms_parser.h"
 
 dlms_parser::DlmsParser parser;
+parser.load_default_patterns();  // T1, T2, T3, U.ZPA
 
 // Called for every recognised COSEM object in the frame
 auto on_value = [](const char* obis, float num, const char* str, bool is_numeric) {
@@ -129,20 +131,25 @@ The GCM decryptor selects its backend at compile time:
 
 ---
 
-## Step 3 — Register Custom Patterns (optional)
+## Step 3 — Load and Register Patterns
 
-The parser ships with four built-in patterns that cover the most common DLMS push
-structures. If your meter uses a different layout, register your own before the
-first `parse()` call.
+The parser starts with **no patterns**. Call `load_default_patterns()` to register
+the four built-in patterns, then optionally add your own.
+
+### Loading built-in patterns
+
+```cpp
+parser.load_default_patterns();  // registers T1, T2, T3, U.ZPA at priority 10, 20, 30, 40
+```
 
 ### Built-in patterns
 
-| Name | DSL | Typical use |
-|---|---|---|
-| `T1` | `TC, TO, TS, TV` | Class ID + tagged OBIS + scaler + value |
-| `T2` | `TO, TV, TSU` | Tagged OBIS + value + scaler-unit struct |
-| `T3` | `TV, TC, TSU, TO` | Value first, class ID, scaler-unit, OBIS |
-| `U.ZPA` | `F, C, O, A, TV` | Untagged (ZPA/Aidon-style) structure |
+| Name | DSL | Prio | Typical use |
+|---|---|---| --- |
+| `T1` | `TC, TO, TS, TV` | 10 | Class ID + tagged OBIS + scaler + value |
+| `T2` | `TO, TV, TSU` | 20 | Tagged OBIS + value + scaler-unit struct |
+| `T3` | `TV, TC, TSU, TO` | 30 | Value first, class ID, scaler-unit, OBIS |
+| `U.ZPA` | `F, C, O, A, TV` | 40 | Untagged (ZPA/Aidon-style) structure |
 
 ### DSL token reference
 
@@ -162,17 +169,25 @@ Tokens are comma-separated. Order must match the byte order in the AXDR stream.
 | `V` / `TV` | Generic value — any DLMS type, auto-converted to float or string | `06 00 00 07 A4` (uint32 = 1956) |
 | `TSTR` | Tagged string — expects `0x09`, `0x0A`, or `0x0C` type tag + length + bytes | `09 08 38 34 38 39 35 31 32 36` ("84895126") |
 | `TDTM` | Tagged 12-byte DATETIME — accepts `0x19` + 12B or `0x09 0x0C` + 12B | `19 07E7 04 01 ...` or `09 0C 07E7 04 01 ...` |
-| `TS` | Tagged scaler — `0x0F` (int8) + exponent byte | `0F FF` (scaler = −1 → ×0.1) |
+| `TS` | Tagged scaler — `0x0F` (int8) + exponent byte | `0F FF` (scaler = -1 → x0.1) |
 | `TU` | Tagged unit enum — `0x16` (enum) + unit byte | `16 23` (unit 35 = V) |
-| `TSU` | Tagged scaler-unit pair — shorthand for `S(TS, TU)` | `02 02 0F FF 16 23` (struct{−1, V}) |
-| `S(x, y, …)` | Inline sub-structure with N elements | `02 03` (struct with 3 elements) |
+| `TSU` | Tagged scaler-unit pair — shorthand for `S(TS, TU)` | `02 02 0F FF 16 23` (struct{-1, V}) |
+| `S(x, y, ...)` | Inline sub-structure with N elements | `02 03` (struct with 3 elements) |
 | `DN` | Go down — enter a nested structure | *(control token — no bytes)* |
 | `UP` | Go up — exit a nested structure | *(control token — no bytes)* |
 
 ### Registering a pattern
 
-Custom patterns are registered with **priority 0**, so they are tried **before** the
-built-ins (priority 10). The first match in priority order wins.
+```cpp
+// Simple form — name defaults to "CUSTOM", priority defaults to 0 (tried first)
+parser.register_pattern("TC, TO, TDTM");
+
+// Full form — specify name and priority
+parser.register_pattern("MyPattern", "TO, TV, S(TS, TU)", 5);
+```
+
+Custom patterns registered with the simple form get **priority 0**, so they are
+tried **before** the built-ins (priority 10). The first match in priority order wins.
 
 ```cpp
 // Meter sends: class_id(tagged), OBIS(tagged), datetime-as-octet-string
@@ -183,6 +198,12 @@ parser.register_pattern("C, O, A, V, TS, TU");
 
 // Nested scaler-unit inside a sub-structure
 parser.register_pattern("TO, TV, S(TS, TU)");
+
+// Capture the last element as a string (e.g. meter number without OBIS)
+parser.register_pattern("L, TSTR");
+
+// Landis+Gyr firmware bug: OBIS tag bytes swapped (06 09 instead of 09 06)
+parser.register_pattern("TOW, TV, TSU");
 ```
 
 ---
@@ -222,6 +243,9 @@ Common OBIS codes:
 | `1.0.32.7.0.255` | L1 voltage (V) |
 | `0.0.96.1.0.255` | Meter serial number (string) |
 
+If a pattern captures a value but no OBIS code (e.g. `L, TSTR`), the object
+is emitted with OBIS `0.0.0.0.0.0` as a placeholder.
+
 ### The raw callback (`DlmsRawCallback`) — advanced use
 
 Gives access to the raw captured bytes before conversion. Useful when you need
@@ -231,7 +255,7 @@ the scaler/unit separately, or want to handle types the cooked callback cannot.
 void on_raw(const dlms_parser::AxdrCaptures& c,
             const dlms_parser::AxdrDescriptorPattern& pat)
 {
-    // c.obis        — pointer to 6-byte OBIS array
+    // c.obis        — pointer to 6-byte OBIS array (nullptr if not captured)
     // c.class_id    — COSEM class ID (e.g. 3 = register)
     // c.value_type  — DlmsDataType enum
     // c.value_ptr   — raw bytes of the value
@@ -305,6 +329,7 @@ class MyMeterComponent {
 
 public:
     void setup() {
+        parser_.load_default_patterns();
         parser_.set_frame_format(dlms_parser::FrameFormat::HDLC);
 
         // Only needed if meter encrypts its push telegrams
@@ -342,13 +367,136 @@ public:
 
 ---
 
+## Architecture — Class Diagram
+
+```mermaid
+classDiagram
+    direction TB
+
+    class DlmsParser {
+        +set_frame_format(FrameFormat fmt)
+        +set_skip_crc_check(bool skip)
+        +set_decryption_key(array~uint8_t 16~ key)
+        +set_decryption_key(vector~uint8_t~ key)
+        +load_default_patterns()
+        +register_pattern(string dsl)
+        +register_pattern(string name, string dsl, int priority)
+        +parse(uint8_t* buf, size_t len, DlmsDataCallback, DlmsRawCallback) size_t
+    }
+
+    class HdlcDecoder {
+        +set_skip_crc_check(bool skip)
+        +decode(uint8_t* frame, size_t len, vector~uint8_t~& apdu_out) bool
+    }
+
+    class MBusDecoder {
+        +set_skip_crc_check(bool skip)
+        +decode(uint8_t* frame, size_t len, vector~uint8_t~& apdu_out) bool
+    }
+
+    class ApduHandler {
+        +set_decryptor(GcmDecryptor* d)
+        +parse(uint8_t* buf, size_t len, AxdrPayloadCallback cb) bool
+    }
+
+    class GcmDecryptor {
+        +set_key(array~uint8_t 16~ key)
+        +set_key(vector~uint8_t~ key)
+        +has_key() bool
+        +decrypt(uint8_t* iv, uint8_t* cipher, size_t len, vector~uint8_t~& plain) bool
+    }
+
+    class AxdrParser {
+        +register_pattern(string name, string dsl, int priority)
+        +clear_patterns()
+        +parse(uint8_t* axdr, size_t len, DlmsDataCallback, DlmsRawCallback) size_t
+        +patterns() vector~AxdrDescriptorPattern~
+    }
+
+    class Logger {
+        +set_log_function(function callback)$
+        +log(LogLevel level, char* fmt, ...)$
+    }
+
+    DlmsParser *-- HdlcDecoder
+    DlmsParser *-- MBusDecoder
+    DlmsParser *-- ApduHandler
+    DlmsParser *-- GcmDecryptor
+    DlmsParser *-- AxdrParser
+    ApduHandler --> GcmDecryptor : uses
+```
+
+---
+
+## Public API Reference
+
+### `DlmsParser` — main facade
+
+| Method | Description |
+|---|---|
+| `set_frame_format(FrameFormat)` | Select transport: `RAW`, `HDLC`, or `MBUS` |
+| `set_skip_crc_check(bool)` | Skip CRC/checksum validation for HDLC and M-Bus |
+| `set_decryption_key(array<uint8_t,16>)` | Set AES-128-GCM key from fixed array |
+| `set_decryption_key(vector<uint8_t>)` | Set AES-128-GCM key from vector (must be 16 bytes) |
+| `load_default_patterns()` | Register built-in patterns T1(10), T2(20), T3(30), U.ZPA(40) |
+| `register_pattern(dsl)` | Register custom pattern, name="CUSTOM", priority=0 |
+| `register_pattern(name, dsl, priority)` | Register named pattern with explicit priority |
+| `parse(buf, len, cooked_cb, raw_cb)` | Parse one frame; returns number of matched objects |
+
+### Callbacks
+
+| Type | Signature |
+|---|---|
+| `DlmsDataCallback` | `void(const char* obis, float val, const char* str, bool is_numeric)` |
+| `DlmsRawCallback` | `void(const AxdrCaptures& captures, const AxdrDescriptorPattern& pattern)` |
+
+### `AxdrCaptures` — raw match data (passed to `DlmsRawCallback`)
+
+| Field | Type | Description |
+|---|---|---|
+| `obis` | `const uint8_t*` | Pointer to 6-byte OBIS array (`nullptr` if not captured) |
+| `class_id` | `uint16_t` | COSEM class ID (0 if not captured) |
+| `value_type` | `DlmsDataType` | DLMS type tag of the captured value |
+| `value_ptr` | `const uint8_t*` | Raw bytes of the value |
+| `value_len` | `uint8_t` | Byte count of the value |
+| `has_scaler_unit` | `bool` | Whether scaler/unit were captured |
+| `scaler` | `int8_t` | Signed exponent (value × 10^scaler) |
+| `unit_enum` | `uint8_t` | DLMS unit code (27=W, 30=Wh, 33=A, 35=V, ...) |
+
+### `dlms_parser::utils` — utility functions
+
+| Function | Description |
+|---|---|
+| `data_as_float(type, ptr, len)` | Convert raw DLMS value bytes to float |
+| `data_to_string(type, ptr, len, buf, max)` | Convert raw DLMS value bytes to string |
+| `datetime_to_string(ptr, len, buf, max)` | Format 12-byte DATETIME as `YYYY-MM-DD HH:MM:SS` |
+| `obis_to_string(obis, buf, max)` | Format 6-byte OBIS as `A.B.C.D.E.F` |
+| `test_if_date_time_12b(ptr)` | Heuristic check: does this 12-byte buffer look like a DATETIME? |
+| `dlms_data_type_to_string(type)` | Return type name string (e.g. `"UINT32"`) |
+| `get_data_type_size(type)` | Fixed byte size for a type (-1 = variable, 0 = none) |
+| `is_value_data_type(type)` | True for value types, false for ARRAY/STRUCTURE/COMPACT_ARRAY |
+| `format_hex_pretty_to(out, max, data, len)` | Format bytes as `"0A.1B.2C"` dot-separated hex |
+
+### `Logger` — static logging interface
+
+| Method | Description |
+|---|---|
+| `Logger::set_log_function(callback)` | Install log handler; suppressed by default |
+| `Logger::log(level, fmt, ...)` | Emit a log message (printf-style) |
+
+---
+
 ## Troubleshooting
 
 | Symptom | Likely cause |
 |---|---|
-| `parse()` returns 0 | No pattern matched; enable DEBUG logging to see AXDR structure |
-| `HCS error` / `FCS error` in logs | Corrupt frame or wrong `FrameFormat` |
-| `mbedTLS decryption failed` | Wrong decryption key or corrupted ciphertext |
-| Values look wrong (off by 1000×) | Scaler not applied — use `cooked_cb` which applies it automatically |
-| `APDU: unknown tag 0xXX` | Meter uses an unsupported APDU wrapper |
+| `parse()` returns 0 | No patterns loaded — call `load_default_patterns()` or register custom ones |
+| `parse()` returns 0 (with patterns) | No pattern matched the AXDR structure; enable DEBUG logging |
+| `HCS error` / `FCS error` in logs | Corrupt frame, wrong `FrameFormat`, or non-standard CRC — try `set_skip_crc_check(true)` |
+| `checksum error` in logs | M-Bus checksum mismatch — try `set_skip_crc_check(true)` |
+| `Encrypted APDU received but no decryption key` | Call `set_decryption_key()` before `parse()` |
+| `Decryption failed` | Wrong key or corrupted ciphertext |
+| Values look wrong (off by 1000x) | Scaler not applied — use `cooked_cb` which applies it automatically |
+| `No supported APDU tag found` | Meter uses an unsupported APDU wrapper |
 | All values are strings | Value type is OCTET_STRING containing a DATETIME — use `TDTM` token |
+| Object captured with OBIS `0.0.0.0.0.0` | Pattern has no `TO`/`O` token — OBIS is a zero placeholder |

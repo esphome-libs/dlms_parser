@@ -19,8 +19,19 @@ void DlmsParser::set_decryption_key(const std::vector<uint8_t>& key) {
   decryptor_.set_key(key);
 }
 
+void DlmsParser::load_default_patterns() {
+  axdr_parser_.register_pattern("T1", "TC,TO,TS,TV", 10);
+  axdr_parser_.register_pattern("T2", "TO,TV,TSU", 20);
+  axdr_parser_.register_pattern("T3", "TV,TC,TSU,TO", 30);
+  axdr_parser_.register_pattern("U.ZPA", "F,C,O,A,TV", 40);
+}
+
 void DlmsParser::register_pattern(const std::string& dsl) {
   axdr_parser_.register_pattern("CUSTOM", dsl, 0);
+}
+
+void DlmsParser::register_pattern(const std::string& name, const std::string& dsl, int priority) {
+  axdr_parser_.register_pattern(name, dsl, priority);
 }
 
 size_t DlmsParser::parse(const uint8_t* buf, size_t len,
