@@ -87,6 +87,51 @@ parser.set_skip_crc_check(true);
 
 This affects HDLC and M-Bus only. It has no effect in `RAW` mode.
 
+## Accumulating Frames
+
+Some meters split a single DLMS message across multiple transport frames (HDLC
+segmentation, GBT blocks, multi-frame M-Bus). The library does **not** accumulate
+frames internally — that is the caller's responsibility.
+
+Use `check_frame()` to determine when the buffer is ready for `parse()`:
+
+```cpp
+std::vector<uint8_t> buffer;
+
+while (uart_has_data()) {
+    // Read bytes until the next frame delimiter (0x7E for HDLC, 0x16 for M-Bus)
+    auto chunk = read_next_frame_from_uart();
+    buffer.insert(buffer.end(), chunk.begin(), chunk.end());
+
+    auto status = parser.check_frame(buffer.data(), buffer.size());
+
+    if (status == dlms_parser::FrameStatus::ERROR) {
+        buffer.clear();  // bad data — discard and resync
+        continue;
+    }
+
+    if (status == dlms_parser::FrameStatus::NEED_MORE) {
+        continue;  // segmented or multi-frame — keep reading
+    }
+
+    // COMPLETE — parse the accumulated buffer
+    auto [count, consumed] = parser.parse(buffer.data(), buffer.size(), on_value);
+    buffer.clear();
+}
+```
+
+`check_frame()` is stateless and cheap — it only inspects frame headers (length
+fields, segmentation bits, stop bytes). It never copies or stores data.
+
+| Return value | Meaning | Action |
+|---|---|---|
+| `COMPLETE` | buffer contains a complete message | call `parse()` |
+| `NEED_MORE` | more frames expected (segmentation, GBT) | keep reading from UART |
+| `ERROR` | invalid framing | discard buffer and resync |
+
+For `RAW` mode, `check_frame()` always returns `COMPLETE` — the caller is
+responsible for delivering a complete APDU buffer.
+
 ## Working With Encrypted Frames
 
 If the meter encrypts push telegrams, install the AES-128-GCM key before parsing:

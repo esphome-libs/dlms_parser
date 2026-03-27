@@ -66,3 +66,27 @@ UART → check_frame() → COMPLETE / NEED_MORE / ERROR
 | **AxdrParser** | Walks STRUCTURE/ARRAY tree, matches DSL patterns, emits objects |
 | **Logger** | Static logging interface, silent by default |
 | **utils** | Value conversion, OBIS/datetime formatting, type helpers |
+
+## Caller vs Library Responsibilities
+
+The library is **stateless** between calls — it does not buffer or accumulate data.
+
+| Responsibility | Owner |
+|---|---|
+| Reading bytes from UART | Caller |
+| Detecting frame boundaries (0x7E / 0x16) | Caller |
+| Accumulating multi-frame messages | Caller (using `check_frame()` to know when done) |
+| Decoding transport framing (HDLC / M-Bus) | Library |
+| Reassembling GBT blocks | Library |
+| Decrypting AES-GCM | Library |
+| Walking AXDR structure and matching patterns | Library |
+| Delivering parsed values via callbacks | Library |
+
+Typical caller loop:
+
+```
+read frame from UART → append to buffer → check_frame()
+  ├─ NEED_MORE → read more
+  ├─ ERROR → clear buffer, resync
+  └─ COMPLETE → parse() → clear buffer
+```

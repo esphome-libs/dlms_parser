@@ -18,7 +18,23 @@ Main facade that composes frame decoding, APDU handling, decryption, and AXDR pa
 | `register_pattern(dsl)` | Register a custom pattern with name `CUSTOM` and priority `0` |
 | `register_pattern(name, dsl, priority)` | Register a named pattern with explicit priority |
 | `register_pattern(name, dsl, priority, default_obis)` | Register with a default 6-byte OBIS (used when pattern has no `TO`/`O`) |
-| `parse(buf, len, cooked_cb, raw_cb)` | Parse one complete frame and return the number of matched objects |
+| `check_frame(buf, len)` | Check if buffer contains a complete message — returns `FrameStatus` |
+| `parse(buf, len, cooked_cb, raw_cb)` | Parse a complete frame — returns `ParseResult{count, bytes_consumed}` |
+
+### `FrameStatus`
+
+| Value | Meaning |
+|---|---|
+| `FrameStatus::COMPLETE` | buffer contains a complete message — call `parse()` |
+| `FrameStatus::NEED_MORE` | more frames needed — keep reading and call `check_frame()` again |
+| `FrameStatus::ERROR` | invalid framing — discard buffer and resync |
+
+### `ParseResult`
+
+| Field | Type | Description |
+|---|---|---|
+| `count` | `size_t` | number of matched COSEM objects |
+| `bytes_consumed` | `size_t` | how many bytes of the AXDR payload were processed |
 
 ### `FrameFormat`
 
