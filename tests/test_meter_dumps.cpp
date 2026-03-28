@@ -19,6 +19,7 @@
 #include "tests/expected/hdlc_landis_gyr_zmf100.h"
 #include "tests/expected/raw_salzburg_netz.h"
 #include "tests/expected/hdlc_landis_gyr_e450.h"
+#include "tests/expected/hdlc_lgz_e450_2.h"
 
 void run_meter_test(const char* name,
                     const uint8_t* payload, size_t payload_size,
@@ -216,7 +217,24 @@ TEST_CASE("Integration: HDLC") {
         p.set_decryption_key(std::vector<uint8_t>(
             dlms::test_data::hdlc_landis_gyr_e450_key,
             dlms::test_data::hdlc_landis_gyr_e450_key + 16));
-        p.register_pattern("TO, TV");  // flat OBIS + value pairs, no scaler/unit
+        p.register_pattern("TO, TV");
+      }
+    );
+  }
+
+  SUBCASE("Landis+Gyr E450 #2 (GBT + encrypted)") {
+    run_meter_test("Landis+Gyr E450 #2 (GBT + encrypted)",
+      dlms::test_data::hdlc_lgz_e450_2_raw_frame,
+      sizeof(dlms::test_data::hdlc_lgz_e450_2_raw_frame),
+      dlms::test_data::hdlc_lgz_e450_2_expected_count,
+      dlms::test_data::hdlc_lgz_e450_2_expected_strings,
+      dlms::test_data::hdlc_lgz_e450_2_expected_floats,
+      dlms_parser::FrameFormat::HDLC,
+      [](dlms_parser::DlmsParser& p) {
+        p.set_decryption_key(std::vector<uint8_t>(
+            dlms::test_data::hdlc_lgz_e450_2_key,
+            dlms::test_data::hdlc_lgz_e450_2_key + 16));
+        p.register_pattern("TO, TV");
       }
     );
   }

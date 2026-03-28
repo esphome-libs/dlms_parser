@@ -1,0 +1,149 @@
+Input: tests/dumps/hdlc_lgz_e450_2.log (332 bytes)
+Key:   5FDE26FE7A1A36B6E1C0BA048FA9A023 (from .key file)
+
+=== HDLC frame 1 (141 bytes) ===
+7E                                     <-- opening flag
+A0 8B                                  <-- format, length=139
+CE FF                                    <-- dst addr (2B)
+03                                       <-- src addr (1B)
+13                                     <-- control byte
+EE E1                                  <-- HCS (OK)
+... FCS: C1 47 (OK)
+E6 E7 00                               <-- LLC header
+Payload: 126 bytes
+7E                                     <-- closing flag
+
+=== HDLC frame 2 (141 bytes) ===
+7E                                     <-- opening flag
+A0 8B                                  <-- format, length=139
+CE FF                                    <-- dst addr (2B)
+03                                       <-- src addr (1B)
+13                                     <-- control byte
+EE E1                                  <-- HCS (OK)
+... FCS: 14 18 (OK)
+Payload: 129 bytes
+7E                                     <-- closing flag
+
+=== HDLC frame 3 (50 bytes) ===
+7E                                     <-- opening flag
+A0 30                                  <-- format, length=48
+CE FF                                    <-- dst addr (2B)
+03                                       <-- src addr (1B)
+13                                     <-- control byte
+86 F8                                  <-- HCS (OK)
+... FCS: 0F 1E (OK)
+Payload: 38 bytes
+7E                                     <-- closing flag
+
+=== APDU: General Block Transfer (0xE0) ===
+  Block 1: 119 bytes (ctrl=0x40)
+  Block 2: 122 bytes (ctrl=0x40)
+  Block 3: 31 bytes (ctrl=0xC0) [last]
+  Reassembled: 272 bytes
+
+=== APDU: General-GLO-Ciphering (0xDB) ===
+08                                     <-- system title length = 8
+  4C 47 5A 67 73 5D D3 A9              = "LGZgs]��"
+82 ...                                  <-- cipher length = 259 (multi-byte)
+30                                     <-- security control
+00 0A CC 83                              <-- frame counter = 707715
+Ciphertext: 254 bytes
+  12 64 7A B9 2E C2 EA FE 5C 43 E8 EE 96 E1 66 0E A3 BA 19 2E 67 A7 3F 96 A3 5A 50 DD 90 7E 8A 46
+  12 05 74 A6 8E D7 78 EF 7F 26 C3 2A DE 71 E4 F6 B9 B3 EC 5F 1F 96 93 FC 9B 11 06 FA 28 00 6F A3
+  12 34 0E 14 6F 22 9A 65 73 67 4C 21 68 79 ED C8 97 0D 56 21 6A 97 3E F0 69 75 9B 3C 91 6A 05 17
+  82 B2 31 A8 B6 A0 21 B5 29 95 C5 E9 DE D3 0A 2C 89 43 9E 01 F0 4A BD C2 45 04 FF EB 47 05 47 53
+  D1 62 B3 9A 9C 7B CA EF 58 40 7B F7 6A 61 DB 32 47 7B 00 44 FD 1C D7 1B 49 F4 46 8E 42 C5 3E 60
+  87 F4 B3 90 51 44 84 F4 6D 35 5B 18 C8 97 B0 94 D1 03 73 74 67 FB 85 55 F3 5D 2B D3 C7 03 0B 10
+  5B 2F A5 DA 21 A0 3B 0F C8 FF D6 A7 53 E9 E7 6B AD 2D 41 C9 93 A5 CF 4B 97 7C 00 50 38 85 ED 76
+  22 07 9B B8 15 87 CB D3 26 E6 41 A0 75 16 FD F3 12 F7 6E E6 5A E6 B0 FB 5E C3 46 3F EB E0
+
+Decrypted: 254 bytes
+  0F 00 0A CC 83 0C 07 E7 0B 0A 05 0A 3A 32 FF 80 00 00 02 21 09 0C 07 E7 0B 0A 05 0A 3A 32 FF 80
+  00 00 09 06 01 00 01 08 00 FF 06 00 B7 DA 36 09 06 01 00 01 08 01 FF 06 00 85 CA 28 09 06 01 00
+  01 08 02 FF 06 00 32 10 0E 09 06 01 00 01 07 00 FF 06 00 00 02 21 09 06 01 00 02 08 00 FF 06 00
+  00 46 86 09 06 01 00 02 08 01 FF 06 00 00 46 86 09 06 01 00 02 08 02 FF 06 00 00 00 00 09 06 01
+  00 02 07 00 FF 06 00 00 00 00 09 06 01 00 03 08 00 FF 06 00 00 75 92 09 06 01 00 03 08 01 FF 06
+  00 00 73 30 09 06 01 00 03 08 02 FF 06 00 00 02 62 09 06 01 00 03 07 00 FF 06 00 00 00 09 09 06
+  01 00 04 08 00 FF 06 00 95 8E 93 09 06 01 00 04 08 01 FF 06 00 63 11 1B 09 06 01 00 04 08 02 FF
+  06 00 32 7D 78 09 06 01 00 04 07 00 FF 06 00 00 01 7B E1 C1 79 5E 43 67 6F 27 E4 C7 11 76
+
+=== APDU: DATA-NOTIFICATION ===
+0F                                     <-- DATA-NOTIFICATION tag
+00 0A CC 83                              <-- Long-Invoke-ID
+0C                                     <-- DateTime: 12 raw bytes
+  07 E7 0B 0A 05 0A 3A 32 FF 80 00 00
+  = 2023-11-10 10:58:50
+
+=== AXDR payload (236 bytes) ===
+02                                     <-- STRUCTURE
+  21                                   <-- 33 elements
+  --- element [1/33] ---
+  09                                     <-- OCTET_STRING
+    0C                                   <-- length = 12
+    07 E7 0B 0A 05 0A 3A 32 FF 80 00 00
+  --- element [2/33] ---
+  09 06 01 00 01 08 00 FF                    <-- OBIS 1.0.1.8.0.255, Active energy+ total (Wh)
+  --- element [3/33] ---
+  06 00 B7 DA 36                             <-- UINT32 = 12048950 (0x00B7DA36)
+  --- element [4/33] ---
+  09 06 01 00 01 08 01 FF                    <-- OBIS 1.0.1.8.1.255, Active energy+ T1 (Wh)
+  --- element [5/33] ---
+  06 00 85 CA 28                             <-- UINT32 = 8768040 (0x0085CA28)
+  --- element [6/33] ---
+  09 06 01 00 01 08 02 FF                    <-- OBIS 1.0.1.8.2.255, Active energy+ T2 (Wh)
+  --- element [7/33] ---
+  06 00 32 10 0E                             <-- UINT32 = 3280910 (0x0032100E)
+  --- element [8/33] ---
+  09 06 01 00 01 07 00 FF                    <-- OBIS 1.0.1.7.0.255, Active power+ (W)
+  --- element [9/33] ---
+  06 00 00 02 21                             <-- UINT32 = 545 (0x00000221)
+  --- element [10/33] ---
+  09 06 01 00 02 08 00 FF                    <-- OBIS 1.0.2.8.0.255, Active energy- total (Wh)
+  --- element [11/33] ---
+  06 00 00 46 86                             <-- UINT32 = 18054 (0x00004686)
+  --- element [12/33] ---
+  09 06 01 00 02 08 01 FF                    <-- OBIS 1.0.2.8.1.255, Active energy- T1 (Wh)
+  --- element [13/33] ---
+  06 00 00 46 86                             <-- UINT32 = 18054 (0x00004686)
+  --- element [14/33] ---
+  09 06 01 00 02 08 02 FF                    <-- OBIS 1.0.2.8.2.255, Active energy- T2 (Wh)
+  --- element [15/33] ---
+  06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+  --- element [16/33] ---
+  09 06 01 00 02 07 00 FF                    <-- OBIS 1.0.2.7.0.255, Active power- (W)
+  --- element [17/33] ---
+  06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+  --- element [18/33] ---
+  09 06 01 00 03 08 00 FF                    <-- OBIS 1.0.3.8.0.255, Reactive energy+ total (varh)
+  --- element [19/33] ---
+  06 00 00 75 92                             <-- UINT32 = 30098 (0x00007592)
+  --- element [20/33] ---
+  09 06 01 00 03 08 01 FF                    <-- OBIS 1.0.3.8.1.255
+  --- element [21/33] ---
+  06 00 00 73 30                             <-- UINT32 = 29488 (0x00007330)
+  --- element [22/33] ---
+  09 06 01 00 03 08 02 FF                    <-- OBIS 1.0.3.8.2.255
+  --- element [23/33] ---
+  06 00 00 02 62                             <-- UINT32 = 610 (0x00000262)
+  --- element [24/33] ---
+  09 06 01 00 03 07 00 FF                    <-- OBIS 1.0.3.7.0.255, Reactive power+ (var)
+  --- element [25/33] ---
+  06 00 00 00 09                             <-- UINT32 = 9 (0x00000009)
+  --- element [26/33] ---
+  09 06 01 00 04 08 00 FF                    <-- OBIS 1.0.4.8.0.255, Reactive energy- total (varh)
+  --- element [27/33] ---
+  06 00 95 8E 93                             <-- UINT32 = 9801363 (0x00958E93)
+  --- element [28/33] ---
+  09 06 01 00 04 08 01 FF                    <-- OBIS 1.0.4.8.1.255
+  --- element [29/33] ---
+  06 00 63 11 1B                             <-- UINT32 = 6492443 (0x0063111B)
+  --- element [30/33] ---
+  09 06 01 00 04 08 02 FF                    <-- OBIS 1.0.4.8.2.255
+  --- element [31/33] ---
+  06 00 32 7D 78                             <-- UINT32 = 3308920 (0x00327D78)
+  --- element [32/33] ---
+  09 06 01 00 04 07 00 FF                    <-- OBIS 1.0.4.7.0.255, Reactive power- (var)
+  --- element [33/33] ---
+  06 00 00 01 7B                             <-- UINT32 = 379 (0x0000017B)
+
+Unparsed tail (12 bytes): E1 C1 79 5E 43 67 6F 27 E4 C7 11 76
