@@ -19,7 +19,10 @@ It is designed for embedded and integration-heavy environments such as ESPHome, 
 ```cpp
 #include "dlms_parser/dlms_parser.h"
 
+uint8_t work_buf[1024];  // caller-owned, no heap allocation during parse()
+
 dlms_parser::DlmsParser parser;
+parser.set_work_buffer(work_buf, sizeof(work_buf));
 parser.set_frame_format(dlms_parser::FrameFormat::RAW);
 parser.load_default_patterns();
 
@@ -31,7 +34,7 @@ auto on_value = [](const char* obis, float num, const char* str, bool is_numeric
     }
 };
 
-size_t count = parser.parse(frame_bytes, frame_len, on_value);
+auto [count, consumed] = parser.parse(frame_bytes, frame_len, on_value);
 printf("%zu objects found\n", count);
 ```
 
@@ -54,11 +57,12 @@ parser.set_decryption_key(key);
 ## Typical Usage Flow
 
 1. Create `dlms_parser::DlmsParser`
-2. Select the frame format
-3. Set the decryption key if the meter is encrypted
-4. Load built-in patterns and optionally register custom ones
-5. Pass one complete frame to `parse()`
-6. Consume extracted values in the callback
+2. Provide a work buffer (`set_work_buffer`)
+3. Select the frame format
+4. Set the decryption key if the meter is encrypted
+5. Load built-in patterns and optionally register custom ones
+6. Pass one complete frame to `parse()`
+7. Consume extracted values in the callback
 
 ## Documentation
 

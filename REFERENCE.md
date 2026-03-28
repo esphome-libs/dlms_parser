@@ -11,6 +11,7 @@ Main facade that composes frame decoding, APDU handling, decryption, and AXDR pa
 | Method | Description |
 |---|---|
 | `set_frame_format(FrameFormat)` | Select transport wrapper: `RAW`, `HDLC`, or `MBUS` |
+| `set_work_buffer(buf, capacity)` | Provide a caller-owned buffer for in-place transforms — **required before `parse()`** |
 | `set_skip_crc_check(bool)` | Skip CRC/checksum validation for HDLC and M-Bus |
 | `set_decryption_key(std::array<uint8_t, 16>)` | Set AES-128-GCM key from a fixed array |
 | `set_decryption_key(std::vector<uint8_t>)` | Set AES-128-GCM key from a vector of exactly 16 bytes |

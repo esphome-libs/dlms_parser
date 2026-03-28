@@ -67,6 +67,31 @@ UART → check_frame() → COMPLETE / NEED_MORE / ERROR
 | **Logger** | Static logging interface, silent by default |
 | **utils** | Value conversion, OBIS/datetime formatting, type helpers |
 
+## Zero-Heap Architecture
+
+All parsing transforms happen in a single caller-owned work buffer. **No heap
+allocation occurs during `parse()`.** The caller provides the buffer at setup:
+
+```cpp
+uint8_t work_buf[1024];
+parser.set_work_buffer(work_buf, sizeof(work_buf));
+```
+
+The pipeline copies input into the work buffer, then transforms in-place:
+
+```
+work_buf: [7E HDLC frames 7E]  ← memcpy from input
+    ↓ HDLC decode (strip framing, concatenate payloads)
+work_buf: [E0 GBT blocks]
+    ↓ GBT reassembly (strip block headers)
+work_buf: [DB ciphertext]
+    ↓ AES-GCM decrypt in-place
+work_buf: [0F DATA-NOTIFICATION AXDR...]
+    ↓ strip APDU header → AxdrParser reads directly
+```
+
+Each stage produces output ≤ input, so the buffer never grows.
+
 ## Caller vs Library Responsibilities
 
 The library is **stateless** between calls — it does not buffer or accumulate data.
@@ -76,9 +101,10 @@ The library is **stateless** between calls — it does not buffer or accumulate 
 | Reading bytes from UART | Caller |
 | Detecting frame boundaries (0x7E / 0x16) | Caller |
 | Accumulating multi-frame messages | Caller (using `check_frame()` to know when done) |
-| Decoding transport framing (HDLC / M-Bus) | Library |
-| Reassembling GBT blocks | Library |
-| Decrypting AES-GCM | Library |
+| Providing a work buffer (`set_work_buffer()`) | Caller |
+| Decoding transport framing (HDLC / M-Bus) | Library (in-place) |
+| Reassembling GBT blocks | Library (in-place) |
+| Decrypting AES-GCM | Library (in-place) |
 | Walking AXDR structure and matching patterns | Library |
 | Delivering parsed values via callbacks | Library |
 

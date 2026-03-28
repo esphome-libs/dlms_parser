@@ -87,6 +87,33 @@ parser.set_skip_crc_check(true);
 
 This affects HDLC and M-Bus only. It has no effect in `RAW` mode.
 
+## Providing A Work Buffer
+
+The parser performs all transforms (frame decoding, GBT reassembly, decryption,
+APDU unwrapping) in a single caller-owned work buffer. **No heap allocation occurs
+during `parse()`.**
+
+```cpp
+uint8_t work_buf[1024];  // stack, static, or PSRAM — caller controls placement
+parser.set_work_buffer(work_buf, sizeof(work_buf));
+```
+
+The work buffer must be at least as large as the biggest raw frame the meter sends.
+If no work buffer is set, or the frame exceeds its capacity, `parse()` returns
+`{0, 0}` and logs an error.
+
+Typical sizes:
+
+| Scenario | Recommended size |
+|---|---|
+| Unencrypted single-frame HDLC | 256–512 bytes |
+| Encrypted single-frame M-Bus | 512 bytes |
+| Multi-frame HDLC or GBT (e.g. Landis+Gyr E450) | 1024 bytes |
+
+The input buffer passed to `parse()` is **not modified** — data is copied into the
+work buffer first, then transformed in-place through each pipeline stage. Each stage
+produces output that is equal or smaller in size, so the buffer never grows.
+
 ## Accumulating Frames
 
 Some meters split a single DLMS message across multiple transport frames (HDLC
@@ -311,9 +338,11 @@ ESPHome-style integration:
 
 class MyMeterComponent {
     dlms_parser::DlmsParser parser_;
+    uint8_t work_buf_[1024]{};
 
 public:
     void setup() {
+        parser_.set_work_buffer(work_buf_, sizeof(work_buf_));
         parser_.load_default_patterns();
         parser_.set_frame_format(dlms_parser::FrameFormat::HDLC);
 
@@ -353,6 +382,8 @@ Examples of meter-specific customization from the test suite:
 
 | Symptom | Likely cause |
 |---|---|
+| `No work buffer set` error | call `set_work_buffer()` before `parse()` |
+| `Frame too large for work buffer` | increase work buffer size |
 | `parse()` returns 0 | no patterns loaded |
 | `parse()` returns 0 with patterns loaded | no pattern matched the AXDR layout |
 | `HCS error` or `FCS error` | wrong frame format, damaged frame, or non-standard CRC |
