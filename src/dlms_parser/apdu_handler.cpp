@@ -1,5 +1,6 @@
 #include "apdu_handler.h"
 #include "log.h"
+#include "utils.h"
 #include <cstring>
 
 namespace dlms_parser {
@@ -89,18 +90,9 @@ bool ApduHandler::parse_ciphered_apdu_(const uint8_t* buf, size_t len, uint8_t /
   std::memcpy(iv, buf + pos, DLMS_SYSTITLE_LENGTH);
   pos += DLMS_SYSTITLE_LENGTH;
 
-  // BER length field: single byte if <= 127, otherwise 0x8N + N bytes
-  if (pos >= len) return false;
-  const uint8_t len_byte = buf[pos++];
-  uint32_t cipher_len = len_byte;
-  if (len_byte > DLMS_LENGTH_SINGLE_BYTE_MAX) {
-    const uint8_t num_bytes = len_byte & 0x7F;
-    cipher_len = 0;
-    for (uint8_t i = 0; i < num_bytes; i++) {
-      if (pos >= len) return false;
-      cipher_len = (cipher_len << 8) | buf[pos++];
-    }
-  }
+  // BER length
+  const uint32_t cipher_len = utils::read_ber_length(buf, pos, len);
+  if (cipher_len == 0) return false;
 
   // Security control byte (1 byte, informational — skip)
   if (pos >= len) return false;
@@ -142,7 +134,7 @@ bool ApduHandler::parse_general_block_transfer_(const uint8_t* buf, size_t len,
   size_t pos = 0;
 
   while (pos < len && buf[pos] == DLMS_APDU_GENERAL_BLOCK_TRANSFER) {
-    if (pos + 7 > len) {
+    if (pos + 6 > len) {
       Logger::log(LogLevel::WARNING, "GBT: truncated block header at offset %zu", pos);
       return false;
     }
@@ -150,18 +142,19 @@ bool ApduHandler::parse_general_block_transfer_(const uint8_t* buf, size_t len,
     const bool is_last = (ctrl & 0x80U) != 0;
     const uint16_t block_num = static_cast<uint16_t>(buf[pos + 2] << 8 | buf[pos + 3]);
     // pos+4..pos+5: block_num_ack (skip)
-    const uint8_t block_len = buf[pos + 6];
+    size_t ber_pos = pos + 6;
+    const uint32_t block_len = utils::read_ber_length(buf, ber_pos, len);
 
-    if (pos + 7 + block_len > len) {
+    if (ber_pos + block_len > len) {
       Logger::log(LogLevel::WARNING, "GBT: block %u truncated (need %u, have %zu)",
-                  block_num, block_len, len - pos - 7);
+                  block_num, block_len, len - ber_pos);
       return false;
     }
 
     Logger::log(LogLevel::DEBUG, "GBT block %u: %u bytes%s", block_num, block_len,
                 is_last ? " (last)" : "");
-    reassembled.insert(reassembled.end(), buf + pos + 7, buf + pos + 7 + block_len);
-    pos += 7 + block_len;
+    reassembled.insert(reassembled.end(), buf + ber_pos, buf + ber_pos + block_len);
+    pos = ber_pos + block_len;
 
     if (is_last) break;
   }
@@ -239,28 +232,31 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(uint8_t* buf, size_t len)
     }
 
     // --- General-Block-Transfer (0xE0): reassemble blocks in-place
+    // Block format: E0 [ctrl:1] [block_num:2] [block_num_ack:2] [BER_len] [data...]
     if (tag == DLMS_APDU_GENERAL_BLOCK_TRANSFER) {
       Logger::log(LogLevel::DEBUG, "Found General-Block-Transfer (0xE0)");
       size_t read_pos = 0;
       size_t write_pos = 0;
 
       while (read_pos < len && buf[read_pos] == DLMS_APDU_GENERAL_BLOCK_TRANSFER) {
-        if (read_pos + 7 > len) {
+        if (read_pos + 6 > len) {
           Logger::log(LogLevel::WARNING, "GBT: truncated block header");
           return {0, 0};
         }
         const uint8_t ctrl = buf[read_pos + 1];
         const bool is_last = (ctrl & 0x80U) != 0;
-        const uint8_t block_len = buf[read_pos + 6];
+        // BER length starts at offset 6 within the block
+        size_t ber_pos = read_pos + 6;
+        const uint32_t block_len = utils::read_ber_length(buf, ber_pos, len);
 
-        if (read_pos + 7 + block_len > len) {
+        if (ber_pos + block_len > len) {
           Logger::log(LogLevel::WARNING, "GBT: block truncated");
           return {0, 0};
         }
 
-        std::memmove(buf + write_pos, buf + read_pos + 7, block_len);
+        std::memmove(buf + write_pos, buf + ber_pos, block_len);
         write_pos += block_len;
-        read_pos += 7 + block_len;
+        read_pos = ber_pos + block_len;
 
         if (is_last) break;
       }
@@ -294,17 +290,8 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(uint8_t* buf, size_t len)
       pos += st_len;
 
       // BER length
-      if (pos >= len) return {0, 0};
-      const uint8_t len_byte = buf[pos++];
-      uint32_t cipher_len = len_byte;
-      if (len_byte > DLMS_LENGTH_SINGLE_BYTE_MAX) {
-        const uint8_t num_bytes = len_byte & 0x7F;
-        cipher_len = 0;
-        for (uint8_t i = 0; i < num_bytes; i++) {
-          if (pos >= len) return {0, 0};
-          cipher_len = (cipher_len << 8) | buf[pos++];
-        }
-      }
+      const uint32_t cipher_len = utils::read_ber_length(buf, pos, len);
+      if (cipher_len == 0) return {0, 0};
 
       // Security control byte (skip)
       if (pos >= len) return {0, 0};

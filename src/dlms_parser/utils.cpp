@@ -197,6 +197,19 @@ void data_to_string(const DlmsDataType value_type, const uint8_t* ptr, const uin
   }
 }
 
+uint32_t read_ber_length(const uint8_t* buf, size_t& pos, size_t buf_len) {
+  if (pos >= buf_len) return 0;
+  const uint8_t first = buf[pos++];
+  if (first <= 0x7F) return first;
+  const uint8_t num_bytes = first & 0x7F;
+  uint32_t length = 0;
+  for (uint8_t i = 0; i < num_bytes; i++) {
+    if (pos >= buf_len) return 0;
+    length = (length << 8) | buf[pos++];
+  }
+  return length;
+}
+
 void obis_to_string(const uint8_t* obis, char* buffer, const size_t max_len) {
   if (max_len > 0) buffer[0] = '\0';
   if (!obis || max_len == 0) return;

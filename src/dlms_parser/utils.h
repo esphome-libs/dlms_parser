@@ -52,6 +52,10 @@ void data_to_string(DlmsDataType value_type, const uint8_t* ptr, uint8_t len, ch
 void obis_to_string(const uint8_t* obis, char* buffer, size_t max_len);
 const char* dlms_data_type_to_string(DlmsDataType vt);
 
+// Read a BER-encoded length from buf[pos]. Advances pos past the length bytes.
+// Returns the decoded length, or 0 if the buffer is too short.
+uint32_t read_ber_length(const uint8_t* buf, size_t& pos, size_t buf_len);
+
 int get_data_type_size(DlmsDataType type);
 bool is_value_data_type(DlmsDataType type);
 
