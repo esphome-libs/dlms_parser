@@ -21,15 +21,9 @@ void AxdrParser::register_pattern(const std::string& name, const std::string& ds
 
 void AxdrParser::register_pattern(const std::string& name, const std::string& dsl, int priority,
                                    const uint8_t default_obis[6]) {
-  this->register_pattern_dsl_(name, dsl, priority);
-  // Find the just-inserted pattern and set its default OBIS.
-  for (auto& pat : this->patterns_) {
-    if (pat.name == name && pat.priority == priority) {
-      pat.has_default_obis = true;
-      std::memcpy(pat.default_obis, default_obis, 6);
-      break;
-    }
-  }
+  auto& pat = this->register_pattern_dsl_(name, dsl, priority);
+  pat.has_default_obis = true;
+  std::memcpy(pat.default_obis, default_obis, 6);
 }
 
 void AxdrParser::clear_patterns() {
@@ -444,7 +438,7 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
 // DSL parser
 // ---------------------------------------------------------------------------
 
-void AxdrParser::register_pattern_dsl_(const std::string& name, const std::string& dsl, const int priority) {
+AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const std::string& name, const std::string& dsl, const int priority) {
   AxdrDescriptorPattern pat{name, priority, {}, 0};
 
   auto trim = [](const std::string& s) {
@@ -525,7 +519,7 @@ void AxdrParser::register_pattern_dsl_(const std::string& name, const std::strin
                                    [](const AxdrDescriptorPattern& a, const AxdrDescriptorPattern& b) {
                                      return a.priority < b.priority;
                                    });
-  this->patterns_.insert(it, pat);
+  return *this->patterns_.insert(it, pat);
 }
 
 }  // namespace dlms_parser
