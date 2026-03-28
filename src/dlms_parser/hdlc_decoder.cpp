@@ -7,7 +7,7 @@ namespace dlms_parser {
 static constexpr uint8_t HDLC_FLAG       = 0x7E;
 // static constexpr uint8_t HDLC_ESCAPE     = 0x7D;   // byte-stuffing disabled, see decode_one_()
 // static constexpr uint8_t HDLC_ESCAPE_XOR = 0x20;
-static constexpr uint8_t HDLC_SEG_BIT   = 0x08;  // bit 3 of frame-type byte: "more frames follow"
+static constexpr uint8_t HDLC_SEG_BIT    = 0x08;  // bit 3 of frame-type byte: "more frames follow"
 
 // ---------------------------------------------------------------------------
 // check() — stateless frame completeness check
@@ -228,10 +228,7 @@ size_t HdlcDecoder::address_length_(const uint8_t* p, size_t remaining) {
 uint16_t HdlcDecoder::crc16_x25_check_(const uint8_t* data, size_t len) {
   uint16_t crc = 0xFFFFU;
   for (size_t i = 0; i < len; ++i) {
-    crc ^= static_cast<uint16_t>(data[i]);
-    for (int k = 0; k < 8; ++k) {
-      crc = (crc & 1U) ? static_cast<uint16_t>((crc >> 1) ^ 0x8408U) : static_cast<uint16_t>(crc >> 1);
-    }
+    crc = (crc >> 8) ^ CRC16_X25_TABLE[(crc ^ data[i]) & 0xFF];
   }
   // Return raw register value (no xor-out) for "good value" verification:
   // when CRC is run over (data + stored_FCS), the raw register equals FCS16_GOOD_VALUE.
