@@ -70,14 +70,14 @@ parser.set_frame_format(dlms_parser::FrameFormat::MBUS);
 
 `RAW` means the buffer already starts with a supported DLMS/APDU payload. In practice that usually means one of:
 
-| First byte | Meaning |
-|---|---|
-| `0x0F` | `DATA-NOTIFICATION` |
-| `0xE0` | `General-Block-Transfer` (reassembles blocks, then re-enters APDU parsing) |
-| `0xDB` | `General-GLO-Ciphering` (encrypted, needs key) |
-| `0xDF` | `General-DED-Ciphering` (encrypted, needs key) |
-| `0x01` | raw AXDR array |
-| `0x02` | raw AXDR structure |
+| First byte | Meaning                                                                    |
+|------------|----------------------------------------------------------------------------|
+| `0x0F`     | `DATA-NOTIFICATION`                                                        |
+| `0xE0`     | `General-Block-Transfer` (reassembles blocks, then re-enters APDU parsing) |
+| `0xDB`     | `General-GLO-Ciphering` (encrypted, needs key)                             |
+| `0xDF`     | `General-DED-Ciphering` (encrypted, needs key)                             |
+| `0x01`     | raw AXDR array                                                             |
+| `0x02`     | raw AXDR structure                                                         |
 
 Some meters produce invalid or non-standard integrity checks. If you need to accept such frames:
 
@@ -104,11 +104,11 @@ If no work buffer is set, or the frame exceeds its capacity, `parse()` returns
 
 Typical sizes:
 
-| Scenario | Recommended size |
-|---|---|
-| Unencrypted single-frame HDLC | 256–512 bytes |
-| Encrypted single-frame M-Bus | 512 bytes |
-| Multi-frame HDLC or GBT (e.g. Landis+Gyr E450) | 1024 bytes |
+| Scenario                                       | Recommended size |
+|------------------------------------------------|------------------|
+| Unencrypted single-frame HDLC                  | 256–512 bytes    |
+| Encrypted single-frame M-Bus                   | 512 bytes        |
+| Multi-frame HDLC or GBT (e.g. Landis+Gyr E450) | 1024 bytes       |
 
 The input buffer passed to `parse()` is **not modified** — data is copied into the
 work buffer first, then transformed in-place through each pipeline stage. Each stage
@@ -150,11 +150,11 @@ while (uart_has_data()) {
 `check_frame()` is stateless and cheap — it only inspects frame headers (length
 fields, segmentation bits, stop bytes). It never copies or stores data.
 
-| Return value | Meaning | Action |
-|---|---|---|
-| `COMPLETE` | buffer contains a complete message | call `parse()` |
-| `NEED_MORE` | more frames expected (segmentation, GBT) | keep reading from UART |
-| `ERROR` | invalid framing | discard buffer and resync |
+| Return value | Meaning                                  | Action                    |
+|--------------|------------------------------------------|---------------------------|
+| `COMPLETE`   | buffer contains a complete message       | call `parse()`            |
+| `NEED_MORE`  | more frames expected (segmentation, GBT) | keep reading from UART    |
+| `ERROR`      | invalid framing                          | discard buffer and resync |
 
 For `RAW` mode, `check_frame()` always returns `COMPLETE` — the caller is
 responsible for delivering a complete APDU buffer.
@@ -187,12 +187,12 @@ parser.load_default_patterns();
 
 Built-in patterns:
 
-| Name | Priority | Typical use |
-|---|---:|---|
-| `T1` | 10 | class ID, tagged OBIS, scaler, value |
-| `T2` | 20 | tagged OBIS, value, scaler-unit structure |
-| `T3` | 30 | value first, class ID, scaler-unit, OBIS |
-| `U.ZPA` | 40 | untagged ZPA/Aidon-style layouts |
+| Name    | Priority | Typical use                               |
+|---------|---------:|-------------------------------------------|
+| `T1`    |       10 | class ID, tagged OBIS, scaler, value      |
+| `T2`    |       20 | tagged OBIS, value, scaler-unit structure |
+| `T3`    |       30 | value first, class ID, scaler-unit, OBIS  |
+| `U.ZPA` |       40 | untagged ZPA/Aidon-style layouts          |
 
 Register a custom pattern when your meter emits a different structure:
 
@@ -380,20 +380,20 @@ Examples of meter-specific customization from the test suite:
 
 ## Troubleshooting
 
-| Symptom | Likely cause |
-|---|---|
-| `No work buffer set` error | call `set_work_buffer()` before `parse()` |
-| `Frame too large for work buffer` | increase work buffer size |
-| `parse()` returns 0 | no patterns loaded |
-| `parse()` returns 0 with patterns loaded | no pattern matched the AXDR layout |
-| `HCS error` or `FCS error` | wrong frame format, damaged frame, or non-standard CRC |
-| `checksum error` | M-Bus checksum mismatch |
-| encrypted APDU with no output | decryption key was not set |
-| `Decryption failed` | wrong key or corrupted ciphertext |
-| values look scaled incorrectly | inspect scaler/unit handling or use the cooked callback |
-| unsupported APDU warning | the meter uses a wrapper not handled by the library |
-| `GBT: truncated block` | incomplete General-Block-Transfer frame — buffer may be cut short |
-| object captured with OBIS `0.0.0.0.0.0` | pattern has no `TO`/`O` token — use `default_obis` overload |
+| Symptom                                  | Likely cause                                                      |
+|------------------------------------------|-------------------------------------------------------------------|
+| `No work buffer set` error               | call `set_work_buffer()` before `parse()`                         |
+| `Frame too large for work buffer`        | increase work buffer size                                         |
+| `parse()` returns 0                      | no patterns loaded                                                |
+| `parse()` returns 0 with patterns loaded | no pattern matched the AXDR layout                                |
+| `HCS error` or `FCS error`               | wrong frame format, damaged frame, or non-standard CRC            |
+| `checksum error`                         | M-Bus checksum mismatch                                           |
+| encrypted APDU with no output            | decryption key was not set                                        |
+| `Decryption failed`                      | wrong key or corrupted ciphertext                                 |
+| values look scaled incorrectly           | inspect scaler/unit handling or use the cooked callback           |
+| unsupported APDU warning                 | the meter uses a wrapper not handled by the library               |
+| `GBT: truncated block`                   | incomplete General-Block-Transfer frame — buffer may be cut short |
+| object captured with OBIS `0.0.0.0.0.0`  | pattern has no `TO`/`O` token — use `default_obis` overload       |
 
 For exact callback signatures, token definitions, and public API details, see [REFERENCE.md](REFERENCE.md).
 For the component diagram and module responsibilities, see [ARCHITECTURE.md](ARCHITECTURE.md).

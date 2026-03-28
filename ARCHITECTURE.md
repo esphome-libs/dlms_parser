@@ -56,16 +56,16 @@ UART → check_frame() → COMPLETE / NEED_MORE / ERROR
 
 ## Module Responsibilities
 
-| Module | Role |
-|---|---|
-| **DlmsParser** | Facade — owns all components, exposes `check_frame()` and `parse()` |
-| **HdlcDecoder** | Strips 0x7E framing, validates CRC, reassembles segmented frames |
-| **MBusDecoder** | Strips 0x68 framing, validates checksum, concatenates multi-frame |
-| **ApduHandler** | Scans for APDU tag, handles GBT/encryption/DATA-NOTIFICATION |
-| **GcmDecryptor** | AES-128-GCM decryption (BearSSL / PSA / mbedTLS) |
-| **AxdrParser** | Walks STRUCTURE/ARRAY tree, matches DSL patterns, emits objects |
-| **Logger** | Static logging interface, silent by default |
-| **utils** | Value conversion, OBIS/datetime formatting, type helpers |
+| Module           | Role                                                                |
+|------------------|---------------------------------------------------------------------|
+| **DlmsParser**   | Facade — owns all components, exposes `check_frame()` and `parse()` |
+| **HdlcDecoder**  | Strips 0x7E framing, validates CRC, reassembles segmented frames    |
+| **MBusDecoder**  | Strips 0x68 framing, validates checksum, concatenates multi-frame   |
+| **ApduHandler**  | Scans for APDU tag, handles GBT/encryption/DATA-NOTIFICATION        |
+| **GcmDecryptor** | AES-128-GCM decryption (BearSSL / PSA / mbedTLS)                    |
+| **AxdrParser**   | Walks STRUCTURE/ARRAY tree, matches DSL patterns, emits objects     |
+| **Logger**       | Static logging interface, silent by default                         |
+| **utils**        | Value conversion, OBIS/datetime formatting, type helpers            |
 
 ## Zero-Heap Architecture
 
@@ -96,17 +96,17 @@ Each stage produces output ≤ input, so the buffer never grows.
 
 The library is **stateless** between calls — it does not buffer or accumulate data.
 
-| Responsibility | Owner |
-|---|---|
-| Reading bytes from UART | Caller |
-| Detecting frame boundaries (0x7E / 0x16) | Caller |
-| Accumulating multi-frame messages | Caller (using `check_frame()` to know when done) |
-| Providing a work buffer (`set_work_buffer()`) | Caller |
-| Decoding transport framing (HDLC / M-Bus) | Library (in-place) |
-| Reassembling GBT blocks | Library (in-place) |
-| Decrypting AES-GCM | Library (in-place) |
-| Walking AXDR structure and matching patterns | Library |
-| Delivering parsed values via callbacks | Library |
+| Responsibility                                | Owner                                            |
+|-----------------------------------------------|--------------------------------------------------|
+| Reading bytes from UART                       | Caller                                           |
+| Detecting frame boundaries (0x7E / 0x16)      | Caller                                           |
+| Accumulating multi-frame messages             | Caller (using `check_frame()` to know when done) |
+| Providing a work buffer (`set_work_buffer()`) | Caller                                           |
+| Decoding transport framing (HDLC / M-Bus)     | Library (in-place)                               |
+| Reassembling GBT blocks                       | Library (in-place)                               |
+| Decrypting AES-GCM                            | Library (in-place)                               |
+| Walking AXDR structure and matching patterns  | Library                                          |
+| Delivering parsed values via callbacks        | Library                                          |
 
 Typical caller loop:
 
