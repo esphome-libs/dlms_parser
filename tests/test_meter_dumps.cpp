@@ -11,15 +11,16 @@
 #include "dlms_parser/log.h"
 
 #include "tests/expected/raw_sagemcom_xt211.h"
+#include "tests/expected/raw_energomera.h"
+#include "tests/expected/raw_salzburg_netz.h"
+#include "tests/expected/raw_egd_example.h"
 #include "tests/expected/hdlc_iskra550.h"
 #include "tests/expected/hdlc_norway_han_1phase.h"
 #include "tests/expected/hdlc_norway_han_3phase.h"
-#include "tests/expected/mbus_netz_noe_p1.h"
-#include "tests/expected/raw_energomera.h"
 #include "tests/expected/hdlc_landis_gyr_zmf100.h"
-#include "tests/expected/raw_salzburg_netz.h"
 #include "tests/expected/hdlc_landis_gyr_e450.h"
 #include "tests/expected/hdlc_lgz_e450_2.h"
+#include "tests/expected/mbus_netz_noe_p1.h"
 
 void run_meter_test(const char* name,
                     const uint8_t* payload, size_t payload_size,
@@ -137,6 +138,16 @@ TEST_CASE("Integration: RAW APDU") {
     );
   }
 
+  SUBCASE("EGD Example") {
+    run_meter_test("EGD Example",
+      dlms::test_data::egd_example_raw_frame,
+      sizeof(dlms::test_data::egd_example_raw_frame),
+      dlms::test_data::egd_example_expected_count,
+      dlms::test_data::egd_example_expected_strings,
+      dlms::test_data::egd_example_expected_floats
+    );
+  }
+
 }
 
 // ---------------------------------------------------------
@@ -197,7 +208,7 @@ TEST_CASE("Integration: HDLC") {
     );
   }
 
-  SUBCASE("Landis+Gyr ZMF100 — CRC check rejects bad FCS") {
+  SUBCASE("Landis+Gyr ZMF100 - CRC check rejects bad FCS") {
     std::array<uint8_t, 2048> work_buf{};
     dlms_parser::DlmsParser parser;
     parser.set_work_buffer(work_buf.data(), work_buf.size());
