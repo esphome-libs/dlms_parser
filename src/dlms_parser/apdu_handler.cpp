@@ -139,20 +139,22 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(uint8_t* buf, size_t len)
       const uint32_t cipher_len = utils::read_ber_length(buf, pos, len);
       if (cipher_len == 0) return {0, 0};
 
-      // Security control byte (skip)
+      // Security control byte
       if (pos >= len) return {0, 0};
-      pos++;
+      const uint8_t security_control = buf[pos++];
+      const bool has_auth_tag = (security_control & 0x10U) != 0;
+      const uint32_t tag_len = has_auth_tag ? DLMS_GCM_TAG_LENGTH : 0;
 
       // Frame counter → last 4 bytes of IV
       if (pos + DLMS_FRAME_COUNTER_LENGTH > len) return {0, 0};
       std::memcpy(iv + DLMS_SYSTITLE_LENGTH, buf + pos, DLMS_FRAME_COUNTER_LENGTH);
       pos += DLMS_FRAME_COUNTER_LENGTH;
 
-      if (cipher_len < DLMS_LENGTH_CORRECTION) return {0, 0};
-      const uint32_t payload_len = cipher_len - DLMS_LENGTH_CORRECTION;
-      if (pos + payload_len > len) return {0, 0};
+      if (cipher_len < DLMS_LENGTH_CORRECTION + tag_len) return {0, 0};
+      const uint32_t payload_len = cipher_len - DLMS_LENGTH_CORRECTION - tag_len;
+      if (pos + payload_len + tag_len > len) return {0, 0};
 
-      // Decrypt: read from buf+pos, and move to buf+0
+      // Decrypt ciphertext only (GCM tag excluded)
       if (!this->decryptor_->decrypt_in_place(iv, std::span(buf + pos, payload_len))) {
         Logger::log(LogLevel::ERROR, "Decryption failed");
         return {0, 0};
