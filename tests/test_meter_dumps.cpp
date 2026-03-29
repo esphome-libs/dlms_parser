@@ -23,6 +23,7 @@
 #include "tests/expected/hdlc_landis_gyr_zmf100.h"
 #include "tests/expected/hdlc_landis_gyr_e450.h"
 #include "tests/expected/hdlc_lgz_e450_2.h"
+#include "tests/expected/hdlc_kamstrup_omnipower.h"
 #include "tests/expected/mbus_netz_noe_p1.h"
 
 template<typename Aes128GcmDecryptor = dlms_parser::Aes128GcmDecryptorMbedTls>
@@ -267,6 +268,21 @@ TEST_CASE("Integration: HDLC") {
       dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_lgz_e450_2_key);
+        p.register_pattern("TO, TV");
+      }
+    );
+  }
+
+  SUBCASE("Kamstrup Omnipower (encrypted)") {
+    run_meter_test("Kamstrup Omnipower (encrypted)",
+      dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
+      sizeof(dlms::test_data::hdlc_kamstrup_omnipower_raw_frame),
+      dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
+      dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,
+      dlms::test_data::hdlc_kamstrup_omnipower_expected_floats,
+      dlms_parser::FrameFormat::HDLC,
+      [](dlms_parser::DlmsParser& p) {
+        p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
         p.register_pattern("TO, TV");
       }
     );

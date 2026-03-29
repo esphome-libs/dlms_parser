@@ -75,7 +75,18 @@ target_link_libraries(dlms_parser PUBLIC dlms_parser_warnings)
 
 # enable sanitizers
 add_library(dlms_parser_sanitizers INTERFACE)
-myproject_enable_sanitizers(dlms_parser_sanitizers ON ON ON OFF OFF)
+option(DLMS_ENABLE_SANITIZER_ADDRESS "Enable address sanitizer for dlms_parser" ON)
+option(DLMS_ENABLE_SANITIZER_LEAK "Enable leak sanitizer for dlms_parser" ON)
+option(DLMS_ENABLE_SANITIZER_UNDEFINED "Enable undefined behavior sanitizer for dlms_parser" ON)
+
+myproject_enable_sanitizers(
+  dlms_parser_sanitizers
+  ${DLMS_ENABLE_SANITIZER_ADDRESS}
+  ${DLMS_ENABLE_SANITIZER_LEAK}
+  ${DLMS_ENABLE_SANITIZER_UNDEFINED}
+  OFF
+  OFF
+)
 target_link_libraries(dlms_parser PUBLIC dlms_parser_sanitizers)
 
 # dlms_parser_test
