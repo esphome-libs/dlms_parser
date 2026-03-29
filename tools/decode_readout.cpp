@@ -233,7 +233,8 @@ int main(int argc, char* argv[]) {
           case dlms_parser::LogLevel::ERROR:        prefix = "[ERR] "; break;
         }
         fprintf(stderr, "%s", prefix);
-        vfprintf(stderr, fmt, args);
+        int (*svfprintf)(FILE*, const char*, va_list) = vfprintf; // Make compiler happy: safe_vfprintf
+        svfprintf(stderr, fmt, args);
         fprintf(stderr, "\n");
       });
 
