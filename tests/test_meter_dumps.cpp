@@ -182,7 +182,10 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::norway_han_1phase_expected_strings,
       dlms::test_data::norway_han_1phase_expected_floats,
       dlms_parser::FrameFormat::HDLC,
-      [](dlms_parser::DlmsParser& p) { p.register_pattern("S(TO, TV)"); }
+      [](dlms_parser::DlmsParser& p) { 
+        p.register_pattern("S(TO, TV, TSU)");
+        p.register_pattern("S(TO, TV)"); 
+      }
     );
   }
 
@@ -194,7 +197,10 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::norway_han_3phase_expected_strings,
       dlms::test_data::norway_han_3phase_expected_floats,
       dlms_parser::FrameFormat::HDLC,
-      [](dlms_parser::DlmsParser& p) { p.register_pattern("S(TO, TV)"); }
+      [](dlms_parser::DlmsParser& p) { 
+        p.register_pattern("DateTime", "F, S(TO, TDTM)");
+        p.register_pattern("Obis-Value-Scaler-Unit", "S(TO, TV, TSU)"); 
+      }
     );
   }
 
@@ -310,6 +316,7 @@ TEST_CASE("Integration: MBus") {
         p.set_decryption_key(dlms::test_data::mbus_netz_noe_p1_key);
         const uint8_t meter_obis[] = {0, 0, 96, 1, 0, 255};  // 0.0.96.1.0.255
         p.register_pattern("MeterID", "L, TSTR", 0, meter_obis);
+        p.register_pattern("Obis-Value-Scaler-Unit", "S(TO, TV, TSU)");
       }
     );
   }

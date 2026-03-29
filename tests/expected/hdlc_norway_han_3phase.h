@@ -54,7 +54,9 @@ const uint8_t norway_han_3phase_raw_frame[] = {
 // 1 datetime + 26 numeric = 27 objects
 constexpr size_t norway_han_3phase_expected_count = 27;
 
-const std::map<std::string, std::string> norway_han_3phase_expected_strings = {};
+const std::map<std::string, std::string> norway_han_3phase_expected_strings = {
+    {"0.0.1.0.0.255","2019-12-16 07:59:40"}
+};
 
 const std::map<std::string, float> norway_han_3phase_expected_floats = {
     // Total power
