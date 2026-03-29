@@ -218,6 +218,29 @@ class AxdrWalker:
     def is_printable_string(self, data: bytes) -> bool:
         return all(32 <= b < 127 for b in data if b != 0)
 
+    def looks_like_datetime(self, data: bytes) -> bool:
+        """Heuristic: 12-byte OCTET_STRING that looks like a DLMS datetime."""
+        if len(data) != 12:
+            return False
+        year = (data[0] << 8) | data[1]
+        mo, day = data[2], data[3]
+        h, m, s = data[5], data[6], data[7]
+        if year == 0xFFFF:
+            return False  # wildcard year — not a concrete datetime
+        if not (2000 <= year <= 2099):
+            return False
+        if mo != 0xFF and not (1 <= mo <= 12):
+            return False
+        if day != 0xFF and not (1 <= day <= 31):
+            return False
+        if h != 0xFF and h > 23:
+            return False
+        if m != 0xFF and m > 59:
+            return False
+        if s != 0xFF and s > 59:
+            return False
+        return True
+
     def try_annotate_obis(self, data: bytes) -> str:
         if len(data) != 6:
             return ""
@@ -309,18 +332,16 @@ class AxdrWalker:
                 self.emit(indent, f"{tag:02X} {length:02X} {hex_line(data):<35s}{obis_ann}")
                 return
 
-            # Printable string?
-            if self.is_printable_string(data):
-                # Strip trailing nulls for display
+            self.emit(indent, f"{tag:02X}                                     <-- {type_name}")
+            self.emit(indent + 1, f"{length:02X}                                   <-- length = {length}")
+            self.emit(indent + 1, f"{hex_line(data)}")
+
+            # Try to show a decoded value
+            if tag == 0x09 and length == 12 and self.looks_like_datetime(data):
+                self.emit(indent + 1, f"= {self.decode_datetime(data)}")
+            elif self.is_printable_string(data):
                 display = data.rstrip(b"\x00").decode("ascii", errors="replace")
-                self.emit(indent, f"{tag:02X}                                     <-- {type_name}")
-                self.emit(indent + 1, f"{length:02X}                                   <-- length = {length}")
-                self.emit(indent + 1, f'{hex_line(data)}')
                 self.emit(indent + 1, f'= "{display}"')
-            else:
-                self.emit(indent, f"{tag:02X}                                     <-- {type_name}")
-                self.emit(indent + 1, f"{length:02X}                                   <-- length = {length}")
-                self.emit(indent + 1, f"{hex_line(data)}")
             return
 
         # NULL
@@ -566,14 +587,19 @@ def decode_apdu(apdu: bytes, key: Optional[bytes] = None) -> tuple[list[str], Op
         # IV = systitle(8) + frame_counter(4)
         iv = systitle + struct.pack(">I", fc)
 
-        payload_len = cipher_len - 5  # minus security_ctrl(1) + frame_counter(4)
+        has_auth = (sec_ctrl & 0x10) != 0
+        gcm_tag_len = 12 if has_auth else 0
+        payload_len = cipher_len - 5 - gcm_tag_len  # minus security_ctrl(1) + frame_counter(4) + tag
         ciphertext = apdu[pos : pos + payload_len]
+        gcm_tag = apdu[pos + payload_len : pos + payload_len + gcm_tag_len] if has_auth else b""
         lines.append(f"Ciphertext: {payload_len} bytes")
         # Show encrypted payload in hex (chunked for readability)
         for i in range(0, len(ciphertext), 32):
             chunk = ciphertext[i : i + 32]
             prefix = "  " if i > 0 else "  "
             lines.append(f"{prefix}{hex_line(chunk, 32)}")
+        if has_auth:
+            lines.append(f"GCM auth tag: {hex_line(gcm_tag)}")
 
         if key:
             plain = decrypt_gcm(key, iv, ciphertext)

@@ -47,7 +47,7 @@ Payload: 38 bytes
 82 ...                                  <-- cipher length = 259 (multi-byte)
 30                                     <-- security control
 00 0A CC 83                              <-- frame counter = 707715
-Ciphertext: 254 bytes
+Ciphertext: 242 bytes
   12 64 7A B9 2E C2 EA FE 5C 43 E8 EE 96 E1 66 0E A3 BA 19 2E 67 A7 3F 96 A3 5A 50 DD 90 7E 8A 46
   12 05 74 A6 8E D7 78 EF 7F 26 C3 2A DE 71 E4 F6 B9 B3 EC 5F 1F 96 93 FC 9B 11 06 FA 28 00 6F A3
   12 34 0E 14 6F 22 9A 65 73 67 4C 21 68 79 ED C8 97 0D 56 21 6A 97 3E F0 69 75 9B 3C 91 6A 05 17
@@ -55,9 +55,10 @@ Ciphertext: 254 bytes
   D1 62 B3 9A 9C 7B CA EF 58 40 7B F7 6A 61 DB 32 47 7B 00 44 FD 1C D7 1B 49 F4 46 8E 42 C5 3E 60
   87 F4 B3 90 51 44 84 F4 6D 35 5B 18 C8 97 B0 94 D1 03 73 74 67 FB 85 55 F3 5D 2B D3 C7 03 0B 10
   5B 2F A5 DA 21 A0 3B 0F C8 FF D6 A7 53 E9 E7 6B AD 2D 41 C9 93 A5 CF 4B 97 7C 00 50 38 85 ED 76
-  22 07 9B B8 15 87 CB D3 26 E6 41 A0 75 16 FD F3 12 F7 6E E6 5A E6 B0 FB 5E C3 46 3F EB E0
+  22 07 9B B8 15 87 CB D3 26 E6 41 A0 75 16 FD F3 12 F7
+GCM auth tag: 6E E6 5A E6 B0 FB 5E C3 46 3F EB E0
 
-Decrypted: 254 bytes
+Decrypted: 242 bytes
   0F 00 0A CC 83 0C 07 E7 0B 0A 05 0A 3A 32 FF 80 00 00 02 21 09 0C 07 E7 0B 0A 05 0A 3A 32 FF 80
   00 00 09 06 01 00 01 08 00 FF 06 00 B7 DA 36 09 06 01 00 01 08 01 FF 06 00 85 CA 28 09 06 01 00
   01 08 02 FF 06 00 32 10 0E 09 06 01 00 01 07 00 FF 06 00 00 02 21 09 06 01 00 02 08 00 FF 06 00
@@ -65,7 +66,7 @@ Decrypted: 254 bytes
   00 02 07 00 FF 06 00 00 00 00 09 06 01 00 03 08 00 FF 06 00 00 75 92 09 06 01 00 03 08 01 FF 06
   00 00 73 30 09 06 01 00 03 08 02 FF 06 00 00 02 62 09 06 01 00 03 07 00 FF 06 00 00 00 09 09 06
   01 00 04 08 00 FF 06 00 95 8E 93 09 06 01 00 04 08 01 FF 06 00 63 11 1B 09 06 01 00 04 08 02 FF
-  06 00 32 7D 78 09 06 01 00 04 07 00 FF 06 00 00 01 7B E1 C1 79 5E 43 67 6F 27 E4 C7 11 76
+  06 00 32 7D 78 09 06 01 00 04 07 00 FF 06 00 00 01 7B
 
 === APDU: DATA-NOTIFICATION ===
 0F                                     <-- DATA-NOTIFICATION tag
@@ -74,13 +75,14 @@ Decrypted: 254 bytes
   07 E7 0B 0A 05 0A 3A 32 FF 80 00 00
   = 2023-11-10 10:58:50
 
-=== AXDR payload (236 bytes) ===
+=== AXDR payload (224 bytes) ===
 02                                     <-- STRUCTURE
   21                                   <-- 33 elements
   --- element [1/33] ---
   09                                     <-- OCTET_STRING
     0C                                   <-- length = 12
     07 E7 0B 0A 05 0A 3A 32 FF 80 00 00
+    = 2023-11-10 10:58:50
   --- element [2/33] ---
   09 06 01 00 01 08 00 FF                    <-- OBIS 1.0.1.8.0.255, Active energy+ total (Wh)
   --- element [3/33] ---
@@ -145,5 +147,3 @@ Decrypted: 254 bytes
   09 06 01 00 04 07 00 FF                    <-- OBIS 1.0.4.7.0.255, Reactive power- (var)
   --- element [33/33] ---
   06 00 00 01 7B                             <-- UINT32 = 379 (0x0000017B)
-
-Unparsed tail (12 bytes): E1 C1 79 5E 43 67 6F 27 E4 C7 11 76

@@ -19,7 +19,7 @@ Payload: 477 bytes
 82 ...                                  <-- cipher length = 464 (multi-byte)
 30                                     <-- security control
 01 0F 60 A4                              <-- frame counter = 17784996
-Ciphertext: 459 bytes
+Ciphertext: 447 bytes
   AC 4B 60 48 A6 80 93 06 8D 24 FB C9 22 5E A9 AA 8F E3 44 1E 02 F5 4D BD A3 D9 ED 58 42 5A 2F A0
   99 98 52 43 FD EF 33 90 AF C2 6C 90 A9 B8 1E 77 47 74 C9 0C E2 A3 81 D6 A6 4F 3E 14 8F 1F CF E2
   82 C2 A7 93 F9 FD C2 73 CF 3C DF F6 3C 27 9F 43 63 5A B2 F7 FB 31 BD 6D B8 3E DE 63 2B 9B 5E 1B
@@ -33,10 +33,10 @@ Ciphertext: 459 bytes
   83 C9 72 34 9B CB 98 C8 9A 19 B1 C9 8D B0 EB A2 67 0A 9B CA 21 F8 41 9B 04 C9 4D B5 10 E7 5E 3E
   42 6D 75 B2 CF A9 1F 8F 4C AA F8 75 8B 33 76 8D F7 FE 55 FD 8B 49 83 B1 9A 19 DD E7 A5 89 1B C0
   F2 66 A8 02 9D 20 89 B6 EA 0C 2D 11 C2 EF 96 A6 E4 03 65 BC 85 D2 59 DC 16 9D D4 3E 16 49 9E BC
-  6F 08 0E 4C CD 86 57 DA CE 68 93 9C E4 0E 4F 55 A6 B0 CC 40 DF FC 9D C1 B4 14 9D D0 9D 72 C7 DD
-  B5 E0 F1 0E 31 94 8B 66 51 68 C6
+  6F 08 0E 4C CD 86 57 DA CE 68 93 9C E4 0E 4F 55 A6 B0 CC 40 DF FC 9D C1 B4 14 9D D0 9D 72 C7
+GCM auth tag: DD B5 E0 F1 0E 31 94 8B 66 51 68 C6
 
-Decrypted: 459 bytes
+Decrypted: 447 bytes
   0F 00 00 00 00 0C 07 EA 03 0C 04 0F 18 1E FF 80 00 00 02 41 0A 0E 4B 61 6D 73 74 72 75 70 5F 56
   30 30 30 31 09 06 01 01 01 08 00 FF 06 00 60 3E AA 09 06 01 01 02 08 00 FF 06 00 00 00 00 09 06
   01 01 03 08 00 FF 06 00 04 FA D8 09 06 01 01 04 08 00 FF 06 00 20 69 19 09 06 01 01 00 00 01 FF
@@ -50,8 +50,7 @@ Decrypted: 459 bytes
   06 01 01 0D 07 00 FF 12 00 53 09 06 01 01 16 07 00 FF 06 00 00 00 00 09 06 01 01 2A 07 00 FF 06
   00 00 00 00 09 06 01 01 3E 07 00 FF 06 00 00 00 00 09 06 01 01 16 08 00 FF 06 00 00 00 00 09 06
   01 01 2A 08 00 FF 06 00 00 00 00 09 06 01 01 3E 08 00 FF 06 00 00 00 00 09 06 01 01 15 08 00 FF
-  06 00 12 7C FC 09 06 01 01 29 08 00 FF 06 00 24 BF 10 09 06 01 01 3D 08 00 FF 06 00 29 02 9C DD
-  46 C9 D5 02 46 B1 57 D9 28 7C 61
+  06 00 12 7C FC 09 06 01 01 29 08 00 FF 06 00 24 BF 10 09 06 01 01 3D 08 00 FF 06 00 29 02 9C
 
 === APDU: DATA-NOTIFICATION ===
 0F                                     <-- DATA-NOTIFICATION tag
@@ -60,7 +59,7 @@ Decrypted: 459 bytes
   07 EA 03 0C 04 0F 18 1E FF 80 00 00
   = 2026-03-12 15:24:30
 
-=== AXDR payload (441 bytes) ===
+=== AXDR payload (429 bytes) ===
 02                                     <-- STRUCTURE
   41                                   <-- 65 elements
   --- element [1/65] ---
@@ -110,6 +109,7 @@ Decrypted: 459 bytes
   09                                     <-- OCTET_STRING
     0C                                   <-- length = 12
     07 EA 03 0C 04 0F 18 1E FF 80 00 00
+    = 2026-03-12 15:24:30
   --- element [22/65] ---
   09 06 01 01 20 07 00 FF                    <-- OBIS 1.1.32.7.0.255
   --- element [23/65] ---
@@ -198,5 +198,3 @@ Decrypted: 459 bytes
   09 06 01 01 3D 08 00 FF                    <-- OBIS 1.1.61.8.0.255
   --- element [65/65] ---
   06 00 29 02 9C                             <-- UINT32 = 2687644 (0x0029029C)
-
-Unparsed tail (12 bytes): DD 46 C9 D5 02 46 B1 57 D9 28 7C 61

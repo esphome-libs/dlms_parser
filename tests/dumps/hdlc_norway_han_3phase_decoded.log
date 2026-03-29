@@ -26,7 +26,7 @@ Payload: 566 bytes
     --- element [1/2] ---
     09 06 00 00 01 00 00 FF                    <-- OBIS 0.0.1.0.0.255, Clock / datetime
     --- element [2/2] ---
-    09                                     <-- OCTET_STRING (datetime)
+    09                                     <-- OCTET_STRING
       0C                                   <-- length = 12
       07 E3 0C 10 01 07 3B 28 FF 80 00 FF
       = 2019-12-16 07:59:40 (summer time)
