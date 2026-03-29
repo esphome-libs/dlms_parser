@@ -10,11 +10,11 @@ Main facade that composes frame decoding, APDU handling, decryption, and AXDR pa
 
 | Method                                                | Description                                                                           |
 |-------------------------------------------------------|---------------------------------------------------------------------------------------|
+| `DlmsParser(Aes128GcmDecryptor&)`                     | Constructor requiring a reference to an AES-128-GCM decryptor backend                 |
 | `set_frame_format(FrameFormat)`                       | Select transport wrapper: `RAW`, `HDLC`, or `MBUS`                                    |
 | `set_work_buffer(buf, capacity)`                      | Provide a caller-owned buffer for in-place transforms — **required before `parse()`** |
 | `set_skip_crc_check(bool)`                            | Skip CRC/checksum validation for HDLC and M-Bus                                       |
-| `set_decryption_key(std::array<uint8_t, 16>)`         | Set AES-128-GCM key from a fixed array                                                |
-| `set_decryption_key(std::vector<uint8_t>)`            | Set AES-128-GCM key from a vector of exactly 16 bytes                                 |
+| `set_decryption_key(std::span<const uint8_t>)`        | Set AES-128-GCM key from any contiguous byte container (array, vector, etc.)          |
 | `load_default_patterns()`                             | Register built-in patterns `T1`, `T2`, `T3`, `U.ZPA`                                  |
 | `register_pattern(dsl)`                               | Register a custom pattern with name `CUSTOM` and priority `0`                         |
 | `register_pattern(name, dsl, priority)`               | Register a named pattern with explicit priority                                       |

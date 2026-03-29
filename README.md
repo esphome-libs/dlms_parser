@@ -18,10 +18,12 @@ It is designed for embedded and integration-heavy environments such as ESPHome, 
 
 ```cpp
 #include "dlms_parser/dlms_parser.h"
+#include "dlms_parser/decryption/aes_128_gcm_decryptor_mbedtls.h" // Or your chosen backend
 
 uint8_t work_buf[1024];  // caller-owned, no heap allocation during parse()
 
-dlms_parser::DlmsParser parser;
+dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
+dlms_parser::DlmsParser parser(decryptor);
 parser.set_work_buffer(work_buf, sizeof(work_buf));
 parser.set_frame_format(dlms_parser::FrameFormat::RAW);
 parser.load_default_patterns();

@@ -232,15 +232,17 @@ The full token reference is in [REFERENCE.md](REFERENCE.md).
 Once the parser is configured, call `parse()` with one complete frame:
 
 ```cpp
-size_t objects = parser.parse(buf, len, on_value);
+auto [objects, consumed] = parser.parse(buf, len, on_value);
 ```
 
 Minimal example:
 
 ```cpp
 #include "dlms_parser/dlms_parser.h"
+#include "dlms_parser/decryption/aes_128_gcm_decryptor_mbedtls.h"
 
-dlms_parser::DlmsParser parser;
+dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
+dlms_parser::DlmsParser parser(decryptor);
 parser.load_default_patterns();
 
 auto on_value = [](const char* obis_code, float float_val, const char* str_val, bool is_numeric) {
@@ -251,7 +253,7 @@ auto on_value = [](const char* obis_code, float float_val, const char* str_val, 
     }
 };
 
-size_t objects_found = parser.parse(frame_bytes, frame_len, on_value);
+auto [objects_found, bytes_consumed] = parser.parse(frame_bytes, frame_len, on_value);
 printf("%zu objects found\n", objects_found);
 ```
 
@@ -335,9 +337,11 @@ ESPHome-style integration:
 
 ```cpp
 #include "dlms_parser/dlms_parser.h"
+#include "dlms_parser/decryption/aes_128_gcm_decryptor_mbedtls.h"
 
 class MyMeterComponent {
-    dlms_parser::DlmsParser parser_;
+    dlms_parser::Aes128GcmDecryptorMbedTls decryptor_;
+    dlms_parser::DlmsParser parser_{decryptor_};
     uint8_t work_buf_[1024]{};
 
 public:
@@ -346,7 +350,8 @@ public:
         parser_.load_default_patterns();
         parser_.set_frame_format(dlms_parser::FrameFormat::HDLC);
 
-        parser_.set_decryption_key({0x00,0x01,0x02,0x03,
+        parser_.set_decryption_key(std::array<uint8_t, 16>{
+                                    0x00,0x01,0x02,0x03,
                                     0x04,0x05,0x06,0x07,
                                     0x08,0x09,0x0A,0x0B,
                                     0x0C,0x0D,0x0E,0x0F});
@@ -359,7 +364,7 @@ public:
             }
         };
 
-        size_t n = parser_.parse(buf, len, cooked);
+        auto [n, consumed] = parser_.parse(buf, len, cooked);
         if (n == 0) {
             ESP_LOGW("dlms", "Frame parsed but no objects matched");
         }
