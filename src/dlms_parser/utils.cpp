@@ -83,7 +83,7 @@ void datetime_to_string(const uint8_t* ptr, const uint8_t len, char* buffer, con
   const uint8_t hundredths = ptr[8];
   const auto deviation = static_cast<int16_t>(be16(ptr + 9));
 
-  auto advance = [&](size_t& p, const int n) { if (n > 0) p += static_cast<size_t>(n); };
+  auto advance = [&](size_t& p, const int n) { if (n > 0 && p + static_cast<size_t>(n) < max_len) p += static_cast<size_t>(n); };
 
   size_t pos = 0;
   // Date: YYYY-MM-DD

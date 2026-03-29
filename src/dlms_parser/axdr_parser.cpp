@@ -109,9 +109,8 @@ bool AxdrParser::skip_data_(uint8_t type) {
       const uint8_t num_bytes = first_byte & 0x7F;
       length = 0;
       for (int i = 0; i < num_bytes; i++) {
-        const uint8_t b = this->read_byte_();
-        if (b == 0xFF && this->pos_ >= this->buffer_len_) return false;
-        length = length << 8 | b;
+        if (this->pos_ >= this->buffer_len_) return false;
+        length = length << 8 | this->read_byte_();
       }
     }
 
@@ -211,9 +210,8 @@ bool AxdrParser::capture_generic_value_(AxdrCaptures& c) {
       const uint8_t num_bytes = first_byte & 0x7F;
       length = 0;
       for (int i = 0; i < num_bytes; i++) {
-        const uint8_t b = this->read_byte_();
-        if (b == 0xFF && this->pos_ >= this->buffer_len_) return false;
-        length = length << 8 | b;
+        if (this->pos_ >= this->buffer_len_) return false;
+        length = length << 8 | this->read_byte_();
       }
     }
 
