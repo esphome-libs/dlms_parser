@@ -5,6 +5,7 @@
 #include <string>
 #include <cstdarg>
 #include <vector>
+#include <iostream>
 #include <exception>
 
 #include "dlms_parser/dlms_parser.h"
@@ -30,9 +31,8 @@ void run_meter_test(const char* name,
                     const std::map<std::string, float>& expected_floats,
                     dlms_parser::FrameFormat format = dlms_parser::FrameFormat::RAW,
                     std::function<void(dlms_parser::DlmsParser&)> setup_fn = nullptr) {
-  fprintf(stderr, "\n========== %s ==========\n", name);
-  std::string log_messages;
-  dlms_parser::Logger::set_log_function([&log_messages](const dlms_parser::LogLevel log_level, const char* fmt, va_list args) {
+  std::cout << std::format("\n========== {} ==========\n", name);
+  dlms_parser::Logger::set_log_function([](const dlms_parser::LogLevel log_level, const char* fmt, va_list args) {
     std::array<char, 2000> buffer;
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -54,8 +54,7 @@ void run_meter_test(const char* name,
       default: throw std::runtime_error("Unknown log level");
     }
 
-    log_messages += std::format("{}{}\n", level_str, buffer.data());
-    fprintf(stderr, "%s%s\n", level_str, buffer.data());
+    std::cout << std::format("{}{}\n", level_str, buffer.data());
   });
 
   std::array<uint8_t, 2048> work_buf{};
@@ -78,8 +77,6 @@ void run_meter_test(const char* name,
   };
 
   auto [objects_found, bytes_consumed] = parser.parse(payload, payload_size, callback);
-  INFO("--- Parser Execution Logs ---\n" << log_messages);
-  dlms_parser::Logger::set_log_function([](dlms_parser::LogLevel, const char*, va_list){});
 
   REQUIRE(objects_found == expected_count);
 
@@ -232,9 +229,7 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_landis_gyr_e450_expected_floats,
       dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
-        p.set_decryption_key(std::vector<uint8_t>(
-            dlms::test_data::hdlc_landis_gyr_e450_key,
-            dlms::test_data::hdlc_landis_gyr_e450_key + 16));
+        p.set_decryption_key(dlms::test_data::hdlc_landis_gyr_e450_key);
         p.register_pattern("TO, TV");
       }
     );
@@ -249,9 +244,7 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_lgz_e450_2_expected_floats,
       dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
-        p.set_decryption_key(std::vector<uint8_t>(
-            dlms::test_data::hdlc_lgz_e450_2_key,
-            dlms::test_data::hdlc_lgz_e450_2_key + 16));
+        p.set_decryption_key(dlms::test_data::hdlc_lgz_e450_2_key);
         p.register_pattern("TO, TV");
       }
     );
@@ -273,9 +266,7 @@ TEST_CASE("Integration: MBus") {
       dlms::test_data::mbus_netz_noe_p1_expected_floats,
       dlms_parser::FrameFormat::MBUS,
       [](dlms_parser::DlmsParser& p) {
-        p.set_decryption_key(std::vector<uint8_t>(
-            dlms::test_data::mbus_netz_noe_p1_key,
-            dlms::test_data::mbus_netz_noe_p1_key + 16));
+        p.set_decryption_key(dlms::test_data::mbus_netz_noe_p1_key);
         const uint8_t meter_obis[] = {0, 0, 96, 1, 0, 255};  // 0.0.96.1.0.255
         p.register_pattern("MeterID", "L, TSTR", 0, meter_obis);
       }
