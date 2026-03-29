@@ -5,7 +5,7 @@
 #include "utils.h"
 #include <cstdint>
 #include <functional>
-#include <string>
+#include <string_view>
 #include <array>
 
 namespace dlms_parser {
@@ -26,8 +26,8 @@ class AxdrParser {
   AxdrParser();
 
   // Register a named pattern from the DSL string, e.g. "TC,TO,TS,TV".
-  void register_pattern(const std::string& name, const std::string& dsl, int priority = 10);
-  void register_pattern(const std::string& name, const std::string& dsl, int priority,
+  void register_pattern(const char* name, const char* dsl, int priority = 10);
+  void register_pattern(const char* name, const char* dsl, int priority,
                         const uint8_t default_obis[6]);
   void clear_patterns();
 
@@ -46,7 +46,7 @@ class AxdrParser {
   // Pattern registry
   std::array<AxdrDescriptorPattern, MAX_PATTERNS> patterns_;
   size_t patterns_count_{0};
-  AxdrDescriptorPattern& register_pattern_dsl_(const std::string& name, const std::string& dsl, int priority);
+  AxdrDescriptorPattern& register_pattern_dsl_(const char* name, std::string_view dsl, int priority);
 
   // Parse-time state — reset at the start of each parse() call
   const uint8_t* buffer_{nullptr};

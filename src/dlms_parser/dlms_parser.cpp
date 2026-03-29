@@ -41,16 +41,15 @@ void DlmsParser::load_default_patterns() {
   axdr_parser_.register_pattern("U.ZPA", "F,C,O,A,TV", 40);
 }
 
-void DlmsParser::register_pattern(const std::string& dsl) {
+void DlmsParser::register_pattern(const char* dsl) {
   axdr_parser_.register_pattern("CUSTOM", dsl, 0);
 }
 
-void DlmsParser::register_pattern(const std::string& name, const std::string& dsl, int priority) {
+void DlmsParser::register_pattern(const char* name, const char* dsl, int priority) {
   axdr_parser_.register_pattern(name, dsl, priority);
 }
 
-void DlmsParser::register_pattern(const std::string& name, const std::string& dsl, int priority,
-                                   const uint8_t default_obis[6]) {
+void DlmsParser::register_pattern(const char* name, const char* dsl, int priority, const uint8_t default_obis[6]) {
   axdr_parser_.register_pattern(name, dsl, priority, default_obis);
 }
 

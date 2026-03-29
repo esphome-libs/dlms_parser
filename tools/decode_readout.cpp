@@ -292,7 +292,7 @@ int main(int argc, char* argv[]) {
     parser.load_default_patterns();
   }
   for (const auto& pat : custom_patterns) {
-    parser.register_pattern(pat);
+    parser.register_pattern(pat.c_str());
   }
 
   fprintf(stdout, "Input:   %s (%zu bytes)\n", file_path, data.size());

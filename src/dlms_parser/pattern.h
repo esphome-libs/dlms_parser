@@ -13,7 +13,7 @@ struct AxdrPatternStep {
 };
 
 struct AxdrDescriptorPattern {
-  std::string name;
+  const char* name{nullptr};
   int priority{0};
   AxdrPatternStep steps[32]{};
   uint16_t default_class_id{0};

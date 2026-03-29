@@ -15,11 +15,11 @@ namespace dlms_parser {
 
 AxdrParser::AxdrParser() = default;
 
-void AxdrParser::register_pattern(const std::string& name, const std::string& dsl, int priority) {
+void AxdrParser::register_pattern(const char* name, const char* dsl, int priority) {
   this->register_pattern_dsl_(name, dsl, priority);
 }
 
-void AxdrParser::register_pattern(const std::string& name, const std::string& dsl, int priority,
+void AxdrParser::register_pattern(const char* name, const char* dsl, int priority,
                                    const uint8_t default_obis[6]) {
   auto& pat = this->register_pattern_dsl_(name, dsl, priority);
   pat.has_default_obis = true;
@@ -412,7 +412,7 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
 
   const uint16_t cid = effective.class_id ? effective.class_id : pat.default_class_id;
   Logger::log(LogLevel::DEBUG, "Pattern '%s' matched at pos %u - class_id=%d obis=%s",
-              pat.name.c_str(), effective.elem_idx, cid, obis_str_buf);
+              pat.name ? pat.name : "UNKNOWN", effective.elem_idx, cid, obis_str_buf);
 
   if (effective.has_scaler_unit) {
     Logger::log(LogLevel::INFO, "  type=%s len=%d scaler=%d unit=%d",
@@ -437,10 +437,10 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
 }
 
 // ---------------------------------------------------------------------------
-// DSL parser
+// DSL parser (Zero-Allocation Implementation)
 // ---------------------------------------------------------------------------
 
-AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const std::string& name, const std::string& dsl, const int priority) {
+AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, std::string_view dsl, const int priority) {
   AxdrDescriptorPattern pat{};
   pat.name = name;
   pat.priority = priority;
@@ -451,112 +451,107 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const std::string& name
   }
   size_t step_count = 0;
 
-  auto trim = [](const std::string& s) {
+  // Helper lambda to trim string_view bounds instead of creating new substrings
+  auto trim = [](std::string_view s) -> std::string_view {
     const size_t b = s.find_first_not_of(" \t\r\n");
+    if (b == std::string_view::npos) return {};
     const size_t e = s.find_last_not_of(" \t\r\n");
-    if (b == std::string::npos) return std::string();
     return s.substr(b, e - b + 1);
   };
 
-  std::string tokens[64];
+  std::string_view tokens[64];
   size_t tokens_count = 0;
-  std::string current;
+  size_t start = 0;
   int paren = 0;
-  for (const char ch : dsl) {
-    if (ch == '(') { paren++; current.push_back(ch); }
-    else if (ch == ')') { paren--; current.push_back(ch); }
-    else if (ch == ',' && paren == 0) {
-      if (tokens_count < 64) tokens[tokens_count++] = trim(current);
-      current.clear();
+
+  // Split the DSL string_view by comma, ignoring commas inside parentheses
+  for (size_t i = 0; i < dsl.length(); ++i) {
+    if (dsl[i] == '(') { paren++; }
+    else if (dsl[i] == ')') { paren--; }
+    else if (dsl[i] == ',' && paren == 0) {
+      if (tokens_count < 64) tokens[tokens_count++] = trim(dsl.substr(start, i - start));
+      start = i + 1;
     }
-    else { current.push_back(ch); }
   }
-  if (!current.empty() && tokens_count < 64) {
-    tokens[tokens_count++] = trim(current);
+  if (start < dsl.length() && tokens_count < 64) {
+    tokens[tokens_count++] = trim(dsl.substr(start));
   }
+
+  // Safely adds a step sequence tracking step counts directly
+  auto add_step = [&](AxdrTokenType type, uint8_t param = 0) {
+    if (step_count < 32) {
+      pat.steps[step_count++] = {type, param};
+    }
+  };
+
+  auto process_simple_token = [&](std::string_view tok) {
+    if      (tok == "F")  add_step(AxdrTokenType::EXPECT_TO_BE_FIRST);
+    else if (tok == "L")  add_step(AxdrTokenType::EXPECT_TO_BE_LAST);
+    else if (tok == "C")  add_step(AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED);
+    else if (tok == "TC") {
+      add_step(AxdrTokenType::EXPECT_TYPE_EXACT, DLMS_DATA_TYPE_UINT16);
+      add_step(AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED);
+    }
+    else if (tok == "O")   add_step(AxdrTokenType::EXPECT_OBIS6_UNTAGGED);
+    else if (tok == "TO")  add_step(AxdrTokenType::EXPECT_OBIS6_TAGGED);
+    else if (tok == "TOW") add_step(AxdrTokenType::EXPECT_OBIS6_TAGGED_WRONG);
+    else if (tok == "A")   add_step(AxdrTokenType::EXPECT_ATTR8_UNTAGGED);
+    else if (tok == "TA") {
+      add_step(AxdrTokenType::EXPECT_TYPE_U_I_8);
+      add_step(AxdrTokenType::EXPECT_ATTR8_UNTAGGED);
+    }
+    else if (tok == "TS")     add_step(AxdrTokenType::EXPECT_SCALER_TAGGED);
+    else if (tok == "TU")     add_step(AxdrTokenType::EXPECT_UNIT_ENUM_TAGGED);
+    else if (tok == "V" || tok == "TV") add_step(AxdrTokenType::EXPECT_VALUE_GENERIC);
+    else if (tok == "TDTM")   add_step(AxdrTokenType::EXPECT_VALUE_DATE_TIME);
+    else if (tok == "TSTR")   add_step(AxdrTokenType::EXPECT_VALUE_OCTET_STRING);
+    else if (tok == "TSU") {
+      add_step(AxdrTokenType::EXPECT_STRUCTURE_N, 2);
+      add_step(AxdrTokenType::GOING_DOWN);
+      add_step(AxdrTokenType::EXPECT_SCALER_TAGGED);
+      add_step(AxdrTokenType::EXPECT_UNIT_ENUM_TAGGED);
+      add_step(AxdrTokenType::GOING_UP);
+    }
+    else if (tok == "DN") add_step(AxdrTokenType::GOING_DOWN);
+    else if (tok == "UP") add_step(AxdrTokenType::GOING_UP);
+  };
 
   for (size_t i = 0; i < tokens_count; i++) {
-    if (step_count >= 32) break;
-    const std::string& tok = tokens[i];
+    std::string_view tok = tokens[i];
     if (tok.empty()) continue;
 
-    if      (tok == "F")  pat.steps[step_count++] = {AxdrTokenType::EXPECT_TO_BE_FIRST, 0};
-    else if (tok == "L")  pat.steps[step_count++] = {AxdrTokenType::EXPECT_TO_BE_LAST, 0};
-    else if (tok == "C")  pat.steps[step_count++] = {AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED, 0};
-    else if (tok == "TC") {
-      if (step_count + 1 < 32) {
-        pat.steps[step_count++] = {AxdrTokenType::EXPECT_TYPE_EXACT, DLMS_DATA_TYPE_UINT16};
-        pat.steps[step_count++] = {AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED, 0};
-      }
-    }
-    else if (tok == "O")  pat.steps[step_count++] = {AxdrTokenType::EXPECT_OBIS6_UNTAGGED, 0};
-    else if (tok == "TO") pat.steps[step_count++] = {AxdrTokenType::EXPECT_OBIS6_TAGGED, 0};
-    else if (tok == "TOW") pat.steps[step_count++] = {AxdrTokenType::EXPECT_OBIS6_TAGGED_WRONG, 0};
-    else if (tok == "A")  pat.steps[step_count++] = {AxdrTokenType::EXPECT_ATTR8_UNTAGGED, 0};
-    else if (tok == "TA") {
-      if (step_count + 1 < 32) {
-        pat.steps[step_count++] = {AxdrTokenType::EXPECT_TYPE_U_I_8, 0};
-        pat.steps[step_count++] = {AxdrTokenType::EXPECT_ATTR8_UNTAGGED, 0};
-      }
-    }
-    else if (tok == "TS")     pat.steps[step_count++] = {AxdrTokenType::EXPECT_SCALER_TAGGED, 0};
-    else if (tok == "TU")     pat.steps[step_count++] = {AxdrTokenType::EXPECT_UNIT_ENUM_TAGGED, 0};
-    else if (tok == "V" || tok == "TV") pat.steps[step_count++] = {AxdrTokenType::EXPECT_VALUE_GENERIC, 0};
-    else if (tok == "TDTM") pat.steps[step_count++] = {AxdrTokenType::EXPECT_VALUE_DATE_TIME, 0};
-    else if (tok == "TSTR")   pat.steps[step_count++] = {AxdrTokenType::EXPECT_VALUE_OCTET_STRING, 0};
-    else if (tok == "TSU") {
-      if (step_count + 4 < 32) {
-        pat.steps[step_count++] = {AxdrTokenType::EXPECT_STRUCTURE_N, 2};
-        pat.steps[step_count++] = {AxdrTokenType::GOING_DOWN, 0};
-        pat.steps[step_count++] = {AxdrTokenType::EXPECT_SCALER_TAGGED, 0};
-        pat.steps[step_count++] = {AxdrTokenType::EXPECT_UNIT_ENUM_TAGGED, 0};
-        pat.steps[step_count++] = {AxdrTokenType::GOING_UP, 0};
-      }
-    }
-    else if (tok.size() >= 2 && tok.substr(0, 2) == "S(") {
+    if (tok.size() >= 2 && tok.substr(0, 2) == "S(") {
       const size_t l = tok.find('(');
       const size_t r = tok.rfind(')');
-      if (l != std::string::npos && r != std::string::npos && r > l + 1) {
-        const std::string inner = tok.substr(l + 1, r - l - 1);
-        std::string inner_tokens[16];
+      if (l != std::string_view::npos && r != std::string_view::npos && r > l + 1) {
+        const std::string_view inner = tok.substr(l + 1, r - l - 1);
+        std::string_view inner_tokens[16];
         size_t inner_count = 0;
-        std::string cur;
-        for (const char c2 : inner) {
-          if (c2 == ',') {
-            if (inner_count < 16) inner_tokens[inner_count++] = trim(cur);
-            cur.clear();
+        size_t in_start = 0;
+
+        for (size_t j = 0; j < inner.length(); ++j) {
+          if (inner[j] == ',') {
+            if (inner_count < 16) inner_tokens[inner_count++] = trim(inner.substr(in_start, j - in_start));
+            in_start = j + 1;
           }
-          else { cur.push_back(c2); }
         }
-        if (!cur.empty() && inner_count < 16) inner_tokens[inner_count++] = trim(cur);
+        if (in_start < inner.length() && inner_count < 16) {
+          inner_tokens[inner_count++] = trim(inner.substr(in_start));
+        }
 
         if (inner_count > 0) {
-          if (step_count < 32) {
-            pat.steps[step_count++] = {AxdrTokenType::EXPECT_STRUCTURE_N, static_cast<uint8_t>(inner_count)};
+          add_step(AxdrTokenType::EXPECT_STRUCTURE_N, static_cast<uint8_t>(inner_count));
+          add_step(AxdrTokenType::GOING_DOWN);
+          // Process inner tokens sequentially onto the steps array without shifting future tokens
+          for (size_t j = 0; j < inner_count; ++j) {
+            process_simple_token(inner_tokens[j]);
           }
-          if (step_count < 32) {
-            pat.steps[step_count++] = {AxdrTokenType::GOING_DOWN, 0};
-          }
-
-          size_t insert_count = inner_count + 1; // inner_tokens + "UP"
-          if (tokens_count + insert_count <= 64) {
-            // Shift future tokens to make room
-            for (size_t j = tokens_count; j > i + 1; --j) {
-              tokens[j + insert_count - 1] = tokens[j - 1];
-            }
-            // Insert inner tokens
-            for (size_t j = 0; j < inner_count; ++j) {
-              tokens[i + 1 + j] = inner_tokens[j];
-            }
-            // Add 'UP' at the end of inner elements
-            tokens[i + 1 + inner_count] = "UP";
-            tokens_count += insert_count;
-          }
+          add_step(AxdrTokenType::GOING_UP);
         }
       }
+    } else {
+      process_simple_token(tok);
     }
-    else if (tok == "DN") pat.steps[step_count++] = {AxdrTokenType::GOING_DOWN, 0};
-    else if (tok == "UP") pat.steps[step_count++] = {AxdrTokenType::GOING_UP, 0};
   }
 
   // Find sorted position for insertion into the fixed array patterns_
