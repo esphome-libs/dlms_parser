@@ -58,9 +58,12 @@ constexpr std::array<uint8_t, 16> hdlc_kamstrup_omnipower_auth_key = {
     0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00,
 };
 
-constexpr size_t hdlc_kamstrup_omnipower_expected_count = 32;
+constexpr size_t hdlc_kamstrup_omnipower_expected_count = 33;
 
-const std::map<std::string, std::string> hdlc_kamstrup_omnipower_expected_strings = {};
+const std::map<std::string, std::string> hdlc_kamstrup_omnipower_expected_strings = {
+    {"0.0.0.0.0.0", "Kamstrup_V0001"}, // OBIS List Version Identifier
+    {"0.1.1.0.0.255", "2026-03-12 15:24:30"}, // Clock
+};
 
 const std::map<std::string, float> hdlc_kamstrup_omnipower_expected_floats = {
     {"1.1.1.8.0.255", 6307498.0f},
@@ -72,7 +75,6 @@ const std::map<std::string, float> hdlc_kamstrup_omnipower_expected_floats = {
     {"1.1.2.7.0.255", 0.0f},
     {"1.1.3.7.0.255", 0.0f},
     {"1.1.4.7.0.255", 718.0f},
-    {"0.1.1.0.0.255", 0.0f},
     {"1.1.32.7.0.255", 222.0f},
     {"1.1.52.7.0.255", 221.0f},
     {"1.1.72.7.0.255", 227.0f},

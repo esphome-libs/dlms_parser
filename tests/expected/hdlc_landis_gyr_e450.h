@@ -47,10 +47,12 @@ const auto hdlc_landis_gyr_e450_key = dlms_parser::Aes128GcmDecryptionKey::from_
     0x0B, 0x52, 0xEB, 0x0E, 0x7F, 0xC5, 0xB1, 0x1C,
 }).value();
 
-// 16 flat TO,TV pairs (no scaler/unit)
-constexpr size_t hdlc_landis_gyr_e450_expected_count = 16;
+// 1 DateTime and 16 flat TO,TV pairs (no scaler/unit)
+constexpr size_t hdlc_landis_gyr_e450_expected_count = 17;
 
-const std::map<std::string, std::string> hdlc_landis_gyr_e450_expected_strings = {};
+const std::map<std::string, std::string> hdlc_landis_gyr_e450_expected_strings = {
+    {"0.0.0.0.0.0", "2022-02-21 17:37:30"}, // DateTime
+};
 
 const std::map<std::string, float> hdlc_landis_gyr_e450_expected_floats = {
     {"1.0.1.8.0.255",  4408736.0f},   // Active energy+ total

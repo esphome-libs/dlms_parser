@@ -238,7 +238,8 @@ TEST_CASE("Integration: HDLC") {
       dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_landis_gyr_e450_key);
-        p.register_pattern("TO, TV");
+        p.register_pattern("DateTime", "F, TDTM");
+        p.register_pattern("Obis-Value Pair","TO, TV");
       }
     );
   }
@@ -253,7 +254,8 @@ TEST_CASE("Integration: HDLC") {
       dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_landis_gyr_e450_key);
-        p.register_pattern("TO, TV");
+        p.register_pattern("DateTime", "F, TDTM");
+        p.register_pattern("Obis-Value Pair", "TO, TV");
       }
     );
   }
@@ -283,7 +285,8 @@ TEST_CASE("Integration: HDLC") {
       dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
-        p.register_pattern("TO, TV");
+        p.register_pattern("Obis List Ver", "F, TSTR"); // OBIS List Version Identifier
+        p.register_pattern("Code-Value Pair", "TO, TV");
       }
     );
   }

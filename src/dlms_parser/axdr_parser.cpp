@@ -398,7 +398,8 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
 
   const bool is_numeric = effective.value_type != DLMS_DATA_TYPE_OCTET_STRING &&
                           effective.value_type != DLMS_DATA_TYPE_STRING &&
-                          effective.value_type != DLMS_DATA_TYPE_STRING_UTF8;
+                          effective.value_type != DLMS_DATA_TYPE_STRING_UTF8 &&
+                          effective.value_type != DLMS_DATA_TYPE_DATETIME;
 
   if (effective.has_scaler_unit && is_numeric) {
     val_f *= static_cast<float>(std::pow(10, effective.scaler));
