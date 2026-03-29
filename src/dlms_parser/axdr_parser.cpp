@@ -527,12 +527,14 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
 
         for (size_t j = 0; j < inner.length(); ++j) {
           if (inner[j] == ',') {
-            if (inner_count < 16) inner_tokens[inner_count++] = trim(inner.substr(in_start, j - in_start));
+            std::string_view t = trim(inner.substr(in_start, j - in_start));
+            if (!t.empty() && inner_count < 16) inner_tokens[inner_count++] = t;
             in_start = j + 1;
           }
         }
-        if (in_start < inner.length() && inner_count < 16) {
-          inner_tokens[inner_count++] = trim(inner.substr(in_start));
+        if (in_start < inner.length()) {
+          std::string_view t = trim(inner.substr(in_start));
+          if (!t.empty() && inner_count < 16) inner_tokens[inner_count++] = t;
         }
 
         if (inner_count > 0) {
