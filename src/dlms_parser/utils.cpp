@@ -43,7 +43,7 @@ float data_as_float(const DlmsDataType value_type, const uint8_t* ptr, const uin
 bool test_if_date_time_12b(const uint8_t* p) {
   if (p == nullptr) return false;
 
-  const uint16_t year = static_cast<uint16_t>(p[0] << 8 | p[1]);
+  const auto year = static_cast<uint16_t>(p[0] << 8 | p[1]);
   if (!(year == 0x0000 || (year >= 1970 && year <= 2100))) return false;
 
   const uint8_t month = p[2];

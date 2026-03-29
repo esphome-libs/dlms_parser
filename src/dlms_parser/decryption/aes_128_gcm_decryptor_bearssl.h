@@ -6,8 +6,8 @@
 namespace dlms_parser {
 
 class Aes128GcmDecryptorBearSsl : public Aes128GcmDecryptor {
-  br_gcm_context gcm;
-  br_aes_ct_ctr_keys aes;
+  br_gcm_context gcm{};
+  br_aes_ct_ctr_keys aes{};
 
  public:
   Aes128GcmDecryptorBearSsl() = default;

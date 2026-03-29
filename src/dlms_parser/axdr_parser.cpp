@@ -446,8 +446,8 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, std::
   pat.priority = priority;
 
   // Fill step array with the sentinel value since we don't track step count directly
-  for (int i = 0; i < 32; ++i) {
-    pat.steps[i].type = AxdrTokenType::END_OF_PATTERN;
+  for (auto & step : pat.steps) {
+    step.type = AxdrTokenType::END_OF_PATTERN;
   }
   size_t step_count = 0;
 

@@ -23,7 +23,7 @@ class ApduHandler {
 
   // Fires cb exactly once on success with the raw AXDR payload span.
   // Requires a mutable buffer for in-place decryption and reassembly.
-  bool parse(uint8_t* buf, size_t len, AxdrPayloadCallback cb) const;
+  bool parse(uint8_t* buf, size_t len, const AxdrPayloadCallback& cb) const;
 
   // In-place unwrap: transforms buf in a loop (GBT→decrypt→strip header).
   // Returns the offset and length of the AXDR payload within buf.

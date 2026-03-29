@@ -53,9 +53,8 @@ void DlmsParser::register_pattern(const char* name, const char* dsl, int priorit
   axdr_parser_.register_pattern(name, dsl, priority, default_obis);
 }
 
-ParseResult DlmsParser::parse(const uint8_t* buf, size_t len,
-                              DlmsDataCallback cooked_cb,
-                              DlmsRawCallback raw_cb) {
+ParseResult DlmsParser::parse(const uint8_t* buf, size_t len, const DlmsDataCallback& cooked_cb,
+                              const DlmsRawCallback& raw_cb) {
   if (!this->work_buf_) {
     Logger::log(LogLevel::ERROR, "No work buffer set - call set_work_buffer() before parse()");
     return {};

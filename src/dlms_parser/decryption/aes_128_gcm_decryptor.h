@@ -9,9 +9,9 @@ namespace dlms_parser {
 
 class Aes128GcmDecryptor {
  public:
-  virtual void set_decryption_key(const std::span<const uint8_t> key_bytes) = 0;
-  virtual bool decrypt_in_place(const std::span<uint8_t> iv, std::span<uint8_t> cipher) = 0;
-  bool has_key() const { return _has_key; }
+  virtual void set_decryption_key(std::span<const uint8_t> key_bytes) = 0;
+  virtual bool decrypt_in_place(std::span<uint8_t> iv, std::span<uint8_t> cipher) = 0;
+  [[nodiscard]] bool has_key() const { return _has_key; }
 
   virtual ~Aes128GcmDecryptor() = default;
 

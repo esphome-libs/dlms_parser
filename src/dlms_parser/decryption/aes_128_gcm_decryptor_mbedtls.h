@@ -6,11 +6,11 @@
 namespace dlms_parser {
 
 class Aes128GcmDecryptorMbedTls : public Aes128GcmDecryptor {
-  mbedtls_gcm_context gcm;
+  mbedtls_gcm_context gcm{};
 
 public:
   Aes128GcmDecryptorMbedTls() { mbedtls_gcm_init(&gcm); }
-  ~Aes128GcmDecryptorMbedTls() { mbedtls_gcm_free(&gcm); }
+  ~Aes128GcmDecryptorMbedTls() override { mbedtls_gcm_free(&gcm); }
 
   void set_decryption_key(const std::span<const uint8_t> key_bytes) override {
     mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, key_bytes.data(), 128);

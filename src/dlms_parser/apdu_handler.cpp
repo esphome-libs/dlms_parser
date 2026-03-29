@@ -5,7 +5,7 @@
 
 namespace dlms_parser {
 
-bool ApduHandler::parse(uint8_t* buf, size_t len, AxdrPayloadCallback cb) const {
+bool ApduHandler::parse(uint8_t* buf, size_t len, const AxdrPayloadCallback& cb) const {
   UnwrapResult result = unwrap_in_place(buf, len);
   if (result.length > 0) {
     cb(buf + result.offset, result.length);

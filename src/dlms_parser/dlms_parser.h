@@ -6,7 +6,6 @@
 #include "mbus_decoder.h"
 #include "utils.h"
 #include <cstdint>
-#include <string>
 
 namespace dlms_parser {
 
@@ -20,7 +19,7 @@ class DlmsParser final : NonCopyableAndNonMovable {
   void set_frame_format(FrameFormat fmt) { this->frame_format_ = fmt; }
   void set_skip_crc_check(bool skip);
   void set_work_buffer(uint8_t* buf, size_t capacity);
-  void set_decryption_key(const std::span<const uint8_t> key);
+  void set_decryption_key(std::span<const uint8_t> key);
 
   // Load built-in patterns (T1, T2, T3, U.ZPA).
   void load_default_patterns();
@@ -38,8 +37,8 @@ class DlmsParser final : NonCopyableAndNonMovable {
   // Parse a full frame. Fires cooked_cb for each matched COSEM object.
   // Optionally fires raw_cb with unmodified captures before conversion.
   ParseResult parse(const uint8_t* buf, size_t len,
-                    DlmsDataCallback cooked_cb,
-                    DlmsRawCallback raw_cb = nullptr);
+                    const DlmsDataCallback& cooked_cb,
+                    const DlmsRawCallback& raw_cb = nullptr);
 
  private:
   FrameFormat frame_format_{FrameFormat::RAW};
