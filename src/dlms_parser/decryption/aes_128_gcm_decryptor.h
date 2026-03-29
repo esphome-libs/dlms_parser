@@ -11,15 +11,15 @@ class Aes128GcmDecryptionKey {
 public:
   static std::optional<Aes128GcmDecryptionKey> from_bytes(std::span<const uint8_t> key_bytes) {
     if (key_bytes.size() != 16) return std::nullopt;
-    std::array<uint8_t, 16> arr;
+    std::array<uint8_t, 16> arr{};
     std::copy(key_bytes.begin(), key_bytes.end(), arr.begin());
     return Aes128GcmDecryptionKey(arr);
   }
 
-  const uint8_t* data() const { return key.data(); }
+  [[nodiscard]] const uint8_t* data() const { return key.data(); }
 
 private:
-  Aes128GcmDecryptionKey(std::array<uint8_t, 16> k) : key(k) {}
+  explicit Aes128GcmDecryptionKey(const std::array<uint8_t, 16> k) : key(k) {}
   std::array<uint8_t, 16> key;
 };
 

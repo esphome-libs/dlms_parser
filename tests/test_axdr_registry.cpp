@@ -281,7 +281,7 @@ TEST_CASE("AxdrParser Pattern Registry - Limits and Edge Cases") {
   }
 
   SUBCASE("Max Tokens Limit (64)") {
-    std::string huge_dsl = "";
+    std::string huge_dsl;
     for (int i = 0; i < 70; i++) {
       huge_dsl += "V,";
     }
@@ -295,7 +295,7 @@ TEST_CASE("AxdrParser Pattern Registry - Limits and Edge Cases") {
   }
 
   SUBCASE("Max Steps Limit (32)") {
-    std::string many_steps_dsl = "";
+    std::string many_steps_dsl;
     for (int i = 0; i < 50; i++) {
       many_steps_dsl += "V,";
     }
