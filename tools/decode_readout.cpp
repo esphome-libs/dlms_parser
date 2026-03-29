@@ -25,7 +25,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <format>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -44,7 +46,7 @@ static bool is_hex_char(char c) {
 static std::vector<uint8_t> read_hex_file(const char* path) {
   std::ifstream f(path);
   if (!f) {
-    fprintf(stderr, "Error: cannot open '%s'\n", path);
+    std::cerr << std::format("Error: cannot open '{}'\n", path);
     return {};
   }
 
@@ -89,7 +91,7 @@ static std::vector<uint8_t> read_hex_file(const char* path) {
 static std::vector<uint8_t> read_bin_file(const char* path) {
   std::ifstream f(path, std::ios::binary | std::ios::ate);
   if (!f) {
-    fprintf(stderr, "Error: cannot open '%s'\n", path);
+    std::cerr << std::format("Error: cannot open '{}'\n", path);
     return {};
   }
   std::streamsize size = f.tellg();
@@ -189,14 +191,14 @@ int main(int argc, char* argv[]) {
     } else if (argv[i][0] != '-') {
       file_path = argv[i];
     } else {
-      fprintf(stderr, "Unknown option: %s\n", argv[i]);
+      std::cerr << std::format("Unknown option: {}\n", argv[i]);
       return 1;
     }
   }
 
   if (!file_path) {
-    fprintf(stderr,
-        "Usage: %s [options] <file>\n"
+    std::cerr << std::format(
+        "Usage: {} [options] <file>\n"
         "\n"
         "Options:\n"
         "  -f hdlc|mbus|raw    Frame format (default: auto-detect)\n"
@@ -208,9 +210,9 @@ int main(int argc, char* argv[]) {
         "  -vv                 Very verbose logging\n"
         "\n"
         "Examples:\n"
-        "  %s tests/dumps/hdlc_norway_han_1phase.log\n"
-        "  %s -f mbus -k 36C66639E48A8CA4D6BC8B282A793BBB tests/dumps/mbus_netz_noe_p1.log\n"
-        "  %s -p \"TO, TV\" -k 5C316162209EBB790B52EB0E7FC5B11C tests/dumps/hdlc_landis_gyr_e450.log\n",
+        "  {} tests/dumps/hdlc_norway_han_1phase.log\n"
+        "  {} -f mbus -k 36C66639E48A8CA4D6BC8B282A793BBB tests/dumps/mbus_netz_noe_p1.log\n"
+        "  {} -p \"TO, TV\" -k 5C316162209EBB790B52EB0E7FC5B11C tests/dumps/hdlc_landis_gyr_e450.log\n",
         argv[0], argv[0], argv[0], argv[0]);
     return 1;
   }
@@ -246,7 +248,7 @@ int main(int argc, char* argv[]) {
   }
 
   if (data.empty()) {
-    fprintf(stderr, "Error: no data read from '%s'\n", file_path);
+    std::cerr << std::format("Error: no data read from '{}'\n", file_path);
     return 1;
   }
 
@@ -261,7 +263,7 @@ int main(int argc, char* argv[]) {
     else if (strcmp(format_str, "mbus") == 0) fmt = dlms_parser::FrameFormat::MBUS;
     else if (strcmp(format_str, "raw") == 0) fmt = dlms_parser::FrameFormat::RAW;
     else {
-      fprintf(stderr, "Error: unknown format '%s' (use hdlc, mbus, or raw)\n", format_str);
+      std::cerr << std::format("Error: unknown format '{}' (use hdlc, mbus, or raw)\n", format_str);
       return 1;
     }
   } else {
@@ -281,7 +283,7 @@ int main(int argc, char* argv[]) {
   if (key_str) {
     auto key = parse_hex_key(key_str);
     if (key.size() != 16) {
-      fprintf(stderr, "Error: key must be exactly 32 hex characters\n");
+      std::cerr << "Error: key must be exactly 32 hex characters\n";
       return 1;
     }
     parser.set_decryption_key(key);
@@ -295,10 +297,10 @@ int main(int argc, char* argv[]) {
     parser.register_pattern(pat.c_str());
   }
 
-  fprintf(stdout, "Input:   %s (%zu bytes)\n", file_path, data.size());
-  fprintf(stdout, "Format:  %s%s\n", format_name(fmt), format_str ? "" : " (auto-detected)");
-  if (key_str) fprintf(stdout, "Key:     %s\n", key_str);
-  fprintf(stdout, "\n");
+  std::cout << std::format("Input:   {} ({} bytes)\n", file_path, data.size());
+  std::cout << std::format("Format:  {}{}\n", format_name(fmt), format_str ? "" : " (auto-detected)");
+  if (key_str) std::cout << std::format("Key:     {}\n", key_str);
+  std::cout << "\n";
 
   // ---- Check frame completeness (demonstrates the check_frame API) ----
   auto status = parser.check_frame(data.data(), data.size());
@@ -308,16 +310,16 @@ int main(int argc, char* argv[]) {
     case dlms_parser::FrameStatus::NEED_MORE: status_str = "NEED_MORE"; break;
     case dlms_parser::FrameStatus::ERROR:     status_str = "ERROR"; break;
   }
-  fprintf(stdout, "Status:  %s\n\n", status_str);
+  std::cout << std::format("Status:  {}\n\n", status_str);
 
   if (status == dlms_parser::FrameStatus::NEED_MORE) {
-    fprintf(stderr, "Frame incomplete - more data needed. In a real application,\n"
-                    "keep reading from UART and call check_frame() again with\n"
-                    "the accumulated buffer.\n");
+    std::cerr << "Frame incomplete - more data needed. In a real application,\n"
+                  "keep reading from UART and call check_frame() again with\n"
+                  "the accumulated buffer.\n";
     return 2;
   }
   if (status == dlms_parser::FrameStatus::ERROR) {
-    fprintf(stderr, "Frame error - invalid data. Discard and resync.\n");
+    std::cerr << "Frame error - invalid data. Discard and resync.\n";
     return 3;
   }
 
@@ -327,15 +329,15 @@ int main(int argc, char* argv[]) {
   auto cooked_cb = [&](const char* obis, float val, const char* str, bool is_numeric) {
     obj_count++;
     if (is_numeric) {
-      fprintf(stdout, "  [%2zu] %-20s = %.4f\n", obj_count, obis, static_cast<double>(val));
+      std::cout << std::format("  [{:2}] {:<20} = {:.4f}\n", obj_count, obis, static_cast<double>(val));
     } else {
-      fprintf(stdout, "  [%2zu] %-20s = \"%s\"\n", obj_count, obis, str);
+      std::cout << std::format("  [{:2}] {:<20} = \"{}\"\n", obj_count, obis, str);
     }
   };
 
   auto [count, consumed] = parser.parse(data.data(), data.size(), cooked_cb);
 
-  fprintf(stdout, "\nTotal: %zu objects matched, %zu bytes consumed\n", count, consumed);
+  std::cout << std::format("\nTotal: {} objects matched, {} bytes consumed\n", count, consumed);
 
   return count > 0 ? 0 : 1;
 }
