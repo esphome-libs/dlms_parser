@@ -33,8 +33,12 @@ void run_meter_test(const char* name,
                     const std::map<std::string, float>& expected_floats,
                     dlms_parser::FrameFormat format = dlms_parser::FrameFormat::RAW,
                     std::function<void(dlms_parser::DlmsParser&)> setup_fn = nullptr) {
-  std::cout << std::format("\n========== {} ==========\n", name);
-  dlms_parser::Logger::set_log_function([](const dlms_parser::LogLevel log_level, const char* fmt, va_list args) {
+
+  // Capture logs into a string instead of printing them directly
+  std::string parser_log;
+  parser_log += std::format("\n========== {} ==========\n", name);
+
+  dlms_parser::Logger::set_log_function([&parser_log](const dlms_parser::LogLevel log_level, const char* fmt, va_list args) {
     std::array<char, 2000> buffer;
     vsnprintf(buffer.data(), buffer.size(), fmt, args);
 
@@ -49,8 +53,14 @@ void run_meter_test(const char* name,
       default: throw std::runtime_error("Unknown log level");
     }
 
-    std::cout << std::format("{}{}\n", level_str, buffer.data());
+    parser_log += std::format("{}{}\n", level_str, buffer.data());
   });
+
+  struct LogCleaner {
+    ~LogCleaner() {
+      dlms_parser::Logger::set_log_function([](dlms_parser::LogLevel, const char*, va_list) {});
+    }
+  } log_cleaner;
 
   std::array<uint8_t, 2048> work_buf{};
   Aes128GcmDecryptor decryptor;
@@ -72,6 +82,8 @@ void run_meter_test(const char* name,
   };
 
   auto [objects_found, bytes_consumed] = parser.parse(payload, payload_size, callback);
+
+  INFO(parser_log);
 
   REQUIRE(objects_found == expected_count);
 
