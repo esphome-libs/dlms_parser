@@ -50,7 +50,7 @@ parser.set_decryption_key(key);
 ## Key Capabilities
 
 - **Transport decoding**: `RAW`, `HDLC` (including multi-frame segmentation and General Block Transfer), `M-Bus`
-- **Encryption**: AES-128-GCM decryption for `General-GLO-Ciphering` and `General-DED-Ciphering` APDUs
+- **Encryption**: AES-128-GCM decryption and optional authentication tag verification for `General-GLO-Ciphering` and `General-DED-Ciphering` APDUs
 - **Pattern matching**: DSL-based AXDR descriptor patterns with built-in presets and custom registration
 - **Callback API**: cooked callback delivers OBIS code + scaled value; raw callback gives full capture details
 - **Embedded-friendly**: no heap allocation in the hot path; stack-only per-frame parsing
@@ -61,7 +61,7 @@ parser.set_decryption_key(key);
 1. Create `dlms_parser::DlmsParser`
 2. Provide a work buffer (`set_work_buffer`)
 3. Select the frame format
-4. Set the decryption key if the meter is encrypted
+4. Set the decryption key (and optionally the authentication key) if the meter is encrypted
 5. Load built-in patterns and optionally register custom ones
 6. Pass one complete frame to `parse()`
 7. Consume extracted values in the callback

@@ -161,14 +161,26 @@ responsible for delivering a complete APDU buffer.
 
 ## Working With Encrypted Frames
 
-If the meter encrypts push telegrams, install the AES-128-GCM key before parsing:
+If the meter encrypts push telegrams, install the AES-128-GCM decryption key (GUEK) before parsing:
 
 ```cpp
-std::array<uint8_t, 16> key = {0x00, 0x01, 0x02, /* ... */ 0x0F};
+auto key = dlms_parser::Aes128GcmDecryptionKey::from_bytes(
+    std::array<uint8_t, 16>{0x00, 0x01, 0x02, /* ... */ 0x0F}).value();
 parser.set_decryption_key(key);
 ```
 
-If the frame is not encrypted, skip this step.
+If the meter also uses authentication (security control byte has bit 0x10 set),
+provide the authentication key (GAK) to enable GCM tag verification:
+
+```cpp
+auto auth_key = dlms_parser::Aes128GcmDecryptionKey::from_bytes(
+    std::array<uint8_t, 16>{0xFF, 0xEE, 0xDD, /* ... */ 0x00}).value();
+parser.set_authentication_key(auth_key);
+```
+
+Without an authentication key, encrypted+authenticated frames are still decrypted
+but the GCM tag is not verified. Encrypt-only frames (security control 0x20) never
+have a tag and work with just the decryption key.
 
 ## Loading And Writing Patterns
 
@@ -213,9 +225,9 @@ Common examples:
 parser.register_pattern("TC, TO, TDTM");          // datetime value
 parser.register_pattern("C, O, A, V, TS, TU");    // untagged flat
 parser.register_pattern("TO, TV, S(TS, TU)");     // tagged with scaler-unit
-parser.register_pattern("TO, TV");                 // flat OBIS + value pairs (no scaler)
-parser.register_pattern("L, TSTR");                // last element as string
-parser.register_pattern("TOW, TV, TSU");           // Landis+Gyr swapped OBIS
+parser.register_pattern("TO, TV");                // flat OBIS + value pairs (no scaler)
+parser.register_pattern("L, TSTR");               // last element as string
+parser.register_pattern("TOW, TV, TSU");          // Landis+Gyr swapped OBIS
 ```
 
 The full token reference is in [REFERENCE.md](REFERENCE.md).
@@ -347,11 +359,12 @@ public:
         parser_.load_default_patterns();
         parser_.set_frame_format(dlms_parser::FrameFormat::HDLC);
 
-        parser_.set_decryption_key(std::array<uint8_t, 16>{
-                                    0x00,0x01,0x02,0x03,
+        auto key = dlms_parser::Aes128GcmDecryptionKey::from_bytes(
+            std::array<uint8_t, 16>{0x00,0x01,0x02,0x03,
                                     0x04,0x05,0x06,0x07,
                                     0x08,0x09,0x0A,0x0B,
-                                    0x0C,0x0D,0x0E,0x0F});
+                                    0x0C,0x0D,0x0E,0x0F}).value();
+        parser_.set_decryption_key(key);
     }
 
     void on_frame(const uint8_t* buf, size_t len) {
@@ -378,6 +391,7 @@ Examples of meter-specific customization from the test suite:
 - Aidon HAN: `S(TO, TV)`
 - Landis+Gyr ZMF100: `set_skip_crc_check(true)`, `S(TO, TDTM)`, `S(TO, TV)`, `TOW, TV, TSU`
 - Landis+Gyr E450: decryption key, `TO, TV` (3 HDLC frames with General-Block-Transfer + encryption)
+- Kamstrup Omnipower: decryption key + authentication key, `TO, TV`
 - Netz NOE P1: decryption key plus `L, TSTR`
 
 ## Troubleshooting
@@ -391,7 +405,8 @@ Examples of meter-specific customization from the test suite:
 | `HCS error` or `FCS error`               | wrong frame format, damaged frame, or non-standard CRC            |
 | `checksum error`                         | M-Bus checksum mismatch                                           |
 | encrypted APDU with no output            | decryption key was not set                                        |
-| `Decryption failed`                      | wrong key or corrupted ciphertext                                 |
+| `Decryption failed`                      | wrong decryption key or corrupted ciphertext                      |
+| `Decryption failed (auth tag mismatch?)` | wrong authentication key or tampered frame                        |
 | values look scaled incorrectly           | inspect scaler/unit handling or use the cooked callback           |
 | unsupported APDU warning                 | the meter uses a wrapper not handled by the library               |
 | `GBT: truncated block`                   | incomplete General-Block-Transfer frame — buffer may be cut short |
