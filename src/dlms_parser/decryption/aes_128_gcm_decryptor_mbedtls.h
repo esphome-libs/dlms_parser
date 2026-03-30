@@ -14,13 +14,30 @@ public:
   ~Aes128GcmDecryptorMbedTls() override { mbedtls_gcm_free(&gcm); }
 
   void set_decryption_key(const Aes128GcmDecryptionKey& key) override {
-    _has_key = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, key.data(), 128) == 0;
+    has_decryption_key_ = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, key.data(), 128) == 0;
   }
 
-  bool decrypt_in_place(const std::span<uint8_t> iv, std::span<uint8_t> cipher) override {
-    if (!_has_key) { return false; }
+  bool decrypt_in_place(std::span<uint8_t> iv,
+                        std::span<uint8_t> cipher,
+                        std::span<const uint8_t> aad,
+                        std::span<const uint8_t> tag) override {
+    if (!has_decryption_key_) { return false; }
 
-    unsigned char tag[12]; // dummy tag to satisfy the API
+    if (!tag.empty()) {
+      // Authenticated: decrypt and verify tag in one call
+      return mbedtls_gcm_auth_decrypt(/* ctx     */ &gcm,
+                                      /* length  */ cipher.size(),
+                                      /* iv      */ iv.data(),
+                                      /* iv_len  */ iv.size(),
+                                      /* aad     */ aad.data(),
+                                      /* aad_len */ aad.size(),
+                                      /* tag     */ tag.data(),
+                                      /* tag_len */ tag.size(),
+                                      /* input   */ cipher.data(),
+                                      /* output  */ cipher.data()) == 0;
+    }
+    // Encrypt-only: no tag verification, no AAD
+    unsigned char dummy_tag[12];
     return mbedtls_gcm_crypt_and_tag(/* ctx     */ &gcm,
                                      /* mode    */ MBEDTLS_GCM_DECRYPT,
                                      /* length  */ cipher.size(),
@@ -30,8 +47,8 @@ public:
                                      /* aad_len */ 0,
                                      /* input   */ cipher.data(),
                                      /* output  */ cipher.data(),
-                                     /* tag_len */ sizeof(tag),
-                                     /* tag     */ tag) == 0;
+                                     /* tag_len */ sizeof(dummy_tag),
+                                     /* tag     */ dummy_tag) == 0;
   }
 };
 

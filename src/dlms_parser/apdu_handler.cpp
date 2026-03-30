@@ -166,9 +166,24 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(uint8_t* buf, size_t len)
       const uint32_t payload_len = cipher_len - DLMS_LENGTH_CORRECTION - tag_len;
       if (pos + payload_len + tag_len > len) return {0, 0};
 
-      // Decrypt ciphertext only (GCM tag excluded)
-      if (!this->decryptor_->decrypt_in_place(iv, std::span(buf + pos, payload_len))) {
-        Logger::log(LogLevel::ERROR, "Decryption failed");
+      // Build AAD and tag spans for GCM.
+      // AAD = security_control(1) + authentication_key(16), per DLMS Green Book.
+      // Tag verification only happens when auth bit is set AND auth key is provided.
+      uint8_t aad[17];
+      size_t aad_len = 0;
+      std::span<const uint8_t> gcm_tag;
+
+      if (has_auth_tag && this->decryptor_->has_auth_key()) {
+        aad[0] = security_control;
+        std::memcpy(aad + 1, this->decryptor_->auth_key_data(), 16);
+        aad_len = 17;
+        gcm_tag = std::span<const uint8_t>(buf + pos + payload_len, DLMS_GCM_TAG_LENGTH);
+      }
+
+      if (!this->decryptor_->decrypt_in_place(
+              iv, std::span(buf + pos, payload_len),
+              std::span<const uint8_t>(aad, aad_len), gcm_tag)) {
+        Logger::log(LogLevel::ERROR, "Decryption failed (auth tag mismatch?)");
         return {0, 0};
       }
       std::memmove(buf, buf + pos, payload_len);

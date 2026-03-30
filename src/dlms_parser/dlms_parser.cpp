@@ -25,6 +25,10 @@ void DlmsParser::set_skip_crc_check(const bool skip) {
   this->mbus_decoder_.set_skip_crc_check(skip);
 }
 
+void DlmsParser::set_skip_auth_check(const bool skip) {
+  this->decryptor_.set_skip_auth_check(skip);
+}
+
 void DlmsParser::set_work_buffer(uint8_t* buf, const size_t capacity) {
   this->work_buf_ = buf;
   this->work_buf_capacity_ = capacity;
@@ -32,6 +36,10 @@ void DlmsParser::set_work_buffer(uint8_t* buf, const size_t capacity) {
 
 void DlmsParser::set_decryption_key(const Aes128GcmDecryptionKey& key) const {
   decryptor_.set_decryption_key(key);
+}
+
+void DlmsParser::set_authentication_key(const Aes128GcmDecryptionKey& key) const {
+  decryptor_.set_authentication_key(key);
 }
 
 void DlmsParser::load_default_patterns() {

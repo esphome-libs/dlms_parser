@@ -52,11 +52,10 @@ const auto hdlc_kamstrup_omnipower_key = dlms_parser::Aes128GcmDecryptionKey::fr
     0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
 }).value();
 
-// Not currently consumed by the parser, but stored with the fixture for completeness.
-constexpr std::array<uint8_t, 16> hdlc_kamstrup_omnipower_auth_key = {
+const auto hdlc_kamstrup_omnipower_auth_key = dlms_parser::Aes128GcmDecryptionKey::from_bytes(std::array<uint8_t, 16>{
     0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88,
     0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00,
-};
+}).value();
 
 constexpr size_t hdlc_kamstrup_omnipower_expected_count = 33;
 
