@@ -64,11 +64,25 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(uint8_t* buf, size_t len)
       if (pos + 4 > len) return {0, 0};
       pos += 4;  // Long-Invoke-ID
 
+      // DLMS Green Book: date-time is an AXDR-encoded optional OCTET STRING.
+      // Per spec only two encodings exist:
+      //   0x00                  - NullData (absent)
+      //   0x09 <len> <data...>  - tagged OCTET STRING (e.g. Kaifa meters)
+      // In practice many meters (Iskra, Landis+Gyr, Kamstrup, Salzburg, etc.)
+      // send it as a bare length + data without the 0x09 tag prefix:
+      //   0x0C <12 bytes>       - untagged, length=12 directly
       if (pos >= len) return {0, 0};
-      if (const uint8_t has_datetime = buf[pos++]; has_datetime != 0x00) {
-        Logger::log(LogLevel::VERBOSE, "Datetime flag 0x%02X - skipping 12-byte datetime", has_datetime);
-        if (pos + 12 > len) return {0, 0};
-        pos += 12;
+      const uint8_t dt_tag = buf[pos++];
+      if (dt_tag == 0x09) {
+        // Tagged OCTET_STRING: length byte + data
+        if (pos >= len) return {0, 0};
+        const uint8_t dt_len = buf[pos++];
+        if (pos + dt_len > len) return {0, 0};
+        pos += dt_len;
+      } else if (dt_tag != 0x00) {
+        // Untagged: dt_tag is the length (typically 0x0C = 12)
+        if (pos + dt_tag > len) return {0, 0};
+        pos += dt_tag;
       }
 
       if (pos >= len) return {0, 0};
