@@ -34,6 +34,10 @@ void DlmsParser::set_decryption_key(const Aes128GcmDecryptionKey& key) const {
   decryptor_.set_decryption_key(key);
 }
 
+void DlmsParser::set_authentication_key(const Aes128GcmDecryptionKey& key) const {
+  decryptor_.set_authentication_key(key);
+}
+
 void DlmsParser::load_default_patterns() {
   axdr_parser_.register_pattern("T1", "TC,TO,TS,TV", 10);
   axdr_parser_.register_pattern("T2", "TO,TV,TSU", 20);

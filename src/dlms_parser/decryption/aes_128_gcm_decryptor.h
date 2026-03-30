@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 #include <optional>
 #include <array>
 #include <span>
@@ -26,14 +27,31 @@ private:
 class Aes128GcmDecryptor {
  public:
   virtual void set_decryption_key(const Aes128GcmDecryptionKey& key) = 0;
-  virtual bool decrypt_in_place(std::span<uint8_t> iv, std::span<uint8_t> cipher) = 0;
-  [[nodiscard]] bool has_key() const { return _has_key; }
+
+  virtual void set_authentication_key(const Aes128GcmDecryptionKey& key) {
+    std::memcpy(auth_key_.data(), key.data(), 16);
+    has_auth_key_ = true;
+  }
+
+  // Decrypt cipher in-place.
+  // When aad + tag are non-empty, verifies the GCM authentication tag.
+  // aad = security_control(1) + authentication_key(16), per DLMS Green Book.
+  virtual bool decrypt_in_place(std::span<uint8_t> iv,
+                                std::span<uint8_t> cipher,
+                                std::span<const uint8_t> aad,
+                                std::span<const uint8_t> tag) = 0;
+
+  [[nodiscard]] bool has_key() const { return has_decryption_key_; }
+  [[nodiscard]] bool has_auth_key() const { return has_auth_key_; }
+  [[nodiscard]] const uint8_t* auth_key_data() const { return auth_key_.data(); }
 
   virtual ~Aes128GcmDecryptor() = default;
 
  protected:
   Aes128GcmDecryptor() = default;
-  bool _has_key = false;
+  bool has_decryption_key_ = false;
+  bool has_auth_key_ = false;
+  std::array<uint8_t, 16> auth_key_{};
 };
 
 }

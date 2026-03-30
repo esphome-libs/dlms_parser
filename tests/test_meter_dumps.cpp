@@ -281,8 +281,8 @@ TEST_CASE("Integration: HDLC") {
     );
   }
 
-  SUBCASE("Kamstrup Omnipower (encrypted)") {
-    run_meter_test("Kamstrup Omnipower (encrypted)",
+  SUBCASE("Kamstrup Omnipower (encrypted, no auth key)") {
+    run_meter_test("Kamstrup Omnipower (encrypted, no auth key)",
       dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
       sizeof(dlms::test_data::hdlc_kamstrup_omnipower_raw_frame),
       dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
@@ -291,10 +291,44 @@ TEST_CASE("Integration: HDLC") {
       dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
-        p.register_pattern("Obis List Ver", "F, TSTR"); // OBIS List Version Identifier
+        p.register_pattern("Obis List Ver", "F, TSTR");
         p.register_pattern("Code-Value Pair", "TO, TV");
       }
     );
+  }
+
+  SUBCASE("Kamstrup Omnipower (encrypted + authenticated)") {
+    run_meter_test("Kamstrup Omnipower (encrypted + authenticated)",
+      dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
+      sizeof(dlms::test_data::hdlc_kamstrup_omnipower_raw_frame),
+      dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
+      dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,
+      dlms::test_data::hdlc_kamstrup_omnipower_expected_floats,
+      dlms_parser::FrameFormat::HDLC,
+      [](dlms_parser::DlmsParser& p) {
+        p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
+        p.set_authentication_key(dlms::test_data::hdlc_kamstrup_omnipower_auth_key);
+        p.register_pattern("Obis List Ver", "F, TSTR");
+        p.register_pattern("Code-Value Pair", "TO, TV");
+      }
+    );
+  }
+
+  SUBCASE("Kamstrup Omnipower - wrong auth key rejects frame") {
+    const auto wrong_key = dlms_parser::Aes128GcmDecryptionKey::from_bytes(std::array<uint8_t, 16>{0x00}).value();
+    std::array<uint8_t, 2048> work_buf{};
+    dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
+    dlms_parser::DlmsParser parser(decryptor);
+    parser.set_work_buffer(work_buf.data(), work_buf.size());
+    parser.set_frame_format(dlms_parser::FrameFormat::HDLC);
+    parser.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
+    parser.set_authentication_key(wrong_key);
+    parser.load_default_patterns();
+    auto [n, consumed] = parser.parse(
+      dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
+      sizeof(dlms::test_data::hdlc_kamstrup_omnipower_raw_frame),
+      [](const char*, float, const char*, bool) {});
+    CHECK(n == 0);
   }
 
 }
