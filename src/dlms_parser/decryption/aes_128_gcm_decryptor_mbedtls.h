@@ -15,7 +15,7 @@ public:
   ~Aes128GcmDecryptorMbedTls() override { mbedtls_gcm_free(&gcm); }
 
   void set_decryption_key(const Aes128GcmDecryptionKey& key) override {
-    if (auto res = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, key.data(), 128) != 0) {
+    if (const auto res = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, key.data(), 128); res != 0) {
       Logger::log(LogLevel::ERROR, "Failed to set decryption key: %d", res);
       return;
     }

@@ -216,7 +216,7 @@ uint32_t read_ber_length(const uint8_t* buf, size_t& pos, const size_t buf_len) 
 
 void obis_to_string(const std::span<const uint8_t> obis, char* buffer, const size_t max_len) {
   if (max_len > 0) buffer[0] = '\0';
-  if (obis.empty() || max_len == 0) return;
+  if (obis.size() < 6 || max_len == 0) return;
   snprintf(buffer, max_len, "%u.%u.%u.%u.%u.%u", obis[0], obis[1], obis[2], obis[3], obis[4], obis[5]);
 }
 
