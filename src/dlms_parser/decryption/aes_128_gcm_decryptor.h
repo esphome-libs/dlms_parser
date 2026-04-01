@@ -16,7 +16,7 @@ struct AuthenticationKeyTag {};
 template <typename Tag>
 class Aes128Key {
 public:
-  static [[nodiscard]] std::optional<Aes128Key> from_bytes(std::span<const uint8_t> key_bytes) {
+  [[nodiscard]] static std::optional<Aes128Key> from_bytes(std::span<const uint8_t> key_bytes) {
     if (key_bytes.size() != 16) return std::nullopt;
     std::array<uint8_t, 16> arr{};
     std::copy(key_bytes.begin(), key_bytes.end(), arr.begin());
