@@ -26,6 +26,7 @@ FrameStatus MBusDecoder::check(const std::span<const uint8_t> buf) {
     if (buf[offset + 1] != buf[offset + 2]) return FrameStatus::ERROR;
 
     const size_t L = buf[offset + 1];
+    if (MBUS_INTRO + L < MBUS_HEADER) return FrameStatus::ERROR;
     const size_t frame_size = MBUS_INTRO + L + MBUS_FOOTER;
     if (offset + frame_size > buf.size()) return FrameStatus::NEED_MORE;
 
@@ -36,6 +37,9 @@ FrameStatus MBusDecoder::check(const std::span<const uint8_t> buf) {
 
     // If next byte is another MBUS_START, more frames follow
     if (offset < buf.size() && buf[offset] == MBUS_START) continue;
+
+    // All bytes must be consumed; trailing garbage is an error
+    if (offset < buf.size()) return FrameStatus::ERROR;
 
     return FrameStatus::COMPLETE;
   }
@@ -68,6 +72,10 @@ size_t MBusDecoder::decode(const std::span<uint8_t> buf_span) const {
     }
 
     const size_t L = buf[read_offset + 1];
+    if (MBUS_INTRO + L < MBUS_HEADER) {
+      Logger::log(LogLevel::WARNING, "MBUS: L too small (%zu) at offset %zu", L, read_offset);
+      return 0;
+    }
     const size_t frame_size = MBUS_INTRO + L + MBUS_FOOTER;
 
     if (len - read_offset < frame_size) {

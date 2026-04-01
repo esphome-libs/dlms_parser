@@ -120,10 +120,9 @@ TEST_CASE("MBus Decoder - Frame Status Check (check)") {
   }
 
   SUBCASE("Valid Frame Followed by Trailing Garbage") {
-    // check() returns COMPLETE for the first valid frame, ignoring trailing garbage
     auto frame = base_frame;
     frame.push_back(0xFF);
-    CHECK(MBusDecoder::check(frame) == FrameStatus::COMPLETE);
+    CHECK(MBusDecoder::check(frame) == FrameStatus::ERROR);
   }
 }
 
