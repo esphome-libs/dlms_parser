@@ -30,7 +30,7 @@ class DlmsParser final : NonCopyableAndNonMovable {
   void register_pattern(const char* dsl);
   void register_pattern(const char* name, const char* dsl, int priority = 0);
   // Register with a default OBIS (used when the pattern captures no OBIS).
-  void register_pattern(const char* name, const char* dsl, int priority, const uint8_t default_obis[6]);
+  void register_pattern(const char* name, const char* dsl, int priority, std::span<const uint8_t, 6> default_obis);
 
   // Check whether buf contains a complete message ready for parse().
   // Stateless — the library does not accumulate; the caller owns the buffer.

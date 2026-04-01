@@ -48,18 +48,18 @@ namespace dlms_parser::utils {
 
 float data_as_float(DlmsDataType value_type, std::span<const uint8_t> data);
 bool test_if_date_time_12b(std::span<const uint8_t> p);
-void datetime_to_string(std::span<const uint8_t> data, char* buffer, size_t max_len);
-void data_to_string(DlmsDataType value_type, std::span<const uint8_t> data, char* buffer, size_t max_len);
-void obis_to_string(std::span<const uint8_t> obis, char* buffer, size_t max_len);
+void datetime_to_string(std::span<const uint8_t> data, std::span<char> buffer);
+void data_to_string(DlmsDataType value_type, std::span<const uint8_t> data, std::span<char> buffer);
+void obis_to_string(std::span<const uint8_t> obis, std::span<char> buffer);
 const char* dlms_data_type_to_string(DlmsDataType vt);
 
 // Read a BER-encoded length from buf[pos]. Advances pos past the length bytes.
 // Returns the decoded length, or 0 if the buffer is too short.
-uint32_t read_ber_length(const uint8_t* buf, size_t& pos, size_t buf_len);
+uint32_t read_ber_length(std::span<const uint8_t> buf, size_t& pos);
 
 int get_data_type_size(DlmsDataType type);
 bool is_value_data_type(DlmsDataType type);
 
-void format_hex_pretty_to(char* out, size_t max_out, std::span<const uint8_t> data);
+void format_hex_pretty_to(std::span<char> out, std::span<const uint8_t> data);
 
 }  // namespace dlms_parser::utils

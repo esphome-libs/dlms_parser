@@ -107,7 +107,7 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(const std::span<uint8_t> 
         const bool is_last = (ctrl & 0x80U) != 0;
         // BER length starts at offset 6 within the block
         size_t ber_pos = read_pos + 6;
-        const uint32_t block_len = utils::read_ber_length(buf, ber_pos, len);
+        const uint32_t block_len = utils::read_ber_length(std::span<const uint8_t>{buf, len}, ber_pos);
 
         if (ber_pos + block_len > len) {
           Logger::log(LogLevel::WARNING, "GBT: block truncated");
@@ -150,7 +150,7 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(const std::span<uint8_t> 
       pos += st_len;
 
       // BER length
-      const uint32_t cipher_len = utils::read_ber_length(buf, pos, len);
+      const uint32_t cipher_len = utils::read_ber_length(std::span<const uint8_t>{buf, len}, pos);
       if (cipher_len == 0) return {0, 0};
 
       // Security control byte

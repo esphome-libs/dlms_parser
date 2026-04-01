@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include <array>
 #include <cstdint>
 
 namespace dlms_parser {
@@ -16,7 +17,7 @@ struct AxdrDescriptorPattern {
   AxdrPatternStep steps[32]{};
   uint16_t default_class_id{0};
   bool has_default_obis{false};
-  uint8_t default_obis[6]{};
+  std::array<uint8_t, 6> default_obis{};
 };
 
 }

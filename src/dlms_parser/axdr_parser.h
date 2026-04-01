@@ -29,7 +29,7 @@ class AxdrParser final : NonCopyableAndNonMovable {
   // Register a named pattern from the DSL string, e.g. "TC,TO,TS,TV".
   void register_pattern(const char* name, const char* dsl, int priority = 10);
   void register_pattern(const char* name, const char* dsl, int priority,
-                        const uint8_t default_obis[6]);
+                        std::span<const uint8_t, 6> default_obis);
   void clear_patterns();
 
   // Parse AXDR bytes. Fires cooked_cb and/or raw_cb for each pattern match.
@@ -38,7 +38,7 @@ class AxdrParser final : NonCopyableAndNonMovable {
                     DlmsDataCallback cooked_cb,
                     DlmsRawCallback raw_cb = nullptr);
 
-  [[nodiscard]] const AxdrDescriptorPattern* patterns() const { return patterns_.data(); }
+  [[nodiscard]] std::span<const AxdrDescriptorPattern> patterns() const { return {patterns_.data(), patterns_count_}; }
   [[nodiscard]] size_t patterns_size() const { return patterns_count_; }
 
  private:

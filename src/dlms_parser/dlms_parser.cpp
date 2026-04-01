@@ -52,7 +52,7 @@ void DlmsParser::register_pattern(const char* name, const char* dsl, const int p
   axdr_parser_.register_pattern(name, dsl, priority);
 }
 
-void DlmsParser::register_pattern(const char* name, const char* dsl, const int priority, const uint8_t default_obis[6]) {
+void DlmsParser::register_pattern(const char* name, const char* dsl, const int priority, const std::span<const uint8_t, 6> default_obis) {
   axdr_parser_.register_pattern(name, dsl, priority, default_obis);
 }
 

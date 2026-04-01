@@ -75,7 +75,9 @@ bool test_if_date_time_12b(const std::span<const uint8_t> p) {
   return true;
 }
 
-void datetime_to_string(const std::span<const uint8_t> data, char* buffer, const size_t max_len) {
+void datetime_to_string(const std::span<const uint8_t> data, const std::span<char> out) {
+  char* const buffer = out.data();
+  const size_t max_len = out.size();
   if (max_len > 0) buffer[0] = '\0';
   if (data.size() < 12 || max_len == 0) return;
 
@@ -130,8 +132,9 @@ void datetime_to_string(const std::span<const uint8_t> data, char* buffer, const
   }
 }
 
-void data_to_string(const DlmsDataType value_type, const std::span<const uint8_t> data, char* buffer,
-                    const size_t max_len) {
+void data_to_string(const DlmsDataType value_type, const std::span<const uint8_t> data, const std::span<char> out) {
+  char* const buffer = out.data();
+  const size_t max_len = out.size();
   if (max_len > 0) buffer[0] = '\0';
   if (data.empty() || max_len == 0) return;
   const uint8_t* ptr = data.data();
@@ -157,7 +160,7 @@ void data_to_string(const DlmsDataType value_type, const std::span<const uint8_t
     break;
   }
   case DLMS_DATA_TYPE_DATETIME:
-    datetime_to_string(data, buffer, max_len);
+    datetime_to_string(data, out);
     break;
   case DLMS_DATA_TYPE_BIT_STRING:
   case DLMS_DATA_TYPE_BINARY_CODED_DECIMAL:
@@ -201,24 +204,24 @@ void data_to_string(const DlmsDataType value_type, const std::span<const uint8_t
   }
 }
 
-uint32_t read_ber_length(const uint8_t* buf, size_t& pos, const size_t buf_len) {
-  if (pos >= buf_len) return 0;
+uint32_t read_ber_length(const std::span<const uint8_t> buf, size_t& pos) {
+  if (pos >= buf.size()) return 0;
   const uint8_t first = buf[pos++];
   if (first <= 0x7F) return first;
   const uint8_t num_bytes = first & 0x7F;
   if (num_bytes == 0 || num_bytes > 4) return 0;
   uint32_t length = 0;
   for (uint8_t i = 0; i < num_bytes; i++) {
-    if (pos >= buf_len) return 0;
+    if (pos >= buf.size()) return 0;
     length = length << 8 | buf[pos++];
   }
   return length;
 }
 
-void obis_to_string(const std::span<const uint8_t> obis, char* buffer, const size_t max_len) {
-  if (max_len > 0) buffer[0] = '\0';
-  if (obis.size() < 6 || max_len == 0) return;
-  snprintf(buffer, max_len, "%u.%u.%u.%u.%u.%u", obis[0], obis[1], obis[2], obis[3], obis[4], obis[5]);
+void obis_to_string(const std::span<const uint8_t> obis, const std::span<char> out) {
+  if (!out.empty()) out[0] = '\0';
+  if (obis.size() < 6 || out.empty()) return;
+  snprintf(out.data(), out.size(), "%u.%u.%u.%u.%u.%u", obis[0], obis[1], obis[2], obis[3], obis[4], obis[5]);
 }
 
 const char* dlms_data_type_to_string(const DlmsDataType vt) {
@@ -306,12 +309,12 @@ bool is_value_data_type(const DlmsDataType type) {
   }
 }
 
-void format_hex_pretty_to(char* out, const size_t max_out, const std::span<const uint8_t> data) {
-  if (max_out == 0) return;
+void format_hex_pretty_to(const std::span<char> out, const std::span<const uint8_t> data) {
+  if (out.empty()) return;
   out[0] = '\0';
   size_t pos = 0;
-  for (size_t i = 0; i < data.size() && pos + 3 < max_out; i++) {
-    const int written = snprintf(out + pos, max_out - pos, "%02X.", data[i]);
+  for (size_t i = 0; i < data.size() && pos + 3 < out.size(); i++) {
+    const int written = snprintf(out.data() + pos, out.size() - pos, "%02X.", data[i]);
     if (written > 0) pos += static_cast<size_t>(written);
   }
   if (pos > 0 && out[pos - 1] == '.') out[pos - 1] = '\0';

@@ -224,7 +224,7 @@ TEST_CASE("AxdrParser Pattern Registry - Priority and Array Management") {
 
     const auto& pat = parser.patterns()[0];
     CHECK(pat.has_default_obis == true);
-    CHECK(std::memcmp(pat.default_obis, obis, 6) == 0);
+    CHECK(std::memcmp(pat.default_obis.data(), obis, 6) == 0);
   }
 
   SUBCASE("Default OBIS Flag Independence") {

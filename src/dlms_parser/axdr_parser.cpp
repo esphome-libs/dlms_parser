@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
-#include <cstring>
 #include <utility>
 
 namespace dlms_parser {
@@ -19,10 +18,10 @@ void AxdrParser::register_pattern(const char* name, const char* dsl, const int p
   this->register_pattern_dsl_(name, dsl, priority);
 }
 
-void AxdrParser::register_pattern(const char* name, const char* dsl, const int priority, const uint8_t default_obis[6]) {
+void AxdrParser::register_pattern(const char* name, const char* dsl, const int priority, const std::span<const uint8_t, 6> default_obis) {
   auto& pat = this->register_pattern_dsl_(name, dsl, priority);
   pat.has_default_obis = true;
-  std::memcpy(pat.default_obis, default_obis, 6);
+  std::copy(default_obis.begin(), default_obis.end(), pat.default_obis.begin());
 }
 
 void AxdrParser::clear_patterns() {
@@ -364,7 +363,7 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
   return true;
 }
 
-static constexpr uint8_t ZERO_OBIS[6] = {0, 0, 0, 0, 0, 0};
+static constexpr std::array<uint8_t, 6> ZERO_OBIS = {0, 0, 0, 0, 0, 0};
 
 void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptures& c) {
   // If no OBIS was captured by the pattern, use 0.0.0.0.0.0 as a placeholder.
@@ -383,13 +382,13 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
   if (!this->cooked_cb_) return;
 
   char obis_str_buf[32];
-  utils::obis_to_string(effective.obis, obis_str_buf, sizeof(obis_str_buf));
+  utils::obis_to_string(effective.obis, obis_str_buf);
 
   const float raw_val_f = utils::data_as_float(effective.value_type, effective.value);
   float val_f = raw_val_f;
 
   char val_s_buf[128];
-  utils::data_to_string(effective.value_type, effective.value, val_s_buf, sizeof(val_s_buf));
+  utils::data_to_string(effective.value_type, effective.value, val_s_buf);
 
   const bool is_numeric = effective.value_type != DLMS_DATA_TYPE_OCTET_STRING &&
                           effective.value_type != DLMS_DATA_TYPE_STRING &&
@@ -414,7 +413,7 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
 
   if (!effective.value.empty()) {
     char hex_buf[512];
-    utils::format_hex_pretty_to(hex_buf, sizeof(hex_buf), effective.value);
+    utils::format_hex_pretty_to(hex_buf, effective.value);
     Logger::log(LogLevel::INFO, "  hex  : %s", hex_buf);
   }
   Logger::log(LogLevel::INFO, "  str  : '%s'", val_s_buf);
