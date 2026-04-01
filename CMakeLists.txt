@@ -7,6 +7,7 @@ if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR) # used via add_subdir
   file(GLOB_RECURSE dlms_parser_src_files CONFIGURE_DEPENDS "src/*.h" "src/*.cpp")
   add_library(dlms_parser ${dlms_parser_src_files})
   target_compile_features(dlms_parser PUBLIC cxx_std_20)
+  target_include_directories(dlms_parser PUBLIC src)
   return()
 endif()
 
