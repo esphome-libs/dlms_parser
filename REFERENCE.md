@@ -193,3 +193,4 @@ See also [HOWTO.md](HOWTO.md) for usage examples and [ARCHITECTURE.md](ARCHITECT
 - [EWK Energie AG. Smart meter customer interface](https://ewk-energie.ch/wp-content/uploads/2025/08/smart-meter-kundenschnittstelle.pdf)
 - [Zaehler Landis+Gyr E450/E570. Smart meter customer interface](https://www.bkw.ch/fileadmin/user_upload/03_Energie/03_01_Stromversorgung_Privat-_und_Gewerbekunden/Zaehlerablesung/BKW_faktenblatt_kundenschnittstelle_L_G_E450_E570_def_Web.pdf)
 - [E450 Specification](https://assets.netzburgenland.at/Spezifikation_Kundenschnittstelle_E450_korr_2_009418889e.pdf)
+- [Netz Smart Meter specification](https://netz-noe.at/getContentAsset/568bef9a-3bd1-4f2e-a710-6ba7e71cb746/0ee16eb8-9692-4f25-b8a4-d007b35915a4/218_15_Smart-Meter-Folder-Kundenschnittstelle-2025_0110.pdf?language=de)
