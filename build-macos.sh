@@ -6,12 +6,6 @@ readonly currentScriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly buildDir="${currentScriptDir}/build"
 readonly hostArch="$(uname -m)"
 
-if command -v ninja >/dev/null 2>&1; then
-  readonly cmakeGenerator="Ninja"
-else
-  readonly cmakeGenerator="Unix Makefiles"
-fi
-
 build_and_test() {
   local build_type="$1" # Debug or Release
   local target="$2" # macos-arm64 or macos-x86_64
@@ -20,10 +14,9 @@ build_and_test() {
 
   cmake -S "$currentScriptDir" \
         -B "$buildDir/${target}-${build_type}" \
-        -G "$cmakeGenerator" \
+        -G "Ninja" \
         -D CMAKE_BUILD_TYPE="$build_type" \
-        -D CMAKE_OSX_ARCHITECTURES="$hostArch" \
-        -D DLMS_ENABLE_SANITIZER_LEAK=OFF
+        -D CMAKE_OSX_ARCHITECTURES="$hostArch"
   cmake --build "$buildDir/${target}-${build_type}"
   "$buildDir/${target}-${build_type}/dlms_parser_test"
 }
@@ -33,9 +26,6 @@ case "$hostArch" in
   x86_64) readonly targetName="macos-x86_64" ;;
   *) echo "Unsupported macOS architecture: $hostArch" >&2; exit 1 ;;
 esac
-
-export CC="${CC:-clang}"
-export CXX="${CXX:-clang++}"
 
 build_and_test Debug "$targetName"
 build_and_test Release "$targetName"

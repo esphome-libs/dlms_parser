@@ -76,18 +76,14 @@ target_link_libraries(dlms_parser PUBLIC dlms_parser_warnings)
 
 # enable sanitizers
 add_library(dlms_parser_sanitizers INTERFACE)
-option(DLMS_ENABLE_SANITIZER_ADDRESS "Enable address sanitizer for dlms_parser" ON)
-option(DLMS_ENABLE_SANITIZER_LEAK "Enable leak sanitizer for dlms_parser" ON)
-option(DLMS_ENABLE_SANITIZER_UNDEFINED "Enable undefined behavior sanitizer for dlms_parser" ON)
-
-myproject_enable_sanitizers(
-  dlms_parser_sanitizers
-  ${DLMS_ENABLE_SANITIZER_ADDRESS}
-  ${DLMS_ENABLE_SANITIZER_LEAK}
-  ${DLMS_ENABLE_SANITIZER_UNDEFINED}
-  OFF
-  OFF
-)
+if(APPLE)
+  # Leak sanitizer is not supported on Macos:
+  #   clang++: error: unsupported option '-fsanitize=leak' for target 'arm64-apple-darwin24.6.0'
+  set(ENABLE_SANITIZER_LEAK OFF)
+else()
+  set(ENABLE_SANITIZER_LEAK ON)
+endif()
+myproject_enable_sanitizers(dlms_parser_sanitizers ON ${ENABLE_SANITIZER_LEAK} ON OFF OFF)
 target_link_libraries(dlms_parser PUBLIC dlms_parser_sanitizers)
 
 # dlms_parser_test

@@ -5,6 +5,7 @@
 #   sudo apt-get install -y g++-13
 
 set -o xtrace -o errexit -o nounset -o pipefail
+
 readonly currentScriptDir=`dirname "$(realpath -s "${BASH_SOURCE[0]}")"`
 readonly buildDir="${currentScriptDir}/build"
 
