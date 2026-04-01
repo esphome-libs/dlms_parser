@@ -1,6 +1,7 @@
 #pragma once
 
 #include "decryption/aes_128_gcm_decryptor.h"
+#include "utils.h"
 #include <cstdint>
 #include <functional>
 #include <span>
@@ -17,7 +18,7 @@ using AxdrPayloadCallback = std::function<void(std::span<const uint8_t> axdr)>;
 //   0xDB  General-Glo-Ciphering    : decrypts with GcmDecryptor
 //   0xDF  General-Ded-Ciphering    : decrypts with GcmDecryptor
 //   0x01 / 0x02  raw ARRAY/STRUCT  : no APDU wrapper (e.g. HDLC/Aidon)
-class ApduHandler {
+class ApduHandler final : NonCopyableAndNonMovable {
  public:
   void set_decryptor(Aes128GcmDecryptor* d) { decryptor_ = d; }
 

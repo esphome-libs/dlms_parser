@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include "utils.h"
 #include <cstdint>
 #include <span>
 
@@ -52,7 +53,7 @@ inline constexpr uint16_t CRC16_X25_TABLE[256] = {
 // - HCS: CRC16/IBM-SDLC over frame[1..before_HCS]
 // - LLC header stripped if present: {0xE6, 0xE7, 0x00} or {0xE6, 0xE6, 0x00}
 // - FCS: CRC16/IBM-SDLC over frame[1..before_FCS]
-class HdlcDecoder {
+class HdlcDecoder final : NonCopyableAndNonMovable {
  public:
   void set_skip_crc_check(const bool skip) { skip_crc_check_ = skip; }
 

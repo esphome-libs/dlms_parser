@@ -2,6 +2,7 @@
 
 #include "pattern.h"
 #include "types.h"
+#include "utils.h"
 #include <cstdint>
 #include <functional>
 #include <span>
@@ -21,7 +22,7 @@ struct ParseResult {
 // Recursive AXDR parser with DSL-based pattern matching.
 // Input must start with a DLMS type byte (STRUCTURE 0x02 or ARRAY 0x01).
 // No knowledge of APDU framing or encryption.
-class AxdrParser {
+class AxdrParser final : NonCopyableAndNonMovable {
  public:
   AxdrParser();
 
