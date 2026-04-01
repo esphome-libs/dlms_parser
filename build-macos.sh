@@ -2,7 +2,7 @@
 
 set -o xtrace -o errexit -o nounset -o pipefail
 
-readonly currentScriptDir=`dirname "$(realpath -s "${BASH_SOURCE[0]}")"`
+readonly currentScriptDir=`cd "$(dirname "${BASH_SOURCE[0]}")" && pwd`
 readonly buildDir="${currentScriptDir}/build"
 readonly hostArch="$(uname -m)"
 
