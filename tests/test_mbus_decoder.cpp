@@ -56,7 +56,7 @@ TEST_CASE("MBus Decoder - Frame Status Check (check)") {
 
   SUBCASE("Buffer Too Short (Under Intro Size)") {
     std::vector<uint8_t> tiny = {0x68, 0x08, 0x08};
-    CHECK(MBusDecoder::check(tiny) == FrameStatus::ERROR);
+    CHECK(MBusDecoder::check(tiny) == FrameStatus::NEED_MORE);
   }
 
   SUBCASE("Missing First Start Byte") {

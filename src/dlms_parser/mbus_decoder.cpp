@@ -17,7 +17,8 @@ static constexpr size_t  MBUS_FOOTER = 2;  // CS(1) + 0x16(1)
 // the last frame's CI is not a continuation indicator.
 // ---------------------------------------------------------------------------
 FrameStatus MBusDecoder::check(const std::span<const uint8_t> buf) {
-  if (buf.size() < MBUS_INTRO || buf[0] != MBUS_START) return FrameStatus::ERROR;
+  if (buf.empty() || buf[0] != MBUS_START) return FrameStatus::ERROR;
+  if (buf.size() < MBUS_INTRO) return FrameStatus::NEED_MORE;
 
   size_t offset = 0;
   while (offset < buf.size()) {
