@@ -18,7 +18,7 @@ build_and_test() {
         -D CMAKE_BUILD_TYPE="$build_type" \
         -D CMAKE_OSX_ARCHITECTURES="$hostArch"
   cmake --build "$buildDir/${target}-${build_type}"
-  "$buildDir/${target}-${build_type}/dlms_parser_test"
+  ctest --test-dir "$buildDir/${target}-$build_type"
 }
 
 case "$hostArch" in

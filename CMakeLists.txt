@@ -14,6 +14,7 @@ endif()
 cmake_minimum_required(VERSION 3.14)
 cmake_policy(SET CMP0092 NEW) # don't add "/W3" to the compilation flags when using MSVC
 project(dlms_parser)
+enable_testing()
 include(FetchContent)
 set(CMAKE_CXX_SCAN_FOR_MODULES 0) # For clang, module scanning requires "clang-scan-deps". It is not included in some Linux distros.
 
@@ -22,20 +23,22 @@ if(MINGW)
 endif()
 
 # doctest
-file(DOWNLOAD
-  https://github.com/doctest/doctest/releases/download/v2.4.12/doctest.h
-  ${CMAKE_BINARY_DIR}/doctest/doctest.h
-  EXPECTED_HASH SHA512=5a69cc6a5e874691877fbd1cea661ec736c2d78d38791cb22a12398c2731ea6d07e7edda4bd1efde2a65df9e4ddd4836f6571d9b04e0241d520790573634065a)
+FetchContent_Declare(
+  doctest
+  GIT_REPOSITORY https://github.com/doctest/doctest
+  GIT_TAG v2.5.0)
+FetchContent_MakeAvailable(doctest)
+include("${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake")
 
 # mbedtls
-FetchContent_Populate(
-  mbedtls
-  URL https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.5/mbedtls-3.6.5.tar.bz2
-  URL_HASH SHA256=4a11f1777bb95bf4ad96721cac945a26e04bf19f57d905f241fe77ebeddf46d8)
 set(ENABLE_PROGRAMS OFF CACHE INTERNAL "")
 set(ENABLE_TESTING OFF CACHE INTERNAL "")
 set(MBEDTLS_FATAL_WARNINGS OFF CACHE INTERNAL "")
-add_subdirectory(${mbedtls_SOURCE_DIR})
+FetchContent_Declare(
+  mbedtls
+  GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls
+  GIT_TAG v3.6.5)
+FetchContent_MakeAvailable(mbedtls)
 
 # bearssl
 FetchContent_Populate(
@@ -89,10 +92,9 @@ target_link_libraries(dlms_parser PUBLIC dlms_parser_sanitizers)
 # dlms_parser_test
 file(GLOB_RECURSE dlms_parser_test_src_files CONFIGURE_DEPENDS "tests/*.h" "tests/*.cpp")
 add_executable(dlms_parser_test ${dlms_parser_test_src_files})
-target_link_libraries(dlms_parser_test PRIVATE dlms_parser dlms_cryptography)
-target_include_directories(dlms_parser_test PRIVATE ${CMAKE_BINARY_DIR}/doctest ${CMAKE_CURRENT_SOURCE_DIR} src)
-enable_testing()
-add_test(NAME dlms_parser_test COMMAND dlms_parser_test)
+target_link_libraries(dlms_parser_test PRIVATE dlms_parser dlms_cryptography doctest::doctest)
+target_include_directories(dlms_parser_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} src)
+doctest_discover_tests(dlms_parser_test)
 
 # decode_readout
 add_executable(decode_readout tools/decode_readout.cpp)

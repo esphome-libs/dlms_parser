@@ -20,7 +20,7 @@ build_and_test() {
         -G "Ninja" \
         -D CMAKE_BUILD_TYPE="$build_type"
   cmake --build "$buildDir/${target}-$build_type"
-  "$buildDir/${target}-$build_type/dlms_parser_test"
+  ctest --test-dir "$buildDir/${target}-$build_type"
 }
 
 export CC=gcc-13
