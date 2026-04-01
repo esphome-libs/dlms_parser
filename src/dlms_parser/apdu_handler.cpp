@@ -5,9 +5,9 @@
 
 namespace dlms_parser {
 
-bool ApduHandler::parse(uint8_t* buf, const size_t len, const AxdrPayloadCallback& cb) const {
-  if (auto [offset, length] = unwrap_in_place(buf, len); length > 0) {
-    cb(buf + offset, length);
+bool ApduHandler::parse(const std::span<uint8_t> buf, const AxdrPayloadCallback& cb) const {
+  if (auto [offset, length] = unwrap_in_place(buf); length > 0) {
+    cb(std::span<const uint8_t>(buf.data() + offset, length));
     return true;
   }
   return false;
@@ -17,8 +17,10 @@ bool ApduHandler::parse(uint8_t* buf, const size_t len, const AxdrPayloadCallbac
 // In-place unwrap: sequential pipeline replacing recursive parse().
 // Scans for known APDU tag, transforms in-place, loops until AXDR is exposed.
 // ---------------------------------------------------------------------------
-ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(uint8_t* buf, size_t len) const {
+ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(const std::span<uint8_t> buf_span) const {
   constexpr int MAX_ITERATIONS = 4;  // GBT → cipher → DATA-NOTIFICATION → AXDR
+  uint8_t* const buf = buf_span.data();
+  size_t len = buf_span.size();
 
   for (int iter = 0; iter < MAX_ITERATIONS; iter++) {
     // Scan for first known tag

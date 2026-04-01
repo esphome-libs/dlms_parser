@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <span>
 
 namespace dlms_parser {
 
@@ -80,10 +81,9 @@ enum class AxdrTokenType : uint8_t {
 struct AxdrCaptures {
   uint32_t elem_idx{0};
   uint16_t class_id{0};
-  const uint8_t* obis{nullptr};
+  std::span<const uint8_t> obis{};
   DlmsDataType value_type{DLMS_DATA_TYPE_NONE};
-  const uint8_t* value_ptr{nullptr};
-  uint8_t value_len{0};
+  std::span<const uint8_t> value{};
 
   bool has_scaler_unit{false};
   int8_t scaler{0};

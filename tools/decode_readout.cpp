@@ -273,7 +273,7 @@ int main(int argc, char* argv[]) {
 
   // Work buffer — sized to input data (always sufficient)
   std::vector<uint8_t> work_buf(data.size());
-  parser.set_work_buffer(work_buf.data(), work_buf.size());
+  parser.set_work_buffer(work_buf);
 
   if (skip_crc) {
     parser.set_skip_crc_check(true);
@@ -304,7 +304,7 @@ int main(int argc, char* argv[]) {
   std::cout << "\n";
 
   // ---- Check frame completeness (demonstrates the check_frame API) ----
-  auto status = parser.check_frame(data.data(), data.size());
+  auto status = parser.check_frame(data);
   const char* status_str = "?";
   switch (status) {
     case dlms_parser::FrameStatus::COMPLETE:  status_str = "COMPLETE"; break;
@@ -336,7 +336,7 @@ int main(int argc, char* argv[]) {
     }
   };
 
-  auto [count, consumed] = parser.parse(data.data(), data.size(), cooked_cb);
+  auto [count, consumed] = parser.parse(data, cooked_cb);
 
   std::cout << std::format("\nTotal: {} objects matched, {} bytes consumed\n", count, consumed);
 

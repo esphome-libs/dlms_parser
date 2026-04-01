@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include <cstdint>
+#include <span>
 
 namespace dlms_parser {
 
@@ -56,21 +57,21 @@ class HdlcDecoder {
   void set_skip_crc_check(const bool skip) { skip_crc_check_ = skip; }
 
   // Check if buf contains a complete HDLC message ready for decode().
-  static FrameStatus check(const uint8_t* buf, size_t len);
+  static FrameStatus check(std::span<const uint8_t> buf);
 
   // In-place decode: transforms buf contents, returns new length. 0 = error.
-  size_t decode(uint8_t* buf, size_t len) const;
+  size_t decode(std::span<uint8_t> buf) const;
 
  private:
   bool skip_crc_check_{false};
 
   // Returns the number of bytes in a variable-length HDLC address field (1, 2 or 4).
   // Returns 0 if the terminating LSB=1 bit is not found within 4 bytes.
-  static size_t address_length_(const uint8_t* p, size_t remaining);
+  static size_t address_length_(std::span<const uint8_t> p);
 
   // CRC16/IBM-SDLC (X.25) run over `len` bytes.
   // When called over (data + stored_fcs_bytes), returns 0xF0B8 for a valid frame.
-  static uint16_t crc16_x25_check_(const uint8_t* data, size_t len);
+  static uint16_t crc16_x25_check_(std::span<const uint8_t> data);
 };
 
 }  // namespace dlms_parser

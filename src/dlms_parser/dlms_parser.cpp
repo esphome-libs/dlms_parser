@@ -8,12 +8,12 @@ DlmsParser::DlmsParser(Aes128GcmDecryptor& decryptor) : decryptor_(decryptor) {
   apdu_handler_.set_decryptor(&decryptor_);
 }
 
-FrameStatus DlmsParser::check_frame(const uint8_t* buf, const size_t len) const {
-  if (!buf || len == 0) return FrameStatus::NEED_MORE;
+FrameStatus DlmsParser::check_frame(const std::span<const uint8_t> buf) const {
+  if (buf.empty()) return FrameStatus::NEED_MORE;
 
   switch (frame_format_) {
-    case FrameFormat::HDLC: return HdlcDecoder::check(buf, len);
-    case FrameFormat::MBUS: return MBusDecoder::check(buf, len);
+    case FrameFormat::HDLC: return HdlcDecoder::check(buf);
+    case FrameFormat::MBUS: return MBusDecoder::check(buf);
     case FrameFormat::RAW:
     default:
       return FrameStatus::COMPLETE;  // RAW: always complete (caller's responsibility)
@@ -25,9 +25,8 @@ void DlmsParser::set_skip_crc_check(const bool skip) {
   this->mbus_decoder_.set_skip_crc_check(skip);
 }
 
-void DlmsParser::set_work_buffer(uint8_t* buf, const size_t capacity) {
+void DlmsParser::set_work_buffer(const std::span<uint8_t> buf) {
   this->work_buf_ = buf;
-  this->work_buf_capacity_ = capacity;
 }
 
 void DlmsParser::set_decryption_key(const Aes128GcmDecryptionKey& key) const {
@@ -57,29 +56,29 @@ void DlmsParser::register_pattern(const char* name, const char* dsl, const int p
   axdr_parser_.register_pattern(name, dsl, priority, default_obis);
 }
 
-ParseResult DlmsParser::parse(const uint8_t* buf, const size_t len, const DlmsDataCallback& cooked_cb,
+ParseResult DlmsParser::parse(const std::span<const uint8_t> buf, const DlmsDataCallback& cooked_cb,
                               const DlmsRawCallback& raw_cb) {
-  if (!this->work_buf_) {
+  if (this->work_buf_.empty()) {
     Logger::log(LogLevel::ERROR, "No work buffer set - call set_work_buffer() before parse()");
     return {};
   }
-  if (len > this->work_buf_capacity_) {
-    Logger::log(LogLevel::ERROR, "Frame too large for work buffer (%zu > %zu)", len, this->work_buf_capacity_);
+  if (buf.size() > this->work_buf_.size()) {
+    Logger::log(LogLevel::ERROR, "Frame too large for work buffer (%zu > %zu)", buf.size(), this->work_buf_.size());
     return {};
   }
 
   // Copy input into work buffer — all transforms happen in-place from here
-  std::memcpy(this->work_buf_, buf, len);
-  size_t work_len = len;
+  std::memcpy(this->work_buf_.data(), buf.data(), buf.size());
+  size_t work_len = buf.size();
 
   // Step 1: Frame decode (HDLC / MBus / RAW pass-through)
   switch (this->frame_format_) {
     case FrameFormat::HDLC:
-      work_len = this->hdlc_decoder_.decode(this->work_buf_, work_len);
+      work_len = this->hdlc_decoder_.decode({this->work_buf_.data(), work_len});
       if (work_len == 0) return {};
       break;
     case FrameFormat::MBUS:
-      work_len = this->mbus_decoder_.decode(this->work_buf_, work_len);
+      work_len = this->mbus_decoder_.decode({this->work_buf_.data(), work_len});
       if (work_len == 0) return {};
       break;
     case FrameFormat::RAW:
@@ -88,15 +87,15 @@ ParseResult DlmsParser::parse(const uint8_t* buf, const size_t len, const DlmsDa
   }
 
   // Step 2: APDU unwrap (GBT → decrypt → strip header) — sequential loop, no recursion
-  auto [axdr_offset, axdr_len] = this->apdu_handler_.unwrap_in_place(this->work_buf_, work_len);
+  auto [axdr_offset, axdr_len] = this->apdu_handler_.unwrap_in_place({this->work_buf_.data(), work_len});
   if (axdr_len == 0) return {};
 
   // Step 3: AXDR parse — loop over successive top-level containers
-  const uint8_t* axdr = this->work_buf_ + axdr_offset;
   ParseResult result;
   size_t offset = 0;
   while (offset < axdr_len) {
-    auto [count, bytes_consumed] = this->axdr_parser_.parse(axdr + offset, axdr_len - offset, cooked_cb, raw_cb);
+    auto [count, bytes_consumed] = this->axdr_parser_.parse(
+        {this->work_buf_.data() + axdr_offset + offset, axdr_len - offset}, cooked_cb, raw_cb);
     if (bytes_consumed == 0) break;
     result.count += count;
     result.bytes_consumed += bytes_consumed;

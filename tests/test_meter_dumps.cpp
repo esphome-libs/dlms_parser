@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <cstdarg>
+#include <span>
 #include <vector>
 #include <iostream>
 #include <exception>
@@ -28,7 +29,7 @@
 
 template<typename Aes128GcmDecryptor = dlms_parser::Aes128GcmDecryptorMbedTls>
 void run_meter_test(const char* name,
-                    const uint8_t* payload, size_t payload_size,
+                    std::span<const uint8_t> payload,
                     size_t expected_count,
                     const std::map<std::string, std::string>& expected_strings,
                     const std::map<std::string, float>& expected_floats,
@@ -66,7 +67,7 @@ void run_meter_test(const char* name,
   std::array<uint8_t, 2048> work_buf{};
   Aes128GcmDecryptor decryptor;
   dlms_parser::DlmsParser parser(decryptor);
-  parser.set_work_buffer(work_buf.data(), work_buf.size());
+  parser.set_work_buffer(work_buf);
   parser.load_default_patterns();
   parser.set_frame_format(format);
   if (setup_fn) setup_fn(parser);
@@ -82,7 +83,7 @@ void run_meter_test(const char* name,
     }
   };
 
-  auto [objects_found, bytes_consumed] = parser.parse(payload, payload_size, callback);
+  auto [objects_found, bytes_consumed] = parser.parse(payload, callback);
 
   INFO(parser_log);
 
@@ -113,7 +114,6 @@ TEST_CASE("Integration: RAW APDU") {
   SUBCASE("Sagemcom XT211") {
     run_meter_test("Sagemcom XT211",
       dlms::test_data::sagemcom_xt211_raw_frame,
-      sizeof(dlms::test_data::sagemcom_xt211_raw_frame),
       dlms::test_data::sagemcom_xt211_expected_count,
       dlms::test_data::sagemcom_xt211_expected_strings,
       dlms::test_data::sagemcom_xt211_expected_floats
@@ -123,7 +123,6 @@ TEST_CASE("Integration: RAW APDU") {
   SUBCASE("Energomera") {
     run_meter_test("Energomera",
       dlms::test_data::raw_energomera_frame,
-      sizeof(dlms::test_data::raw_energomera_frame),
       dlms::test_data::raw_energomera_expected_count,
       dlms::test_data::raw_energomera_expected_strings,
       dlms::test_data::raw_energomera_expected_floats
@@ -133,7 +132,6 @@ TEST_CASE("Integration: RAW APDU") {
   SUBCASE("Salzburg Netz") {
     run_meter_test("Salzburg Netz",
       dlms::test_data::raw_salzburg_netz_frame,
-      sizeof(dlms::test_data::raw_salzburg_netz_frame),
       dlms::test_data::raw_salzburg_netz_expected_count,
       dlms::test_data::raw_salzburg_netz_expected_strings,
       dlms::test_data::raw_salzburg_netz_expected_floats,
@@ -148,7 +146,6 @@ TEST_CASE("Integration: RAW APDU") {
   SUBCASE("EGD Example") {
     run_meter_test("EGD Example",
       dlms::test_data::egd_example_raw_frame,
-      sizeof(dlms::test_data::egd_example_raw_frame),
       dlms::test_data::egd_example_expected_count,
       dlms::test_data::egd_example_expected_strings,
       dlms::test_data::egd_example_expected_floats
@@ -165,7 +162,6 @@ TEST_CASE("Integration: HDLC") {
   SUBCASE("Iskra 550 (3 segmented frames)") {
     run_meter_test("Iskra 550 (3 segmented frames)",
       dlms::test_data::iskra550_raw_frame,
-      sizeof(dlms::test_data::iskra550_raw_frame),
       dlms::test_data::iskra550_expected_count,
       dlms::test_data::iskra550_expected_strings,
       dlms::test_data::iskra550_expected_floats,
@@ -177,7 +173,6 @@ TEST_CASE("Integration: HDLC") {
   SUBCASE("Norway HAN 1-phase (Aidon)") {
     run_meter_test("Norway HAN 1-phase (Aidon)",
       dlms::test_data::norway_han_1phase_raw_frame,
-      sizeof(dlms::test_data::norway_han_1phase_raw_frame),
       dlms::test_data::norway_han_1phase_expected_count,
       dlms::test_data::norway_han_1phase_expected_strings,
       dlms::test_data::norway_han_1phase_expected_floats,
@@ -192,7 +187,6 @@ TEST_CASE("Integration: HDLC") {
   SUBCASE("Norway HAN 3-phase (Aidon)") {
     run_meter_test("Norway HAN 3-phase (Aidon)",
       dlms::test_data::norway_han_3phase_raw_frame,
-      sizeof(dlms::test_data::norway_han_3phase_raw_frame),
       dlms::test_data::norway_han_3phase_expected_count,
       dlms::test_data::norway_han_3phase_expected_strings,
       dlms::test_data::norway_han_3phase_expected_floats,
@@ -207,7 +201,6 @@ TEST_CASE("Integration: HDLC") {
   SUBCASE("Landis+Gyr ZMF100") {
     run_meter_test("Landis+Gyr ZMF100",
       dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame,
-      sizeof(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame),
       dlms::test_data::hdlc_landis_gyr_zmf100_expected_count,
       dlms::test_data::hdlc_landis_gyr_zmf100_expected_strings,
       dlms::test_data::hdlc_landis_gyr_zmf100_expected_floats,
@@ -225,11 +218,10 @@ TEST_CASE("Integration: HDLC") {
     std::array<uint8_t, 2048> work_buf{};
     dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
     dlms_parser::DlmsParser parser(decryptor);
-    parser.set_work_buffer(work_buf.data(), work_buf.size());
+    parser.set_work_buffer(work_buf);
     parser.set_frame_format(dlms_parser::FrameFormat::HDLC);
     auto [n, consumed] = parser.parse(
       dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame,
-      sizeof(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame),
       [](const char*, float, const char*, bool) {});
     CHECK(n == 0);
   }
@@ -237,7 +229,6 @@ TEST_CASE("Integration: HDLC") {
   SUBCASE("Landis+Gyr E450 (GBT + encrypted). Use MbedTls") {
     run_meter_test("Landis+Gyr E450 (GBT + encrypted). Use MbedTls",
       dlms::test_data::hdlc_landis_gyr_e450_raw_frame,
-      sizeof(dlms::test_data::hdlc_landis_gyr_e450_raw_frame),
       dlms::test_data::hdlc_landis_gyr_e450_expected_count,
       dlms::test_data::hdlc_landis_gyr_e450_expected_strings,
       dlms::test_data::hdlc_landis_gyr_e450_expected_floats,
@@ -253,7 +244,6 @@ TEST_CASE("Integration: HDLC") {
   SUBCASE("Landis+Gyr E450 (GBT + encrypted). Use BearSsl") {
     run_meter_test<dlms_parser::Aes128GcmDecryptorBearSsl>("Landis+Gyr E450 (GBT + encrypted). Use BearSsl",
       dlms::test_data::hdlc_landis_gyr_e450_raw_frame,
-      sizeof(dlms::test_data::hdlc_landis_gyr_e450_raw_frame),
       dlms::test_data::hdlc_landis_gyr_e450_expected_count,
       dlms::test_data::hdlc_landis_gyr_e450_expected_strings,
       dlms::test_data::hdlc_landis_gyr_e450_expected_floats,
@@ -269,7 +259,6 @@ TEST_CASE("Integration: HDLC") {
   SUBCASE("Landis+Gyr E450 #2 (GBT + encrypted)") {
     run_meter_test("Landis+Gyr E450 #2 (GBT + encrypted)",
       dlms::test_data::hdlc_lgz_e450_2_raw_frame,
-      sizeof(dlms::test_data::hdlc_lgz_e450_2_raw_frame),
       dlms::test_data::hdlc_lgz_e450_2_expected_count,
       dlms::test_data::hdlc_lgz_e450_2_expected_strings,
       dlms::test_data::hdlc_lgz_e450_2_expected_floats,
@@ -284,7 +273,6 @@ TEST_CASE("Integration: HDLC") {
   SUBCASE("Kamstrup Omnipower (encrypted, no auth key)") {
     run_meter_test("Kamstrup Omnipower (encrypted, no auth key)",
       dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
-      sizeof(dlms::test_data::hdlc_kamstrup_omnipower_raw_frame),
       dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_floats,
@@ -300,7 +288,6 @@ TEST_CASE("Integration: HDLC") {
   SUBCASE("Kamstrup Omnipower (encrypted + authenticated)") {
     run_meter_test("Kamstrup Omnipower (encrypted + authenticated)",
       dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
-      sizeof(dlms::test_data::hdlc_kamstrup_omnipower_raw_frame),
       dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_floats,
@@ -319,14 +306,13 @@ TEST_CASE("Integration: HDLC") {
     std::array<uint8_t, 2048> work_buf{};
     dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
     dlms_parser::DlmsParser parser(decryptor);
-    parser.set_work_buffer(work_buf.data(), work_buf.size());
+    parser.set_work_buffer(work_buf);
     parser.set_frame_format(dlms_parser::FrameFormat::HDLC);
     parser.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
     parser.set_authentication_key(wrong_key);
     parser.load_default_patterns();
     auto [n, consumed] = parser.parse(
       dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
-      sizeof(dlms::test_data::hdlc_kamstrup_omnipower_raw_frame),
       [](const char*, float, const char*, bool) {});
     CHECK(n == 0);
   }
@@ -341,7 +327,6 @@ TEST_CASE("Integration: MBus") {
   SUBCASE("Netz NOE P1 (encrypted)") {
     run_meter_test("Netz NOE P1 (encrypted)",
       dlms::test_data::mbus_netz_noe_p1_raw_frame,
-      sizeof(dlms::test_data::mbus_netz_noe_p1_raw_frame),
       dlms::test_data::mbus_netz_noe_p1_expected_count,
       dlms::test_data::mbus_netz_noe_p1_expected_strings,
       dlms::test_data::mbus_netz_noe_p1_expected_floats,

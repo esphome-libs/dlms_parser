@@ -7,8 +7,10 @@
 
 namespace dlms_parser::utils {
 
-float data_as_float(const DlmsDataType value_type, const uint8_t* ptr, const uint8_t len) {
-  if (!ptr || len == 0) return 0.0f;
+float data_as_float(const DlmsDataType value_type, const std::span<const uint8_t> data) {
+  if (data.empty()) return 0.0f;
+  const uint8_t* ptr = data.data();
+  const auto len = data.size();
 
   switch (value_type) {
   case DLMS_DATA_TYPE_BOOLEAN:
@@ -40,8 +42,8 @@ float data_as_float(const DlmsDataType value_type, const uint8_t* ptr, const uin
   }
 }
 
-bool test_if_date_time_12b(const uint8_t* p) {
-  if (p == nullptr) return false;
+bool test_if_date_time_12b(const std::span<const uint8_t> p) {
+  if (p.size() < 12) return false;
 
   const auto year = static_cast<uint16_t>(p[0] << 8 | p[1]);
   if (!(year == 0x0000 || (year >= 1970 && year <= 2100))) return false;
@@ -73,15 +75,15 @@ bool test_if_date_time_12b(const uint8_t* p) {
   return true;
 }
 
-void datetime_to_string(const uint8_t* ptr, const uint8_t len, char* buffer, const size_t max_len) {
+void datetime_to_string(const std::span<const uint8_t> data, char* buffer, const size_t max_len) {
   if (max_len > 0) buffer[0] = '\0';
-  if (!ptr || len < 12 || max_len == 0) return;
+  if (data.size() < 12 || max_len == 0) return;
 
-  const uint16_t year = be16(ptr);
-  const uint8_t month = ptr[2], day = ptr[3];
-  const uint8_t hour = ptr[5], minute = ptr[6], second = ptr[7];
-  const uint8_t hundredths = ptr[8];
-  const auto deviation = static_cast<int16_t>(be16(ptr + 9));
+  const uint16_t year = be16(data.data());
+  const uint8_t month = data[2], day = data[3];
+  const uint8_t hour = data[5], minute = data[6], second = data[7];
+  const uint8_t hundredths = data[8];
+  const auto deviation = static_cast<int16_t>(be16(data.data() + 9));
 
   auto advance = [&](size_t& p, const int n) { if (n > 0 && p + static_cast<size_t>(n) < max_len) p += static_cast<size_t>(n); };
 
@@ -128,16 +130,18 @@ void datetime_to_string(const uint8_t* ptr, const uint8_t len, char* buffer, con
   }
 }
 
-void data_to_string(const DlmsDataType value_type, const uint8_t* ptr, const uint8_t len, char* buffer,
+void data_to_string(const DlmsDataType value_type, const std::span<const uint8_t> data, char* buffer,
                     const size_t max_len) {
   if (max_len > 0) buffer[0] = '\0';
-  if (!ptr || len == 0 || max_len == 0) return;
+  if (data.empty() || max_len == 0) return;
+  const uint8_t* ptr = data.data();
+  const auto len = data.size();
 
-  auto hex_of = [](const uint8_t* p, const uint8_t l, char* out, const size_t max_out) {
+  auto hex_of = [](const uint8_t* p, const size_t l, char* out, const size_t max_out) {
     if (max_out == 0) return;
     out[0] = '\0';
     size_t pos = 0;
-    for (uint8_t i = 0; i < l && pos + 2 < max_out; i++) {
+    for (size_t i = 0; i < l && pos + 2 < max_out; i++) {
       const int written = snprintf(out + pos, max_out - pos, "%02x", p[i]);
       if (written > 0) pos += static_cast<size_t>(written);
     }
@@ -147,13 +151,13 @@ void data_to_string(const DlmsDataType value_type, const uint8_t* ptr, const uin
   case DLMS_DATA_TYPE_OCTET_STRING:
   case DLMS_DATA_TYPE_STRING:
   case DLMS_DATA_TYPE_STRING_UTF8: {
-    const size_t copy_len = std::min(static_cast<size_t>(len), max_len - 1);
+    const size_t copy_len = std::min(len, max_len - 1);
     std::memcpy(buffer, ptr, copy_len);
     buffer[copy_len] = '\0';
     break;
   }
   case DLMS_DATA_TYPE_DATETIME:
-    datetime_to_string(ptr, len, buffer, max_len);
+    datetime_to_string(data, buffer, max_len);
     break;
   case DLMS_DATA_TYPE_BIT_STRING:
   case DLMS_DATA_TYPE_BINARY_CODED_DECIMAL:
@@ -189,7 +193,7 @@ void data_to_string(const DlmsDataType value_type, const uint8_t* ptr, const uin
     break;
   case DLMS_DATA_TYPE_FLOAT32:
   case DLMS_DATA_TYPE_FLOAT64: {
-    snprintf(buffer, max_len, "%f", static_cast<double>(data_as_float(value_type, ptr, len)));
+    snprintf(buffer, max_len, "%f", static_cast<double>(data_as_float(value_type, data)));
     break;
   }
   default:
@@ -210,9 +214,9 @@ uint32_t read_ber_length(const uint8_t* buf, size_t& pos, const size_t buf_len) 
   return length;
 }
 
-void obis_to_string(const uint8_t* obis, char* buffer, const size_t max_len) {
+void obis_to_string(const std::span<const uint8_t> obis, char* buffer, const size_t max_len) {
   if (max_len > 0) buffer[0] = '\0';
-  if (!obis || max_len == 0) return;
+  if (obis.empty() || max_len == 0) return;
   snprintf(buffer, max_len, "%u.%u.%u.%u.%u.%u", obis[0], obis[1], obis[2], obis[3], obis[4], obis[5]);
 }
 
@@ -301,11 +305,11 @@ bool is_value_data_type(const DlmsDataType type) {
   }
 }
 
-void format_hex_pretty_to(char* out, const size_t max_out, const uint8_t* data, const size_t length) {
+void format_hex_pretty_to(char* out, const size_t max_out, const std::span<const uint8_t> data) {
   if (max_out == 0) return;
   out[0] = '\0';
   size_t pos = 0;
-  for (size_t i = 0; i < length && pos + 3 < max_out; i++) {
+  for (size_t i = 0; i < data.size() && pos + 3 < max_out; i++) {
     const int written = snprintf(out + pos, max_out - pos, "%02X.", data[i]);
     if (written > 0) pos += static_cast<size_t>(written);
   }

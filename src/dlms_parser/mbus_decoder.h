@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include <cstdint>
+#include <span>
 
 namespace dlms_parser {
 
@@ -24,10 +25,10 @@ class MBusDecoder {
   void set_skip_crc_check(const bool skip) { skip_crc_check_ = skip; }
 
   // Check if buf contains a complete M-Bus message ready for decode().
-  static FrameStatus check(const uint8_t* buf, size_t len);
+  static FrameStatus check(std::span<const uint8_t> buf);
 
   // In-place decode: transforms buf contents, returns new length. 0 = error.
-  size_t decode(uint8_t* buf, size_t len) const;
+  size_t decode(std::span<uint8_t> buf) const;
 
  private:
   bool skip_crc_check_{false};

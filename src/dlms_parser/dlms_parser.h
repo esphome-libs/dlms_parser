@@ -6,6 +6,7 @@
 #include "mbus_decoder.h"
 #include "utils.h"
 #include <cstdint>
+#include <span>
 
 namespace dlms_parser {
 
@@ -18,7 +19,7 @@ class DlmsParser final : NonCopyableAndNonMovable {
 
   void set_frame_format(const FrameFormat fmt) { this->frame_format_ = fmt; }
   void set_skip_crc_check(bool skip);
-  void set_work_buffer(uint8_t* buf, size_t capacity);
+  void set_work_buffer(std::span<uint8_t> buf);
   void set_decryption_key(const Aes128GcmDecryptionKey& key) const;
   void set_authentication_key(const Aes128GcmAuthenticationKey& key) const;
 
@@ -33,18 +34,17 @@ class DlmsParser final : NonCopyableAndNonMovable {
 
   // Check whether buf contains a complete message ready for parse().
   // Stateless — the library does not accumulate; the caller owns the buffer.
-  FrameStatus check_frame(const uint8_t* buf, size_t len) const;
+  FrameStatus check_frame(std::span<const uint8_t> buf) const;
 
   // Parse a full frame. Fires cooked_cb for each matched COSEM object.
   // Optionally fires raw_cb with unmodified captures before conversion.
-  ParseResult parse(const uint8_t* buf, size_t len,
+  ParseResult parse(std::span<const uint8_t> buf,
                     const DlmsDataCallback& cooked_cb,
                     const DlmsRawCallback& raw_cb = nullptr);
 
  private:
   FrameFormat frame_format_{FrameFormat::RAW};
-  uint8_t* work_buf_{nullptr};
-  size_t work_buf_capacity_{0};
+  std::span<uint8_t> work_buf_{};
   Aes128GcmDecryptor& decryptor_;
   ApduHandler apdu_handler_;
   AxdrParser axdr_parser_;

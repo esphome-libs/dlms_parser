@@ -16,18 +16,18 @@ static constexpr size_t  MBUS_FOOTER = 2;  // CS(1) + 0x16(1)
 // indicates continuation (0x11 for second+ frames). Returns COMPLETE when
 // the last frame's CI is not a continuation indicator.
 // ---------------------------------------------------------------------------
-FrameStatus MBusDecoder::check(const uint8_t* buf, const size_t len) {
-  if (len < MBUS_INTRO || buf[0] != MBUS_START) return FrameStatus::ERROR;
+FrameStatus MBusDecoder::check(const std::span<const uint8_t> buf) {
+  if (buf.size() < MBUS_INTRO || buf[0] != MBUS_START) return FrameStatus::ERROR;
 
   size_t offset = 0;
-  while (offset < len) {
-    if (offset + MBUS_INTRO > len) return FrameStatus::NEED_MORE;
+  while (offset < buf.size()) {
+    if (offset + MBUS_INTRO > buf.size()) return FrameStatus::NEED_MORE;
     if (buf[offset] != MBUS_START || buf[offset + 3] != MBUS_START) return FrameStatus::ERROR;
     if (buf[offset + 1] != buf[offset + 2]) return FrameStatus::ERROR;
 
     const size_t L = buf[offset + 1];
     const size_t frame_size = MBUS_INTRO + L + MBUS_FOOTER;
-    if (offset + frame_size > len) return FrameStatus::NEED_MORE;
+    if (offset + frame_size > buf.size()) return FrameStatus::NEED_MORE;
 
     // Check stop byte
     if (buf[offset + MBUS_INTRO + L + 1] != MBUS_STOP) return FrameStatus::ERROR;
@@ -35,7 +35,7 @@ FrameStatus MBusDecoder::check(const uint8_t* buf, const size_t len) {
     offset += frame_size;
 
     // If next byte is another MBUS_START, more frames follow
-    if (offset < len && buf[offset] == MBUS_START) continue;
+    if (offset < buf.size() && buf[offset] == MBUS_START) continue;
 
     return FrameStatus::COMPLETE;
   }
@@ -47,7 +47,9 @@ FrameStatus MBusDecoder::check(const uint8_t* buf, const size_t len) {
 // In-place decode: extracts and concatenates payloads from all M-Bus frames,
 // writing them sequentially to buf[0..]. Returns new length, 0 on error.
 // ---------------------------------------------------------------------------
-size_t MBusDecoder::decode(uint8_t* buf, const size_t len) const {
+size_t MBusDecoder::decode(const std::span<uint8_t> buf_span) const {
+  uint8_t* const buf = buf_span.data();
+  const size_t len = buf_span.size();
   size_t read_offset = 0;
   size_t write_offset = 0;
 

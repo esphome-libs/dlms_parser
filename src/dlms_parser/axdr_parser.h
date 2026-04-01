@@ -4,6 +4,7 @@
 #include "types.h"
 #include <cstdint>
 #include <functional>
+#include <span>
 #include <string_view>
 #include <array>
 
@@ -32,7 +33,7 @@ class AxdrParser {
 
   // Parse AXDR bytes. Fires cooked_cb and/or raw_cb for each pattern match.
   // Either callback may be nullptr.
-  ParseResult parse(const uint8_t* axdr, size_t len,
+  ParseResult parse(std::span<const uint8_t> axdr,
                     DlmsDataCallback cooked_cb,
                     DlmsRawCallback raw_cb = nullptr);
 
@@ -48,8 +49,7 @@ class AxdrParser {
   AxdrDescriptorPattern& register_pattern_dsl_(const char* name, std::string_view dsl, int priority);
 
   // Parse-time state — reset at the start of each parse() call
-  const uint8_t* buffer_{nullptr};
-  size_t buffer_len_{0};
+  std::span<const uint8_t> buffer_{};
   size_t pos_{0};
   DlmsDataCallback cooked_cb_;
   DlmsRawCallback raw_cb_;
@@ -67,7 +67,7 @@ class AxdrParser {
   bool parse_sequence_(uint8_t type, uint8_t depth = 0);
 
   // Pattern matching
-  bool test_if_date_time_12b_(const uint8_t* buf = nullptr) const;
+  bool test_if_date_time_12b_(std::span<const uint8_t> buf = {}) const;
   bool capture_generic_value_(AxdrCaptures& c);
   bool try_match_patterns_(uint8_t elem_idx, uint8_t elem_count);
   bool match_pattern_(uint8_t elem_idx, uint8_t elem_count, const AxdrDescriptorPattern& pat, uint8_t& consumed);
