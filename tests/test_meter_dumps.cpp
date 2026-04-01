@@ -315,7 +315,7 @@ TEST_CASE("Integration: HDLC") {
   }
 
   SUBCASE("Kamstrup Omnipower - wrong auth key rejects frame") {
-    const auto wrong_key = dlms_parser::Aes128GcmDecryptionKey::from_bytes(std::array<uint8_t, 16>{0x00}).value();
+    const auto wrong_key = dlms_parser::Aes128GcmAuthenticationKey::from_bytes(std::array<uint8_t, 16>{0x00}).value();
     std::array<uint8_t, 2048> work_buf{};
     dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
     dlms_parser::DlmsParser parser(decryptor);

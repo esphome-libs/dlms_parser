@@ -132,7 +132,7 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(uint8_t* buf, size_t len)
     if (tag == DLMS_APDU_GENERAL_GLO_CIPHERING || tag == DLMS_APDU_GENERAL_DED_CIPHERING) {
       Logger::log(LogLevel::DEBUG, "Found ciphered APDU (0x%02X)", tag);
 
-      if (!this->decryptor_ || !this->decryptor_->has_key()) {
+      if (!this->decryptor_ || !this->decryptor_->decryption_key()) {
         Logger::log(LogLevel::WARNING, "Encrypted APDU received but no decryption key is set");
         return {0, 0};
       }
@@ -173,9 +173,9 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(uint8_t* buf, size_t len)
       size_t aad_len = 0;
       std::span<const uint8_t> gcm_tag;
 
-      if (has_auth_tag && this->decryptor_->has_auth_key()) {
+      if (has_auth_tag && this->decryptor_->auth_key()) {
         aad[0] = security_control;
-        std::memcpy(aad + 1, this->decryptor_->auth_key_data(), 16);
+        std::memcpy(aad + 1, this->decryptor_->auth_key()->data(), 16);
         aad_len = 17;
         gcm_tag = std::span<const uint8_t>(buf + pos + payload_len, DLMS_GCM_TAG_LENGTH);
       }

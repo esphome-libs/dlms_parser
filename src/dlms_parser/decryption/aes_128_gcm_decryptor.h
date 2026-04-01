@@ -8,50 +8,57 @@
 
 namespace dlms_parser {
 
-class Aes128GcmDecryptionKey {
+namespace detail {
+struct DecryptionKeyTag {};
+struct AuthenticationKeyTag {};
+}
+
+template <typename Tag>
+class Aes128Key {
 public:
-  static std::optional<Aes128GcmDecryptionKey> from_bytes(std::span<const uint8_t> key_bytes) {
+  static [[nodiscard]] std::optional<Aes128Key> from_bytes(std::span<const uint8_t> key_bytes) {
     if (key_bytes.size() != 16) return std::nullopt;
     std::array<uint8_t, 16> arr{};
     std::copy(key_bytes.begin(), key_bytes.end(), arr.begin());
-    return Aes128GcmDecryptionKey(arr);
+    return Aes128Key(arr);
   }
 
   [[nodiscard]] const uint8_t* data() const { return key.data(); }
 
 private:
-  explicit Aes128GcmDecryptionKey(const std::array<uint8_t, 16> k) : key(k) {}
+  explicit Aes128Key(const std::array<uint8_t, 16> k) : key(k) {}
   std::array<uint8_t, 16> key;
 };
+
+using Aes128GcmDecryptionKey = Aes128Key<detail::DecryptionKeyTag>;
+using Aes128GcmAuthenticationKey = Aes128Key<detail::AuthenticationKeyTag>;
 
 class Aes128GcmDecryptor {
  public:
   virtual void set_decryption_key(const Aes128GcmDecryptionKey& key) = 0;
 
-  virtual void set_authentication_key(const Aes128GcmDecryptionKey& key) {
-    std::memcpy(auth_key_.data(), key.data(), 16);
-    has_auth_key_ = true;
+  virtual void set_authentication_key(const Aes128GcmAuthenticationKey& key) {
+    auth_key_ = key;
   }
 
   // Decrypt cipher in-place.
   // When aad + tag are non-empty, verifies the GCM authentication tag.
   // aad = security_control(1) + authentication_key(16), per DLMS Green Book.
-  virtual bool decrypt_in_place(std::span<uint8_t> iv,
+  virtual bool decrypt_in_place(std::span<const uint8_t> iv,
                                 std::span<uint8_t> cipher,
                                 std::span<const uint8_t> aad,
                                 std::span<const uint8_t> tag) = 0;
 
-  [[nodiscard]] bool has_key() const { return has_decryption_key_; }
-  [[nodiscard]] bool has_auth_key() const { return has_auth_key_; }
-  [[nodiscard]] const uint8_t* auth_key_data() const { return auth_key_.data(); }
+  [[nodiscard]] std::optional<Aes128GcmDecryptionKey> decryption_key() const { return decryption_key_; }
+  [[nodiscard]] std::optional<Aes128GcmAuthenticationKey> auth_key() const { return auth_key_; }
 
   virtual ~Aes128GcmDecryptor() = default;
 
  protected:
   Aes128GcmDecryptor() = default;
-  bool has_decryption_key_ = false;
-  bool has_auth_key_ = false;
-  std::array<uint8_t, 16> auth_key_{};
+
+  std::optional<Aes128GcmDecryptionKey> decryption_key_;
+  std::optional<Aes128GcmAuthenticationKey> auth_key_;
 };
 
 }

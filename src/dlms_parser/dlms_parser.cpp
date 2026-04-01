@@ -34,7 +34,7 @@ void DlmsParser::set_decryption_key(const Aes128GcmDecryptionKey& key) const {
   decryptor_.set_decryption_key(key);
 }
 
-void DlmsParser::set_authentication_key(const Aes128GcmDecryptionKey& key) const {
+void DlmsParser::set_authentication_key(const Aes128GcmAuthenticationKey& key) const {
   decryptor_.set_authentication_key(key);
 }
 
