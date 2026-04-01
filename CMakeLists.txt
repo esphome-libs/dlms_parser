@@ -43,8 +43,8 @@ FetchContent_MakeAvailable(mbedtls)
 # bearssl
 FetchContent_Populate(
   bearssl
-  URL https://bearssl.org/bearssl-0.6.tar.gz
-  URL_HASH SHA512=f9ed25683cfc6c4abe7f1203a2b82ed101ee4c9e0f9ab60755b6a09c8d1e8e4f64d413624e7bb9c4b0033f909a2e4568a1d916cc6ce4736222900691e1f8359a)
+  GIT_REPOSITORY https://bearssl.org/git/BearSSL
+  GIT_TAG v0.6)
 file(GLOB_RECURSE bearssl_sources CONFIGURE_DEPENDS "${bearssl_SOURCE_DIR}/src/*.c")
 add_library(bearssl STATIC ${bearssl_sources})
 target_include_directories(bearssl SYSTEM PUBLIC "${bearssl_SOURCE_DIR}/inc" PRIVATE "${bearssl_SOURCE_DIR}/src")
@@ -57,8 +57,8 @@ target_include_directories(dlms_cryptography SYSTEM INTERFACE $<TARGET_PROPERTY:
 # cmake_template for warnings and sanitizers
 FetchContent_Populate(
   cmake_template
-  URL https://github.com/cpp-best-practices/cmake_template/archive/0a32e3ff530534f04d7a73817d563bb26eea1b5a.zip
-  URL_HASH SHA512=4cab8e5f75054b46c131447e0b9b4f36239eed7c8e5c3a01a09f1454126ea4fc24a5426a4662966cd925673f25383220a56644cab7551cb70aa40870e4577c0b)
+  GIT_REPOSITORY https://github.com/cpp-best-practices/cmake_template
+  GIT_TAG 0a32e3ff530534f04d7a73817d563bb26eea1b5a)
 include(${cmake_template_SOURCE_DIR}/cmake/CompilerWarnings.cmake)
 include(${cmake_template_SOURCE_DIR}/cmake/Sanitizers.cmake)
 
