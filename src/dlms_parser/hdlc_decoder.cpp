@@ -98,13 +98,6 @@ size_t HdlcDecoder::decode(const std::span<uint8_t> buf_span) const {
       return 0;
     }
 
-    // Length field validation
-    const size_t declared_len = static_cast<size_t>(b[0] & 0x07U) << 8 | b[1];
-    if (declared_len != blen) {
-      Logger::log(LogLevel::WARNING, "HDLC: length mismatch (field=%zu, actual=%zu)", declared_len, blen);
-      return 0;
-    }
-
     // Skip addresses + control
     size_t pos = 2;
     const size_t dst_len = address_length_({b + pos, blen - pos});
@@ -125,7 +118,6 @@ size_t HdlcDecoder::decode(const std::span<uint8_t> buf_span) const {
     pos += 2;
 
     // FCS
-    if (blen < 3) return 0;
     if (!this->skip_crc_check_ && crc16_x25_check_({b, blen}) != FCS16_GOOD_VALUE) {
       Logger::log(LogLevel::WARNING, "HDLC: FCS error");
       return 0;
