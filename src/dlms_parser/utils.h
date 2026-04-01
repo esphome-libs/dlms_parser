@@ -30,7 +30,7 @@ public:
   NonCopyableAndNonMovable& operator=(NonCopyableAndNonMovable&&) = delete;
 };
 
-inline uint16_t be16(const uint8_t* p) { return static_cast<uint16_t>(p[0] << 8 | p[1]); }
+inline uint16_t be16(const uint8_t* p) { return static_cast<uint16_t>(static_cast<unsigned>(p[0]) << 8 | p[1]); }
 inline uint32_t be32(const uint8_t* p) {
   return static_cast<uint32_t>(p[0]) << 24 | static_cast<uint32_t>(p[1]) << 16 |
          static_cast<uint32_t>(p[2]) << 8 | static_cast<uint32_t>(p[3]);

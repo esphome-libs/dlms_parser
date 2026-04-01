@@ -17,6 +17,7 @@ public:
   void set_decryption_key(const Aes128GcmDecryptionKey& key) override {
     if (const auto res = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, key.data(), 128); res != 0) {
       Logger::log(LogLevel::ERROR, "Failed to set decryption key: %d", res);
+      decryption_key_.reset();
       return;
     }
 
@@ -48,7 +49,7 @@ public:
                                       /* output  */ cipher.data()) == 0;
     }
 
-    // Encrypt-only: no tag verification, no AAD
+    // Decrypt-only: no tag verification, no AAD
     Logger::log(LogLevel::VERY_VERBOSE, "Decrypt without tag. No data corruption verification");
     unsigned char dummy_tag[12];
     return mbedtls_gcm_crypt_and_tag(/* ctx     */ &gcm,

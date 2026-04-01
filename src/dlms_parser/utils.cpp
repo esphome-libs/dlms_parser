@@ -45,8 +45,8 @@ float data_as_float(const DlmsDataType value_type, const std::span<const uint8_t
 bool test_if_date_time_12b(const std::span<const uint8_t> p) {
   if (p.size() < 12) return false;
 
-  const auto year = static_cast<uint16_t>(p[0] << 8 | p[1]);
-  if (!(year == 0x0000 || (year >= 1970 && year <= 2100))) return false;
+  const auto year = static_cast<uint16_t>(be16(p.data()));
+  if (!(year == 0x0000 || year == 0xFFFF || (year >= 1970 && year <= 2100))) return false;
 
   const uint8_t month = p[2];
   if (!(month == 0xFF || (month >= 1 && month <= 12))) return false;
@@ -66,10 +66,10 @@ bool test_if_date_time_12b(const std::span<const uint8_t> p) {
   const uint8_t second = p[7];
   if (!(second == 0xFF || second <= 59)) return false;
 
-  const uint8_t ms = p[8];
-  if (!(ms == 0xFF || ms <= 99)) return false;
+  const uint8_t hundredths = p[8];
+  if (!(hundredths == 0xFF || hundredths <= 99)) return false;
 
-  const auto s_dev = static_cast<int16_t>(static_cast<uint16_t>(p[9] << 8 | p[10]));
+  const auto s_dev = static_cast<int16_t>(be16(p.data() + 9));
   if (!(s_dev == static_cast<int16_t>(0x8000) || (s_dev >= -720 && s_dev <= 720))) return false;
 
   return true;
@@ -206,6 +206,7 @@ uint32_t read_ber_length(const uint8_t* buf, size_t& pos, const size_t buf_len) 
   const uint8_t first = buf[pos++];
   if (first <= 0x7F) return first;
   const uint8_t num_bytes = first & 0x7F;
+  if (num_bytes == 0 || num_bytes > 4) return 0;
   uint32_t length = 0;
   for (uint8_t i = 0; i < num_bytes; i++) {
     if (pos >= buf_len) return 0;
