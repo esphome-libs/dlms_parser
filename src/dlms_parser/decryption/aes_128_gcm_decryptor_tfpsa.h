@@ -55,9 +55,9 @@ public:
   }
 
   bool decrypt_in_place(std::span<const uint8_t> iv,
-    std::span<uint8_t> cipher,
-    std::span<const uint8_t> aad,
-    std::span<const uint8_t> tag) override {
+                        std::span<uint8_t> cipher,
+                        std::span<const uint8_t> aad,
+                        std::span<const uint8_t> tag) override {
     if (!psa_initialized_) {
       Logger::log(LogLevel::ERROR, "PSA crypto is not initialized");
       return false;
