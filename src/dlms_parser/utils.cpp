@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <cstring>
 
-namespace dlms_parser::utils {
+namespace dlms_parser {
 
 float data_as_float(const DlmsDataType value_type, const std::span<const uint8_t> data) {
   if (data.empty()) return 0.0f;

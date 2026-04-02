@@ -8,7 +8,6 @@
 #include "dlms_parser/utils.h"
 
 using namespace dlms_parser;
-using namespace dlms_parser::utils;
 
 TEST_CASE("Endianness Conversions") {
   SUBCASE("be16") {

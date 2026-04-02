@@ -90,7 +90,7 @@ uint32_t AxdrParser::read_u32_() {
 // ---------------------------------------------------------------------------
 
 bool AxdrParser::skip_data_(uint8_t type) {
-  const int data_size = utils::get_data_type_size(static_cast<DlmsDataType>(type));
+  const int data_size = get_data_type_size(static_cast<DlmsDataType>(type));
 
   if (data_size == 0) return true;
 
@@ -119,8 +119,7 @@ bool AxdrParser::skip_data_(uint8_t type) {
 
     if (this->pos_ + skip_bytes > this->buffer_.size()) return false;
 
-    Logger::log(LogLevel::VERY_VERBOSE, "Skipping %s (%u bytes) at pos %zu",
-                utils::dlms_data_type_to_string(static_cast<DlmsDataType>(type)), skip_bytes, this->pos_);
+    Logger::log(LogLevel::VERY_VERBOSE, "Skipping %s (%u bytes) at pos %zu", dlms_data_type_to_string(static_cast<DlmsDataType>(type)), skip_bytes, this->pos_);
     this->pos_ += skip_bytes;
   }
   return true;
@@ -180,16 +179,16 @@ bool AxdrParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
 
 // test_if_date_time_12b_ delegates to the utils function, handling the parser buffer fallback.
 bool AxdrParser::test_if_date_time_12b_(const std::span<const uint8_t> buf) const {
-  if (!buf.empty()) return utils::test_if_date_time_12b(buf);
+  if (!buf.empty()) return test_if_date_time_12b(buf);
   if (this->pos_ + 12 > this->buffer_.size()) return false;
-  return utils::test_if_date_time_12b(this->buffer_.subspan(this->pos_, 12));
+  return test_if_date_time_12b(this->buffer_.subspan(this->pos_, 12));
 }
 
 bool AxdrParser::capture_generic_value_(AxdrCaptures& c) {
   uint8_t vt = this->read_byte_();
-  if (!utils::is_value_data_type(static_cast<DlmsDataType>(vt))) return false;
+  if (!is_value_data_type(static_cast<DlmsDataType>(vt))) return false;
 
-  const int ds = utils::get_data_type_size(static_cast<DlmsDataType>(vt));
+  const int ds = get_data_type_size(static_cast<DlmsDataType>(vt));
   if (ds > 0) {
     if (this->pos_ + static_cast<size_t>(ds) > this->buffer_.size()) return false;
     c.value = this->buffer_.subspan(this->pos_, static_cast<size_t>(ds));
@@ -384,13 +383,13 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
   if (!this->cooked_cb_) return;
 
   char obis_str_buf[32];
-  utils::obis_to_string(effective.obis, obis_str_buf);
+  obis_to_string(effective.obis, obis_str_buf);
 
-  const float raw_val_f = utils::data_as_float(effective.value_type, effective.value);
+  const float raw_val_f = data_as_float(effective.value_type, effective.value);
   float val_f = raw_val_f;
 
   char val_s_buf[128];
-  utils::data_to_string(effective.value_type, effective.value, val_s_buf);
+  data_to_string(effective.value_type, effective.value, val_s_buf);
 
   const bool is_numeric = effective.value_type != DLMS_DATA_TYPE_OCTET_STRING &&
                           effective.value_type != DLMS_DATA_TYPE_STRING &&
@@ -407,15 +406,15 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
 
   if (effective.has_scaler_unit) {
     Logger::log(LogLevel::INFO, "  type=%s len=%zu scaler=%d unit=%d",
-                utils::dlms_data_type_to_string(effective.value_type), effective.value.size(), effective.scaler, effective.unit_enum);
+                dlms_data_type_to_string(effective.value_type), effective.value.size(), effective.scaler, effective.unit_enum);
   } else {
     Logger::log(LogLevel::INFO, "  type=%s len=%zu",
-                utils::dlms_data_type_to_string(effective.value_type), effective.value.size());
+                dlms_data_type_to_string(effective.value_type), effective.value.size());
   }
 
   if (!effective.value.empty()) {
     char hex_buf[512];
-    utils::format_hex_pretty_to(hex_buf, effective.value);
+    format_hex_pretty_to(hex_buf, effective.value);
     Logger::log(LogLevel::INFO, "  hex  : %s", hex_buf);
   }
   Logger::log(LogLevel::INFO, "  str  : '%s'", val_s_buf);

@@ -42,10 +42,6 @@ inline uint64_t be64(const uint8_t* p) {
          static_cast<uint64_t>(p[6]) << 8  | static_cast<uint64_t>(p[7]);
 }
 
-}  // namespace dlms_parser
-
-namespace dlms_parser::utils {
-
 float data_as_float(DlmsDataType value_type, std::span<const uint8_t> data);
 bool test_if_date_time_12b(std::span<const uint8_t> p);
 void datetime_to_string(std::span<const uint8_t> data, std::span<char> buffer);
@@ -62,4 +58,4 @@ bool is_value_data_type(DlmsDataType type);
 
 void format_hex_pretty_to(std::span<char> out, std::span<const uint8_t> data);
 
-}  // namespace dlms_parser::utils
+}
