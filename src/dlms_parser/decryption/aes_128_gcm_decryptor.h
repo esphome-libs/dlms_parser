@@ -1,10 +1,12 @@
 #pragma once
 
+#include <charconv>
 #include <cstdint>
 #include <cstring>
 #include <optional>
 #include <array>
 #include <span>
+#include <string_view>
 
 namespace dlms_parser {
 
@@ -20,6 +22,16 @@ public:
     if (key_bytes.size() != 16) return std::nullopt;
     std::array<uint8_t, 16> arr{};
     std::copy(key_bytes.begin(), key_bytes.end(), arr.begin());
+    return Aes128Key(arr);
+  }
+
+  [[nodiscard]] static std::optional<Aes128Key> from_hex(std::string_view hex) {
+    if (hex.size() != 32) return std::nullopt;
+    std::array<uint8_t, 16> arr{};
+    for (size_t i = 0; i < 16; ++i) {
+      auto [ptr, ec] = std::from_chars(hex.data() + i * 2, hex.data() + i * 2 + 2, arr[i], 16);
+      if (ec != std::errc{}) return std::nullopt;
+    }
     return Aes128Key(arr);
   }
 

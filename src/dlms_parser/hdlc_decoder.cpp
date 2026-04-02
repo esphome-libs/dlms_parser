@@ -59,10 +59,8 @@ static size_t address_length(std::span<const uint8_t> p) {
   return 0;
 }
 
-static constexpr uint8_t HDLC_FLAG       = 0x7E;
-// static constexpr uint8_t HDLC_ESCAPE     = 0x7D;   // byte-stuffing disabled, see decode_one_()
-// static constexpr uint8_t HDLC_ESCAPE_XOR = 0x20;
-static constexpr uint8_t HDLC_SEG_BIT    = 0x08;  // bit 3 of frame-type byte: "more frames follow"
+static constexpr uint8_t HDLC_FLAG    = 0x7E;
+static constexpr uint8_t HDLC_SEG_BIT = 0x08;  // bit 3 of frame-type byte: "more frames follow"
 
 // ---------------------------------------------------------------------------
 // check() — stateless frame completeness check
