@@ -1,6 +1,6 @@
 #include "dlms_parser.h"
 #include "log.h"
-#include <cstring>
+#include <algorithm>
 
 namespace dlms_parser {
 
@@ -58,27 +58,27 @@ void DlmsParser::register_pattern(const char* name, const char* dsl, const int p
 
 ParseResult DlmsParser::parse(const std::span<const uint8_t> buf, const DlmsDataCallback& cooked_cb,
                               const DlmsRawCallback& raw_cb) {
-  if (this->work_buf_.empty()) {
+  if (work_buf_.empty()) {
     Logger::log(LogLevel::ERROR, "No work buffer set - call set_work_buffer() before parse()");
     return {};
   }
-  if (buf.size() > this->work_buf_.size()) {
-    Logger::log(LogLevel::ERROR, "Frame too large for work buffer (%zu > %zu)", buf.size(), this->work_buf_.size());
+  if (buf.size() > work_buf_.size()) {
+    Logger::log(LogLevel::ERROR, "Frame too large for work buffer (%zu > %zu)", buf.size(), work_buf_.size());
     return {};
   }
 
   // Copy input into work buffer — all transforms happen in-place from here
-  std::memcpy(this->work_buf_.data(), buf.data(), buf.size());
-  size_t work_len = buf.size();
+  std::ranges::copy(buf, work_buf_.data());
+  auto work_len = buf.size();
 
   // Step 1: Frame decode (HDLC / MBus / RAW pass-through)
-  switch (this->frame_format_) {
+  switch (frame_format_) {
     case FrameFormat::HDLC:
-      work_len = this->hdlc_decoder_.decode({this->work_buf_.data(), work_len});
+      work_len = hdlc_decoder_.decode(work_buf_.first(work_len));
       if (work_len == 0) return {};
       break;
     case FrameFormat::MBUS:
-      work_len = this->mbus_decoder_.decode({this->work_buf_.data(), work_len});
+      work_len = mbus_decoder_.decode(work_buf_.first(work_len));
       if (work_len == 0) return {};
       break;
     case FrameFormat::RAW:
@@ -87,15 +87,15 @@ ParseResult DlmsParser::parse(const std::span<const uint8_t> buf, const DlmsData
   }
 
   // Step 2: APDU unwrap (GBT → decrypt → strip header) — sequential loop, no recursion
-  auto [axdr_offset, axdr_len] = this->apdu_handler_.unwrap_in_place({this->work_buf_.data(), work_len});
+  auto [axdr_offset, axdr_len] = apdu_handler_.unwrap_in_place(work_buf_.first(work_len));
   if (axdr_len == 0) return {};
 
   // Step 3: AXDR parse — loop over successive top-level containers
   ParseResult result;
   size_t offset = 0;
   while (offset < axdr_len) {
-    auto [count, bytes_consumed] = this->axdr_parser_.parse(
-        {this->work_buf_.data() + axdr_offset + offset, axdr_len - offset}, cooked_cb, raw_cb);
+    auto [count, bytes_consumed] = axdr_parser_.parse(
+        work_buf_.subspan(axdr_offset + offset, axdr_len - offset), cooked_cb, raw_cb);
     if (bytes_consumed == 0) break;
     result.count += count;
     result.bytes_consumed += bytes_consumed;

@@ -1,13 +1,15 @@
 #include "apdu_handler.h"
 #include "log.h"
 #include "utils.h"
-#include <cstring>
+#include <algorithm>
+#include <array>
+#include <ranges>
 
 namespace dlms_parser {
 
 bool ApduHandler::parse(const std::span<uint8_t> buf, const AxdrPayloadCallback& cb) const {
   if (auto [offset, length] = unwrap_in_place(buf); length > 0) {
-    cb(std::span<const uint8_t>(buf.data() + offset, length));
+    cb(buf.subspan(offset, length));
     return true;
   }
   return false;
@@ -19,35 +21,35 @@ bool ApduHandler::parse(const std::span<uint8_t> buf, const AxdrPayloadCallback&
 // ---------------------------------------------------------------------------
 ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(const std::span<uint8_t> buf_span) const {
   constexpr int MAX_ITERATIONS = 4;  // GBT → cipher → DATA-NOTIFICATION → AXDR
+  static constexpr auto known_tags = std::to_array<uint8_t>({
+    DLMS_APDU_GENERAL_BLOCK_TRANSFER,
+    DLMS_APDU_DATA_NOTIFICATION,
+    DLMS_APDU_GENERAL_GLO_CIPHERING,
+    DLMS_APDU_GENERAL_DED_CIPHERING,
+    DLMS_DATA_TYPE_ARRAY,
+    DLMS_DATA_TYPE_STRUCTURE,
+  });
+
   uint8_t* const buf = buf_span.data();
   size_t len = buf_span.size();
 
   for (int iter = 0; iter < MAX_ITERATIONS; iter++) {
     // Scan for first known tag
-    size_t tag_pos = 0;
-    bool found = false;
-    for (size_t i = 0; i < len; i++) {
-      if (const uint8_t tag = buf[i];
-          tag == DLMS_APDU_GENERAL_BLOCK_TRANSFER ||
-          tag == DLMS_APDU_DATA_NOTIFICATION ||
-          tag == DLMS_APDU_GENERAL_GLO_CIPHERING ||
-          tag == DLMS_APDU_GENERAL_DED_CIPHERING ||
-          tag == DLMS_DATA_TYPE_ARRAY ||
-          tag == DLMS_DATA_TYPE_STRUCTURE) {
-        tag_pos = i;
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
+    const auto data = std::span<const uint8_t>(buf, len);
+    const auto is_known_tag = [&](uint8_t b) {
+      return std::ranges::find(known_tags, b) != known_tags.end();
+    };
+    const auto it = std::ranges::find_if(data, is_known_tag);
+    if (it == data.end()) {
       Logger::log(LogLevel::WARNING, "No supported APDU tag found in buffer");
       return {0, 0};
     }
+    const auto tag_pos = static_cast<size_t>(it - data.begin());
 
     // Shift to tag position if needed
     if (tag_pos > 0) {
       len -= tag_pos;
-      std::memmove(buf, buf + tag_pos, len);
+      std::copy_n(buf + tag_pos, len, buf);
     }
 
     const uint8_t tag = buf[0];
@@ -114,7 +116,7 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(const std::span<uint8_t> 
           return {0, 0};
         }
 
-        std::memmove(buf + write_pos, buf + ber_pos, block_len);
+        std::copy_n(buf + ber_pos, block_len, buf + write_pos);
         write_pos += block_len;
         read_pos = ber_pos + block_len;
 
@@ -145,8 +147,8 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(const std::span<uint8_t> 
       const uint8_t st_len = buf[pos++];
       if (pos + st_len > len || st_len != DLMS_SYSTITLE_LENGTH) return {0, 0};
       // Build IV: systitle(8) + frame_counter(4) — copy to stack before buf is modified
-      uint8_t iv[DLMS_IV_LENGTH];
-      std::memcpy(iv, buf + pos, st_len);
+      std::array<uint8_t, DLMS_IV_LENGTH> iv{};
+      std::copy_n(buf + pos, st_len, iv.begin());
       pos += st_len;
 
       // BER length
@@ -161,7 +163,7 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(const std::span<uint8_t> 
 
       // Frame counter → last 4 bytes of IV
       if (pos + DLMS_FRAME_COUNTER_LENGTH > len) return {0, 0};
-      std::memcpy(iv + DLMS_SYSTITLE_LENGTH, buf + pos, DLMS_FRAME_COUNTER_LENGTH);
+      std::copy_n(buf + pos, DLMS_FRAME_COUNTER_LENGTH, iv.begin() + DLMS_SYSTITLE_LENGTH);
       pos += DLMS_FRAME_COUNTER_LENGTH;
 
       if (cipher_len < DLMS_LENGTH_CORRECTION + tag_len) return {0, 0};
@@ -171,24 +173,24 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(const std::span<uint8_t> 
       // Build AAD and tag spans for GCM.
       // AAD = security_control(1) + authentication_key(16), per DLMS Green Book.
       // Tag verification only happens when auth bit is set AND auth key is provided.
-      uint8_t aad[17];
+      std::array<uint8_t, 17> aad{};
       size_t aad_len = 0;
       std::span<const uint8_t> gcm_tag;
 
       if (has_auth_tag && this->decryptor_->auth_key()) {
         aad[0] = security_control;
-        std::memcpy(aad + 1, this->decryptor_->auth_key()->data(), 16);
+        std::copy_n(this->decryptor_->auth_key()->data(), 16, aad.begin() + 1);
         aad_len = 17;
         gcm_tag = std::span<const uint8_t>(buf + pos + payload_len, DLMS_GCM_TAG_LENGTH);
       }
 
       if (!this->decryptor_->decrypt_in_place(
               iv, std::span(buf + pos, payload_len),
-              std::span<const uint8_t>(aad, aad_len), gcm_tag)) {
+              std::span(aad).first(aad_len), gcm_tag)) {
         Logger::log(LogLevel::ERROR, "Decryption failed (auth tag mismatch?)");
         return {0, 0};
       }
-      std::memmove(buf, buf + pos, payload_len);
+      std::copy_n(buf + pos, payload_len, buf);
       Logger::log(LogLevel::DEBUG, "Decrypted %u bytes", payload_len);
       len = payload_len;
       continue;  // re-enter loop to process decrypted content

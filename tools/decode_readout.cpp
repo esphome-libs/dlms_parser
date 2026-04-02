@@ -21,15 +21,16 @@
 //   ./decode_readout -f mbus -k 36C66639E48A8CA4D6BC8B282A793BBB tests/dumps/mbus_netz_noe_p1.log
 //   ./decode_readout -p "TO, TV" -p "L, TSTR" tests/dumps/hdlc_landis_gyr_e450.log
 
+#include <array>
+#include <charconv>
 #include <cstdarg>
 #include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <format>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "dlms_parser/dlms_parser.h"
@@ -39,12 +40,12 @@
 // ---------------------------------------------------------------------------
 // Hex file reader — supports spaced hex, concatenated hex, line continuations
 // ---------------------------------------------------------------------------
-static bool is_hex_char(char c) {
+static constexpr bool is_hex_char(char c) {
   return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 }
 
-static std::vector<uint8_t> read_hex_file(const char* path) {
-  std::ifstream f(path);
+static std::vector<uint8_t> read_hex_file(std::string_view path) {
+  std::ifstream f(std::string{path});
   if (!f) {
     std::cerr << std::format("Error: cannot open '{}'\n", path);
     return {};
@@ -78,8 +79,9 @@ static std::vector<uint8_t> read_hex_file(const char* path) {
     size_t len = static_cast<size_t>(p - start);
     if (len % 2 != 0) continue;  // odd-length token — skip
     for (size_t i = 0; i < len; i += 2) {
-      char bs[3] = {start[i], start[i + 1], '\0'};
-      result.push_back(static_cast<uint8_t>(strtoul(bs, nullptr, 16)));
+      uint8_t byte{};
+      std::from_chars(start + i, start + i + 2, byte, 16);
+      result.push_back(byte);
     }
   }
   return result;
@@ -88,8 +90,8 @@ static std::vector<uint8_t> read_hex_file(const char* path) {
 // ---------------------------------------------------------------------------
 // Binary file reader
 // ---------------------------------------------------------------------------
-static std::vector<uint8_t> read_bin_file(const char* path) {
-  std::ifstream f(path, std::ios::binary | std::ios::ate);
+static std::vector<uint8_t> read_bin_file(std::string_view path) {
+  std::ifstream f(std::string{path}, std::ios::binary | std::ios::ate);
   if (!f) {
     std::cerr << std::format("Error: cannot open '{}'\n", path);
     return {};
@@ -106,21 +108,23 @@ static std::vector<uint8_t> read_bin_file(const char* path) {
 // ---------------------------------------------------------------------------
 // Auto-detect file type: if all bytes are hex chars/spaces/newlines, treat as hex
 // ---------------------------------------------------------------------------
-static bool looks_like_hex_file(const char* path) {
-  std::ifstream f(path);
+static bool looks_like_hex_file(std::string_view path) {
+  std::ifstream f(std::string{path});
   if (!f) return false;
-  char buf[256];
-  f.read(buf, sizeof(buf) - 1);
-  size_t n = static_cast<size_t>(f.gcount());
-  buf[n] = '\0';
+  std::array<char, 256> buf{};
+  f.read(buf.data(), buf.size() - 1);
+  auto n = static_cast<size_t>(f.gcount());
   for (size_t i = 0; i < n; i++) {
-    char c = buf[i];
-    if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') ||
+    auto c = static_cast<unsigned char>(buf[i]);
+    if (is_hex_char(static_cast<char>(c)) ||
         c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '-' || c == ',') {
       continue;
     }
-    // Allow some text (log files have comments) — if first hex-like byte is 0x7E/0x68/0x0F, it's hex
-    return true;  // be lenient, default to hex
+    // Non-printable byte (control char or high byte) → likely raw binary
+    if (c < 0x20 || c >= 0x7F) {
+      return false;
+    }
+    // Printable non-hex ASCII (log-file comments, labels) — still treat as hex text
   }
   return true;
 }
@@ -137,7 +141,7 @@ static dlms_parser::FrameFormat detect_format(const std::vector<uint8_t>& data) 
   }
 }
 
-static const char* format_name(dlms_parser::FrameFormat fmt) {
+static std::string_view format_name(dlms_parser::FrameFormat fmt) {
   switch (fmt) {
     case dlms_parser::FrameFormat::HDLC: return "HDLC";
     case dlms_parser::FrameFormat::MBUS: return "MBUS";
@@ -149,13 +153,14 @@ static const char* format_name(dlms_parser::FrameFormat fmt) {
 // ---------------------------------------------------------------------------
 // Parse hex key string
 // ---------------------------------------------------------------------------
-static std::vector<uint8_t> parse_hex_key(const char* hex) {
+static std::vector<uint8_t> parse_hex_key(std::string_view hex) {
   std::vector<uint8_t> key;
-  size_t len = strlen(hex);
-  if (len != 32) return {};
+  if (hex.size() != 32) return {};
   for (size_t i = 0; i < 32; i += 2) {
-    char byte_str[3] = {hex[i], hex[i + 1], '\0'};
-    key.push_back(static_cast<uint8_t>(strtoul(byte_str, nullptr, 16)));
+    uint8_t byte{};
+    auto [ptr, ec] = std::from_chars(hex.data() + i, hex.data() + i + 2, byte, 16);
+    if (ec != std::errc{}) return {};
+    key.push_back(byte);
   }
   return key;
 }
@@ -165,38 +170,39 @@ static std::vector<uint8_t> parse_hex_key(const char* hex) {
 // ---------------------------------------------------------------------------
 int main(int argc, char* argv[]) {
   // Parse arguments
-  const char* file_path = nullptr;
-  const char* format_str = nullptr;
-  const char* key_str = nullptr;
+  std::string_view file_path;
+  std::string_view format_str;
+  std::string_view key_str;
   std::vector<std::string> custom_patterns;
   bool skip_defaults = false;
   bool skip_crc = false;
   int verbosity = 0;
 
   for (int i = 1; i < argc; i++) {
-    if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) {
+    std::string_view arg = argv[i];
+    if (arg == "-f" && i + 1 < argc) {
       format_str = argv[++i];
-    } else if (strcmp(argv[i], "-k") == 0 && i + 1 < argc) {
+    } else if (arg == "-k" && i + 1 < argc) {
       key_str = argv[++i];
-    } else if (strcmp(argv[i], "-p") == 0 && i + 1 < argc) {
+    } else if (arg == "-p" && i + 1 < argc) {
       custom_patterns.emplace_back(argv[++i]);
-    } else if (strcmp(argv[i], "-P") == 0) {
+    } else if (arg == "-P") {
       skip_defaults = true;
-    } else if (strcmp(argv[i], "-C") == 0) {
+    } else if (arg == "-C") {
       skip_crc = true;
-    } else if (strcmp(argv[i], "-vv") == 0) {
+    } else if (arg == "-vv") {
       verbosity = 2;
-    } else if (strcmp(argv[i], "-v") == 0) {
+    } else if (arg == "-v") {
       verbosity = 1;
-    } else if (argv[i][0] != '-') {
-      file_path = argv[i];
+    } else if (!arg.starts_with('-')) {
+      file_path = arg;
     } else {
-      std::cerr << std::format("Unknown option: {}\n", argv[i]);
+      std::cerr << std::format("Unknown option: {}\n", arg);
       return 1;
     }
   }
 
-  if (!file_path) {
+  if (file_path.empty()) {
     std::cerr << std::format(
         "Usage: {} [options] <file>\n"
         "\n"
@@ -258,10 +264,10 @@ int main(int argc, char* argv[]) {
 
   // Frame format
   dlms_parser::FrameFormat fmt;
-  if (format_str) {
-    if (strcmp(format_str, "hdlc") == 0) fmt = dlms_parser::FrameFormat::HDLC;
-    else if (strcmp(format_str, "mbus") == 0) fmt = dlms_parser::FrameFormat::MBUS;
-    else if (strcmp(format_str, "raw") == 0) fmt = dlms_parser::FrameFormat::RAW;
+  if (!format_str.empty()) {
+    if (format_str == "hdlc") fmt = dlms_parser::FrameFormat::HDLC;
+    else if (format_str == "mbus") fmt = dlms_parser::FrameFormat::MBUS;
+    else if (format_str == "raw") fmt = dlms_parser::FrameFormat::RAW;
     else {
       std::cerr << std::format("Error: unknown format '{}' (use hdlc, mbus, or raw)\n", format_str);
       return 1;
@@ -280,7 +286,7 @@ int main(int argc, char* argv[]) {
   }
 
   // Decryption key
-  if (key_str) {
+  if (!key_str.empty()) {
     auto key_bytes = parse_hex_key(key_str);
     auto key = dlms_parser::Aes128GcmDecryptionKey::from_bytes(key_bytes);
     if (!key) {
@@ -299,8 +305,8 @@ int main(int argc, char* argv[]) {
   }
 
   std::cout << std::format("Input:   {} ({} bytes)\n", file_path, data.size());
-  std::cout << std::format("Format:  {}{}\n", format_name(fmt), format_str ? "" : " (auto-detected)");
-  if (key_str) std::cout << std::format("Key:     {}\n", key_str);
+  std::cout << std::format("Format:  {}{}\n", format_name(fmt), format_str.empty() ? " (auto-detected)" : "");
+  if (!key_str.empty()) std::cout << std::format("Key:     {}\n", key_str);
   std::cout << "\n";
 
   // ---- Check frame completeness (demonstrates the check_frame API) ----

@@ -21,7 +21,7 @@ void AxdrParser::register_pattern(const char* name, const char* dsl, const int p
 void AxdrParser::register_pattern(const char* name, const char* dsl, const int priority, const std::span<const uint8_t, 6> default_obis) {
   auto& pat = this->register_pattern_dsl_(name, dsl, priority);
   pat.has_default_obis = true;
-  std::copy(default_obis.begin(), default_obis.end(), pat.default_obis.begin());
+  std::ranges::copy(default_obis, pat.default_obis.begin());
 }
 
 void AxdrParser::clear_patterns() {
@@ -368,9 +368,11 @@ static constexpr std::array<uint8_t, 6> ZERO_OBIS = {0, 0, 0, 0, 0, 0};
 void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptures& c) {
   // If no OBIS was captured by the pattern, use 0.0.0.0.0.0 as a placeholder.
   // If no OBIS captured, use pattern's default_obis if set, otherwise zero placeholder.
-  const std::span<const uint8_t> fallback_obis = pat.has_default_obis
-      ? std::span<const uint8_t>(pat.default_obis) : std::span<const uint8_t>(ZERO_OBIS);
-  const AxdrCaptures effective = !c.obis.empty() ? c : [&] { auto copy = c; copy.obis = fallback_obis; return copy; }();
+  auto effective = c;
+  if (effective.obis.empty()) {
+    effective.obis = pat.has_default_obis
+        ? std::span<const uint8_t>(pat.default_obis) : std::span<const uint8_t>(ZERO_OBIS);
+  }
 
   objects_found_++;
 
@@ -435,9 +437,7 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
   pat.priority = priority;
 
   // Fill step array with the sentinel value since we don't track step count directly
-  for (auto & [type, param_u8_a] : pat.steps) {
-    type = AxdrTokenType::END_OF_PATTERN;
-  }
+  std::ranges::fill(pat.steps, AxdrPatternStep{AxdrTokenType::END_OF_PATTERN});
   size_t step_count = 0;
 
   // Helper lambda to trim string_view bounds instead of creating new substrings
@@ -509,7 +509,7 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
     std::string_view tok = tokens[i];
     if (tok.empty()) continue;
 
-    if (tok.size() >= 2 && tok.substr(0, 2) == "S(") {
+    if (tok.starts_with("S(")) {
       const size_t l = tok.find('(');
       const size_t r = tok.rfind(')');
       if (l != std::string_view::npos && r != std::string_view::npos && r > l + 1) {
