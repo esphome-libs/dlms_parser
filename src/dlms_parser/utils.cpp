@@ -76,10 +76,8 @@ bool test_if_date_time_12b(const std::span<const uint8_t> p) {
 }
 
 void datetime_to_string(const std::span<const uint8_t> data, const std::span<char> out) {
-  char* const buffer = out.data();
-  const size_t max_len = out.size();
-  if (max_len > 0) buffer[0] = '\0';
-  if (data.size() < 12 || max_len == 0) return;
+  if (!out.empty()) out[0] = '\0';
+  if (data.size() < 12 || out.empty()) return;
 
   const uint16_t year = be16(data.data());
   const uint8_t month = data[2], day = data[3];
@@ -87,47 +85,47 @@ void datetime_to_string(const std::span<const uint8_t> data, const std::span<cha
   const uint8_t hundredths = data[8];
   const auto deviation = static_cast<int16_t>(be16(data.data() + 9));
 
-  auto advance = [&](size_t& p, const int n) { if (n > 0 && p + static_cast<size_t>(n) < max_len) p += static_cast<size_t>(n); };
+  auto advance = [&](size_t& p, const int n) { if (n > 0 && p + static_cast<size_t>(n) < out.size()) p += static_cast<size_t>(n); };
 
   size_t pos = 0;
   // Date: YYYY-MM-DD
   if (year != 0x0000 && year != 0xFFFF)
-    advance(pos, snprintf(buffer + pos, max_len - pos, "%04u", year));
+    advance(pos, snprintf(out.data() + pos, out.size() - pos, "%04u", year));
   else
-    advance(pos, snprintf(buffer + pos, max_len - pos, "????"));
-  advance(pos, snprintf(buffer + pos, max_len - pos, "-"));
+    advance(pos, snprintf(out.data() + pos, out.size() - pos, "????"));
+  advance(pos, snprintf(out.data() + pos, out.size() - pos, "-"));
   if (month != 0xFF && month >= 1 && month <= 12)
-    advance(pos, snprintf(buffer + pos, max_len - pos, "%02u", month));
+    advance(pos, snprintf(out.data() + pos, out.size() - pos, "%02u", month));
   else
-    advance(pos, snprintf(buffer + pos, max_len - pos, "??"));
-  advance(pos, snprintf(buffer + pos, max_len - pos, "-"));
+    advance(pos, snprintf(out.data() + pos, out.size() - pos, "??"));
+  advance(pos, snprintf(out.data() + pos, out.size() - pos, "-"));
   if (day != 0xFF && day >= 1 && day <= 31)
-    advance(pos, snprintf(buffer + pos, max_len - pos, "%02u", day));
+    advance(pos, snprintf(out.data() + pos, out.size() - pos, "%02u", day));
   else
-    advance(pos, snprintf(buffer + pos, max_len - pos, "??"));
+    advance(pos, snprintf(out.data() + pos, out.size() - pos, "??"));
   // Time: HH:MM:SS
-  advance(pos, snprintf(buffer + pos, max_len - pos, " "));
+  advance(pos, snprintf(out.data() + pos, out.size() - pos, " "));
   if (hour != 0xFF && hour <= 23)
-    advance(pos, snprintf(buffer + pos, max_len - pos, "%02u", hour));
+    advance(pos, snprintf(out.data() + pos, out.size() - pos, "%02u", hour));
   else
-    advance(pos, snprintf(buffer + pos, max_len - pos, "??"));
-  advance(pos, snprintf(buffer + pos, max_len - pos, ":"));
+    advance(pos, snprintf(out.data() + pos, out.size() - pos, "??"));
+  advance(pos, snprintf(out.data() + pos, out.size() - pos, ":"));
   if (minute != 0xFF && minute <= 59)
-    advance(pos, snprintf(buffer + pos, max_len - pos, "%02u", minute));
+    advance(pos, snprintf(out.data() + pos, out.size() - pos, "%02u", minute));
   else
-    advance(pos, snprintf(buffer + pos, max_len - pos, "??"));
-  advance(pos, snprintf(buffer + pos, max_len - pos, ":"));
+    advance(pos, snprintf(out.data() + pos, out.size() - pos, "??"));
+  advance(pos, snprintf(out.data() + pos, out.size() - pos, ":"));
   if (second != 0xFF && second <= 59)
-    advance(pos, snprintf(buffer + pos, max_len - pos, "%02u", second));
+    advance(pos, snprintf(out.data() + pos, out.size() - pos, "%02u", second));
   else
-    advance(pos, snprintf(buffer + pos, max_len - pos, "??"));
+    advance(pos, snprintf(out.data() + pos, out.size() - pos, "??"));
   // Hundredths
   if (hundredths != 0xFF && hundredths <= 99)
-    advance(pos, snprintf(buffer + pos, max_len - pos, ".%02u", hundredths));
+    advance(pos, snprintf(out.data() + pos, out.size() - pos, ".%02u", hundredths));
   // Timezone deviation
   if (deviation != static_cast<int16_t>(0x8000)) {
     const int abs_dev = deviation >= 0 ? deviation : -deviation;
-    advance(pos, snprintf(buffer + pos, max_len - pos, " %c%02d:%02d",
+    advance(pos, snprintf(out.data() + pos, out.size() - pos, " %c%02d:%02d",
                     deviation >= 0 ? '+' : '-', abs_dev / 60, abs_dev % 60));
   }
 }
