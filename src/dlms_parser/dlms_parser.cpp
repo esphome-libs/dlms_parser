@@ -87,15 +87,14 @@ ParseResult DlmsParser::parse(const std::span<const uint8_t> buf, const DlmsData
   }
 
   // Step 2: APDU unwrap (GBT → decrypt → strip header) — sequential loop, no recursion
-  auto [axdr_offset, axdr_len] = apdu_handler_.unwrap_in_place(work_buf_.first(work_len));
-  if (axdr_len == 0) return {};
+  auto axdr = apdu_handler_.parse(work_buf_.first(work_len));
+  if (axdr.empty()) return {};
 
   // Step 3: AXDR parse — loop over successive top-level containers
   ParseResult result;
   size_t offset = 0;
-  while (offset < axdr_len) {
-    auto [count, bytes_consumed] = axdr_parser_.parse(
-        work_buf_.subspan(axdr_offset + offset, axdr_len - offset), cooked_cb, raw_cb);
+  while (offset < axdr.size()) {
+    auto [count, bytes_consumed] = axdr_parser_.parse(axdr.subspan(offset), cooked_cb, raw_cb);
     if (bytes_consumed == 0) break;
     result.count += count;
     result.bytes_consumed += bytes_consumed;
