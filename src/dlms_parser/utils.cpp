@@ -45,7 +45,7 @@ float data_as_float(const DlmsDataType value_type, const std::span<const uint8_t
 bool test_if_date_time_12b(const std::span<const uint8_t> p) {
   if (p.size() < 12) return false;
 
-  const auto year = static_cast<uint16_t>(be16(p.data()));
+  const auto year = be16(p.data());
   if (!(year == 0x0000 || year == 0xFFFF || (year >= 1970 && year <= 2100))) return false;
 
   const uint8_t month = p[2];
@@ -133,19 +133,15 @@ void datetime_to_string(const std::span<const uint8_t> data, const std::span<cha
 }
 
 void data_to_string(const DlmsDataType value_type, const std::span<const uint8_t> data, const std::span<char> out) {
-  char* const buffer = out.data();
-  const size_t max_len = out.size();
-  if (max_len > 0) buffer[0] = '\0';
-  if (data.empty() || max_len == 0) return;
-  const uint8_t* ptr = data.data();
-  const auto len = data.size();
+  if (!out.empty()) out[0] = '\0';
+  if (data.empty() || out.empty()) return;
 
-  auto hex_of = [](const uint8_t* p, const size_t l, char* out, const size_t max_out) {
-    if (max_out == 0) return;
-    out[0] = '\0';
+  auto hex_of = [](const std::span<const uint8_t> input, const std::span<char> output) {
+    if (output.empty()) return;
+    output[0] = '\0';
     size_t pos = 0;
-    for (size_t i = 0; i < l && pos + 2 < max_out; i++) {
-      const int written = snprintf(out + pos, max_out - pos, "%02x", p[i]);
+    for (size_t i = 0; i < input.size() && pos + 2 < output.size(); i++) {
+      const int written = snprintf(output.data() + pos, output.size() - pos, "%02x", input[i]);
       if (written > 0) pos += static_cast<size_t>(written);
     }
   };
@@ -154,9 +150,9 @@ void data_to_string(const DlmsDataType value_type, const std::span<const uint8_t
   case DLMS_DATA_TYPE_OCTET_STRING:
   case DLMS_DATA_TYPE_STRING:
   case DLMS_DATA_TYPE_STRING_UTF8: {
-    const size_t copy_len = std::min(len, max_len - 1);
-    std::memcpy(buffer, ptr, copy_len);
-    buffer[copy_len] = '\0';
+    const size_t copy_len = std::min(data.size(), out.size() - 1);
+    std::memcpy(out.data(), data.data(), copy_len);
+    out[copy_len] = '\0';
     break;
   }
   case DLMS_DATA_TYPE_DATETIME:
@@ -166,37 +162,37 @@ void data_to_string(const DlmsDataType value_type, const std::span<const uint8_t
   case DLMS_DATA_TYPE_BINARY_CODED_DECIMAL:
   case DLMS_DATA_TYPE_DATE:
   case DLMS_DATA_TYPE_TIME:
-    hex_of(ptr, len, buffer, max_len);
+    hex_of(data, out);
     break;
   case DLMS_DATA_TYPE_BOOLEAN:
   case DLMS_DATA_TYPE_ENUM:
   case DLMS_DATA_TYPE_UINT8:
-    snprintf(buffer, max_len, "%u", static_cast<unsigned>(ptr[0]));
+    snprintf(out.data(), out.size(), "%u", static_cast<unsigned>(data[0]));
     break;
   case DLMS_DATA_TYPE_INT8:
-    snprintf(buffer, max_len, "%d", static_cast<int>(static_cast<int8_t>(ptr[0])));
+    snprintf(out.data(), out.size(), "%d", static_cast<int>(static_cast<int8_t>(data[0])));
     break;
   case DLMS_DATA_TYPE_UINT16:
-    if (len >= 2) snprintf(buffer, max_len, "%u", be16(ptr));
+    if (data.size() >= 2) snprintf(out.data(), out.size(), "%u", be16(data.data()));
     break;
   case DLMS_DATA_TYPE_INT16:
-    if (len >= 2) snprintf(buffer, max_len, "%d", static_cast<int16_t>(be16(ptr)));
+    if (data.size() >= 2) snprintf(out.data(), out.size(), "%d", static_cast<int16_t>(be16(data.data())));
     break;
   case DLMS_DATA_TYPE_UINT32:
-    if (len >= 4) snprintf(buffer, max_len, "%" PRIu32, be32(ptr));
+    if (data.size() >= 4) snprintf(out.data(), out.size(), "%" PRIu32, be32(data.data()));
     break;
   case DLMS_DATA_TYPE_INT32:
-    if (len >= 4) snprintf(buffer, max_len, "%" PRId32, static_cast<int32_t>(be32(ptr)));
+    if (data.size() >= 4) snprintf(out.data(), out.size(), "%" PRId32, static_cast<int32_t>(be32(data.data())));
     break;
   case DLMS_DATA_TYPE_UINT64:
-    if (len >= 8) snprintf(buffer, max_len, "%" PRIu64, be64(ptr));
+    if (data.size() >= 8) snprintf(out.data(), out.size(), "%" PRIu64, be64(data.data()));
     break;
   case DLMS_DATA_TYPE_INT64:
-    if (len >= 8) snprintf(buffer, max_len, "%" PRId64, static_cast<int64_t>(be64(ptr)));
+    if (data.size() >= 8) snprintf(out.data(), out.size(), "%" PRId64, static_cast<int64_t>(be64(data.data())));
     break;
   case DLMS_DATA_TYPE_FLOAT32:
   case DLMS_DATA_TYPE_FLOAT64: {
-    snprintf(buffer, max_len, "%f", static_cast<double>(data_as_float(value_type, data)));
+    snprintf(out.data(), out.size(), "%f", static_cast<double>(data_as_float(value_type, data)));
     break;
   }
   default:
