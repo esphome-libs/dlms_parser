@@ -72,17 +72,29 @@ parser.set_decryption_key(key);
 - [REFERENCE.md](REFERENCE.md): public API, pattern DSL, protocol/reference notes
 - [ARCHITECTURE.md](ARCHITECTURE.md): component diagram and module responsibilities
 
-## Build And Test
+## How to add the library to your project
 
-The repository includes CMake build files, PlatformIO metadata, and integration tests based on real meter dumps.
+### PlatformIO package
+TODO: add link
 
-Typical local workflow:
+### ESP-IDF component
+TODO: add link
 
-```sh
-cmake -S . -B build
-cmake --build build
-ctest --test-dir build
+### CMake
 ```
+FetchContent_Declare(
+  dlms_parser
+  GIT_REPOSITORY https://github.com/esphome-libs/dlms_parser
+  GIT_TAG v1.0)
+FetchContent_MakeAvailable(dlms_parser)
+
+add_executable(your_project_name main.cpp)
+target_link_libraries(your_project_name PRIVATE dlms_parser)
+```
+
+## How to work with the codebase
+
+You can open the project using any IDE that supports CMake.
 
 ## References
 
