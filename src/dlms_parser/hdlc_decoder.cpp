@@ -134,7 +134,7 @@ size_t HdlcDecoder::decode(const std::span<uint8_t> buf_span) const {
     // Copy payload to write position (dst <= src always)
     const auto payload_len = pos < data_end ? data_end - pos : size_t{0};
     if (payload_len > 0) {
-      std::copy_n(inner.begin() + pos, payload_len, buf_span.begin() + write_offset);
+      std::ranges::copy(inner.subspan(pos, payload_len), buf_span.subspan(write_offset).begin());
       write_offset += payload_len;
     }
 

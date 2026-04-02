@@ -9,9 +9,9 @@
 namespace dlms_parser {
 
 namespace detail {
+
 struct DecryptionKeyTag {};
 struct AuthenticationKeyTag {};
-}
 
 template <typename Tag>
 class Aes128Key final {
@@ -30,8 +30,10 @@ private:
   std::array<uint8_t, 16> key;
 };
 
-using Aes128GcmDecryptionKey = Aes128Key<detail::DecryptionKeyTag>;
-using Aes128GcmAuthenticationKey = Aes128Key<detail::AuthenticationKeyTag>;
+}
+
+using Aes128GcmDecryptionKey = detail::Aes128Key<detail::DecryptionKeyTag>;
+using Aes128GcmAuthenticationKey = detail::Aes128Key<detail::AuthenticationKeyTag>;
 
 class Aes128GcmDecryptor {
  public:

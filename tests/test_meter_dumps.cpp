@@ -13,6 +13,7 @@
 #include "dlms_parser/log.h"
 #include "dlms_parser/decryption/aes_128_gcm_decryptor_mbedtls.h"
 #include "dlms_parser/decryption/aes_128_gcm_decryptor_bearssl.h"
+#include "dlms_parser/decryption/aes_128_gcm_decryptor_tfpsa.h"
 
 #include "tests/expected/raw_sagemcom_xt211.h"
 #include "tests/expected/raw_energomera.h"
@@ -256,6 +257,21 @@ TEST_CASE("Integration: HDLC") {
     );
   }
 
+  SUBCASE("Landis+Gyr E450 (GBT + encrypted). Use TF-PSA") {
+    run_meter_test<dlms_parser::Aes128GcmDecryptorTfPsa>("Landis+Gyr E450 (GBT + encrypted). Use PSA Crypto",
+      dlms::test_data::hdlc_landis_gyr_e450_raw_frame,
+      dlms::test_data::hdlc_landis_gyr_e450_expected_count,
+      dlms::test_data::hdlc_landis_gyr_e450_expected_strings,
+      dlms::test_data::hdlc_landis_gyr_e450_expected_floats,
+      dlms_parser::FrameFormat::HDLC,
+      [](dlms_parser::DlmsParser& p) {
+        p.set_decryption_key(dlms::test_data::hdlc_landis_gyr_e450_key);
+        p.register_pattern("DateTime", "F, TDTM");
+        p.register_pattern("Obis-Value Pair", "TO, TV");
+      }
+    );
+  }
+
   SUBCASE("Landis+Gyr E450 #2 (GBT + encrypted)") {
     run_meter_test("Landis+Gyr E450 #2 (GBT + encrypted)",
       dlms::test_data::hdlc_lgz_e450_2_raw_frame,
@@ -287,6 +303,38 @@ TEST_CASE("Integration: HDLC") {
 
   SUBCASE("Kamstrup Omnipower (encrypted + authenticated)") {
     run_meter_test("Kamstrup Omnipower (encrypted + authenticated)",
+      dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
+      dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
+      dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,
+      dlms::test_data::hdlc_kamstrup_omnipower_expected_floats,
+      dlms_parser::FrameFormat::HDLC,
+      [](dlms_parser::DlmsParser& p) {
+        p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
+        p.set_authentication_key(dlms::test_data::hdlc_kamstrup_omnipower_auth_key);
+        p.register_pattern("Obis List Ver", "F, TSTR");
+        p.register_pattern("Code-Value Pair", "TO, TV");
+      }
+    );
+  }
+
+  SUBCASE("Kamstrup Omnipower (encrypted + authenticated). BearSsl") {
+    run_meter_test<dlms_parser::Aes128GcmDecryptorBearSsl>("Kamstrup Omnipower (encrypted + authenticated)",
+      dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
+      dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
+      dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,
+      dlms::test_data::hdlc_kamstrup_omnipower_expected_floats,
+      dlms_parser::FrameFormat::HDLC,
+      [](dlms_parser::DlmsParser& p) {
+        p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
+        p.set_authentication_key(dlms::test_data::hdlc_kamstrup_omnipower_auth_key);
+        p.register_pattern("Obis List Ver", "F, TSTR");
+        p.register_pattern("Code-Value Pair", "TO, TV");
+      }
+    );
+  }
+
+  SUBCASE("Kamstrup Omnipower (encrypted + authenticated). Use TF-PSA") {
+    run_meter_test<dlms_parser::Aes128GcmDecryptorTfPsa>("Kamstrup Omnipower (encrypted + authenticated)",
       dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,

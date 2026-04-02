@@ -2,6 +2,7 @@
 #include "log.h"
 #include <algorithm>
 #include <numeric>
+#include <utility>
 
 namespace dlms_parser {
 
@@ -101,7 +102,7 @@ size_t MBusDecoder::decode(const std::span<uint8_t> buf) const {
     // Payload: bytes after C, A, CI, STSAP, DTSAP
     if (MBUS_HEADER < MBUS_INTRO + L) {
       const auto payload = remaining.subspan(MBUS_HEADER, MBUS_INTRO + L - MBUS_HEADER);
-      std::copy(payload.begin(), payload.end(), buf.begin() + write_offset);
+      std::ranges::copy(payload, buf.subspan(write_offset).begin());
       write_offset += payload.size();
     }
 
