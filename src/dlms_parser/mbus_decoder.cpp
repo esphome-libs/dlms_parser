@@ -39,9 +39,7 @@ FrameStatus MBusDecoder::check(const std::span<const uint8_t> buf) {
     // If next byte is another MBUS_START, more frames follow
     if (offset < buf.size() && buf[offset] == MBUS_START) continue;
 
-    // All bytes must be consumed; trailing garbage is an error
-    if (offset < buf.size()) return FrameStatus::ERROR;
-
+    // All valid frames consumed; ignore any trailing garbage
     return FrameStatus::COMPLETE;
   }
 
@@ -59,12 +57,12 @@ size_t MBusDecoder::decode(const std::span<uint8_t> buf_span) const {
   size_t write_offset = 0;
 
   while (read_offset < len) {
-    if (len - read_offset < MBUS_INTRO) {
-      Logger::log(LogLevel::WARNING, "MBUS: too short for header (%zu remaining)", len - read_offset);
-      return 0;
-    }
-    if (buf[read_offset] != MBUS_START || buf[read_offset + 3] != MBUS_START) {
-      Logger::log(LogLevel::WARNING, "MBUS: invalid start bytes at offset %zu", read_offset);
+    // Ignore traling garbage after the last frame
+    if (len - read_offset < MBUS_INTRO) break;
+    if (buf[read_offset] != MBUS_START) break;
+    
+    if (buf[read_offset + 3] != MBUS_START) {
+      Logger::log(LogLevel::WARNING, "MBUS: invalid second start byte at offset %zu", read_offset);
       return 0;
     }
     if (buf[read_offset + 1] != buf[read_offset + 2]) {

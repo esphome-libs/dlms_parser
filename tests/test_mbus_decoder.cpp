@@ -122,7 +122,14 @@ TEST_CASE("MBus Decoder - Frame Status Check (check)") {
   SUBCASE("Valid Frame Followed by Trailing Garbage") {
     auto frame = base_frame;
     frame.push_back(0xFF);
-    CHECK(MBusDecoder::check(frame) == FrameStatus::ERROR);
+    CHECK(MBusDecoder::check(frame) == FrameStatus::COMPLETE);
+
+    MBusDecoder decoder;
+    size_t new_len = decoder.decode(frame);
+    CHECK(new_len == 3);
+    CHECK(frame[0] == 0xAA);
+    CHECK(frame[1] == 0xBB);
+    CHECK(frame[2] == 0xCC);
   }
 }
 
@@ -201,11 +208,14 @@ TEST_CASE("MBus Decoder - Malformed Frame Handling") {
     CHECK(decoder.decode({frame.data(), frame.size() - 1}) == 0);
   }
 
-  SUBCASE("Decode fails immediately if trailing garbage is present") {
-    // decode() requires strict frame boundaries, unlike check()
+  SUBCASE("Decode ignores trailing garbage after valid frames") {
     auto frame = base_frame;
     frame.push_back(0xFF);
-    CHECK(decoder.decode(frame) == 0);
+    size_t new_len = decoder.decode(frame);
+    CHECK(new_len == 3);
+    CHECK(frame[0] == 0xAA);
+    CHECK(frame[1] == 0xBB);
+    CHECK(frame[2] == 0xCC);
   }
 
   SUBCASE("Multiple Frames - Second Frame has Length Mismatch") {

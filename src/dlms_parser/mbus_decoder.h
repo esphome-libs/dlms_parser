@@ -21,6 +21,7 @@ namespace dlms_parser {
 // Multiple frames are concatenated into a single apdu_out buffer.
 // The intro (0x68 L L 0x68), C, A, CI, STSAP, DTSAP, CS and 0x16 are all stripped;
 // only the raw DLMS/COSEM application bytes (data...) are returned.
+// Any trailing bytes after the last valid frame are silently ignored.
 class MBusDecoder final : NonCopyableAndNonMovable {
  public:
   void set_skip_crc_check(const bool skip) { skip_crc_check_ = skip; }
