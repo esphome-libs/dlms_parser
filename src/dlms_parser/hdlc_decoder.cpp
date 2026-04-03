@@ -51,7 +51,7 @@ bool crc16_x25_check(const std::span<const uint8_t> data) {
 
 // Returns the number of bytes in a variable-length HDLC address field (1, 2 or 4).
 // Returns 0 if the terminating LSB=1 bit is not found within 4 bytes.
-static size_t address_length(std::span<const uint8_t> p) {
+static size_t address_length(const std::span<const uint8_t> p) {
   const auto limit = std::min(p.size(), size_t{ 4 });
   for (size_t i = 0; i < limit; ++i) {
     if (p[i] & 0x01U) return i + 1;  // LSB=1 marks the last address byte
@@ -98,13 +98,13 @@ FrameStatus HdlcDecoder::check(const std::span<const uint8_t> buf) {
 // In-place decode: extracts and concatenates payloads from all HDLC frames
 // in buf, writing them sequentially to buf[0..]. Returns new length, 0 on error.
 // ---------------------------------------------------------------------------
-size_t HdlcDecoder::decode(const std::span<uint8_t> buf_span) const {
+size_t HdlcDecoder::decode(const std::span<uint8_t> buf) const {
   size_t read_offset = 0;
   size_t write_offset = 0;
   bool is_first = true;
 
   do {
-    const auto remaining = buf_span.subspan(read_offset);
+    const auto remaining = buf.subspan(read_offset);
     if (remaining.size() < 4 || remaining[0] != HDLC_FLAG) {
       Logger::log(LogLevel::WARNING, "HDLC: invalid frame at offset %zu", read_offset);
       return 0;
@@ -163,15 +163,15 @@ size_t HdlcDecoder::decode(const std::span<uint8_t> buf_span) const {
     // Copy payload to write position (dst <= src always)
     const auto payload_len = pos < data_end ? data_end - pos : size_t{0};
     if (payload_len > 0) {
-      std::ranges::copy(inner.subspan(pos, payload_len), buf_span.subspan(write_offset).begin());
+      std::ranges::copy(inner.subspan(pos, payload_len), buf.subspan(write_offset).begin());
       write_offset += payload_len;
     }
 
     read_offset += frame_total;
     is_first = false;
 
-    if (!segmented && read_offset >= buf_span.size()) break;
-  } while (read_offset < buf_span.size());
+    if (!segmented && read_offset >= buf.size()) break;
+  } while (read_offset < buf.size());
 
   if (write_offset == 0) {
     Logger::log(LogLevel::WARNING, "HDLC: no payload extracted");

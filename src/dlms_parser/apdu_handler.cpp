@@ -7,7 +7,7 @@
 
 namespace dlms_parser {
 
-static bool is_known_tag(uint8_t b) {
+static bool is_known_tag(const uint8_t b) {
   switch (b) {
   case DLMS_APDU_GENERAL_BLOCK_TRANSFER:
   case DLMS_APDU_DATA_NOTIFICATION:

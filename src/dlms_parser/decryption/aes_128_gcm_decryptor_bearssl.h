@@ -20,10 +20,10 @@ class Aes128GcmDecryptorBearSsl : public Aes128GcmDecryptor, NonCopyableAndNonMo
     decryption_key_ = key;
   }
 
-  bool decrypt_in_place(std::span<const uint8_t> iv,
+  bool decrypt_in_place(const std::span<const uint8_t> iv,
                         std::span<uint8_t> cipher,
-                        std::span<const uint8_t> aad,
-                        std::span<const uint8_t> tag) override {
+                        const std::span<const uint8_t> aad,
+                        const std::span<const uint8_t> tag) override {
     if (!decryption_key_) {
       Logger::log(LogLevel::ERROR, "Decryption key is not set");
       return false;

@@ -25,7 +25,7 @@ public:
     return Aes128Key(arr);
   }
 
-  [[nodiscard]] static std::optional<Aes128Key> from_hex(std::string_view hex) {
+  [[nodiscard]] static std::optional<Aes128Key> from_hex(const std::string_view hex) {
     if (hex.size() != 32) return std::nullopt;
     std::array<uint8_t, 16> arr{};
     for (size_t i = 0; i < 16; ++i) {
