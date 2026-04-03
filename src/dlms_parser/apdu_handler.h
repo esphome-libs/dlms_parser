@@ -15,15 +15,8 @@ namespace dlms_parser {
 //   0xDB  General-Glo-Ciphering    : decrypts with GcmDecryptor
 //   0xDF  General-Ded-Ciphering    : decrypts with GcmDecryptor
 //   0x01 / 0x02  raw ARRAY/STRUCT  : no APDU wrapper (e.g. HDLC/Aidon)
-class ApduHandler final : NonCopyableAndNonMovable {
- public:
-  void set_decryptor(Aes128GcmDecryptor* d) { decryptor_ = d; }
+//
+// Returns a span over the AXDR payload within buf (empty on error).
+std::span<uint8_t> parse_apdu_in_place(std::span<uint8_t> buf, Aes128GcmDecryptor* decryptor = nullptr);
 
-  // Returns a span over the AXDR payload within buf (empty on error).
-  std::span<uint8_t> parse(std::span<uint8_t> buf) const;
-
- private:
-  Aes128GcmDecryptor* decryptor_{nullptr};
-};
-
-}  // namespace dlms_parser
+}

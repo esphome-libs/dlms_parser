@@ -21,7 +21,7 @@ static bool is_known_tag(const uint8_t b) {
   }
 }
 
-std::span<uint8_t> ApduHandler::parse(std::span<uint8_t> buf) const {
+std::span<uint8_t> parse_apdu_in_place(std::span<uint8_t> buf, Aes128GcmDecryptor* decryptor) {
   constexpr int MAX_ITERATIONS = 4;  // GBT → cipher → DATA-NOTIFICATION → AXDR
   for (int iter = 0; iter < MAX_ITERATIONS; iter++) {
     // Scan for first known tag
@@ -117,7 +117,7 @@ std::span<uint8_t> ApduHandler::parse(std::span<uint8_t> buf) const {
     if (tag == DLMS_APDU_GENERAL_GLO_CIPHERING || tag == DLMS_APDU_GENERAL_DED_CIPHERING) {
       Logger::log(LogLevel::DEBUG, "Found ciphered APDU (0x%02X)", tag);
 
-      if (!this->decryptor_ || !this->decryptor_->decryption_key()) {
+      if (!decryptor || !decryptor->decryption_key()) {
         Logger::log(LogLevel::WARNING, "Encrypted APDU received but no decryption key is set");
         return {};
       }
@@ -158,14 +158,14 @@ std::span<uint8_t> ApduHandler::parse(std::span<uint8_t> buf) const {
       size_t aad_len = 0;
       std::span<const uint8_t> gcm_tag;
 
-      if (has_auth_tag && this->decryptor_->auth_key()) {
+      if (has_auth_tag && decryptor->auth_key()) {
         aad[0] = security_control;
-        std::copy_n(this->decryptor_->auth_key()->data(), 16, aad.begin() + 1);
+        std::copy_n(decryptor->auth_key()->data(), 16, aad.begin() + 1);
         aad_len = 17;
         gcm_tag = buf.subspan(pos + payload_len, DLMS_GCM_TAG_LENGTH);
       }
 
-      if (!this->decryptor_->decrypt_in_place(iv, buf.subspan(pos, payload_len), std::span(aad).first(aad_len), gcm_tag)) {
+      if (!decryptor->decrypt_in_place(iv, buf.subspan(pos, payload_len), std::span(aad).first(aad_len), gcm_tag)) {
         Logger::log(LogLevel::ERROR, "Decryption failed (auth tag mismatch?)");
         return {};
       }
