@@ -19,7 +19,6 @@ class DlmsParser final : NonCopyableAndNonMovable {
 
   void set_frame_format(const FrameFormat fmt) { this->frame_format_ = fmt; }
   void set_skip_crc_check(bool skip);
-  void set_work_buffer(std::span<uint8_t> buf);
   void set_decryption_key(const Aes128GcmDecryptionKey& key) const;
   void set_authentication_key(const Aes128GcmAuthenticationKey& key) const;
 
@@ -32,13 +31,13 @@ class DlmsParser final : NonCopyableAndNonMovable {
   // Register with a default OBIS (used when the pattern captures no OBIS).
   void register_pattern(const char* name, const char* dsl, int priority, std::span<const uint8_t, 6> default_obis);
 
-  // Parse a full frame. Fires cooked_cb for each matched COSEM object.
+  // Parse a full frame (in-place). buf is modified during parsing.
+  // Fires cooked_cb for each matched COSEM object.
   // Optionally fires raw_cb with unmodified captures before conversion.
-  ParseResult parse(std::span<const uint8_t> buf, const DlmsDataCallback& cooked_cb, const DlmsRawCallback& raw_cb = nullptr);
+  ParseResult parse(std::span<uint8_t> buf, const DlmsDataCallback& cooked_cb, const DlmsRawCallback& raw_cb = nullptr);
 
  private:
   FrameFormat frame_format_{FrameFormat::RAW};
-  std::span<uint8_t> work_buf_{};
   Aes128GcmDecryptor& decryptor_;
   ApduHandler apdu_handler_;
   AxdrParser axdr_parser_;

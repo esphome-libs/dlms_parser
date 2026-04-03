@@ -65,10 +65,8 @@ void run_meter_test(const char* name,
     }
   } log_cleaner;
 
-  std::array<uint8_t, 2048> work_buf{};
   Aes128GcmDecryptor decryptor;
   dlms_parser::DlmsParser parser(decryptor);
-  parser.set_work_buffer(work_buf);
   parser.load_default_patterns();
   parser.set_frame_format(format);
   if (setup_fn) setup_fn(parser);
@@ -84,7 +82,8 @@ void run_meter_test(const char* name,
     }
   };
 
-  auto [objects_found, bytes_consumed] = parser.parse(payload, callback);
+  std::vector<uint8_t> mutable_payload(payload.begin(), payload.end());
+  auto [objects_found, bytes_consumed] = parser.parse(mutable_payload, callback);
 
   INFO(parser_log);
 
@@ -216,13 +215,13 @@ TEST_CASE("Integration: HDLC") {
   }
 
   SUBCASE("Landis+Gyr ZMF100 - CRC check rejects bad FCS") {
-    std::array<uint8_t, 2048> work_buf{};
     dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
     dlms_parser::DlmsParser parser(decryptor);
-    parser.set_work_buffer(work_buf);
     parser.set_frame_format(dlms_parser::FrameFormat::HDLC);
+    std::vector<uint8_t> frame(std::begin(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame),
+                                std::end(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame));
     auto [n, consumed] = parser.parse(
-      dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame,
+      frame,
       [](const char*, float, const char*, bool) {});
     CHECK(n == 0);
   }
@@ -351,16 +350,16 @@ TEST_CASE("Integration: HDLC") {
 
   SUBCASE("Kamstrup Omnipower - wrong auth key rejects frame") {
     const auto wrong_key = dlms_parser::Aes128GcmAuthenticationKey::from_bytes(std::array<uint8_t, 16>{0x00}).value();
-    std::array<uint8_t, 2048> work_buf{};
     dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
     dlms_parser::DlmsParser parser(decryptor);
-    parser.set_work_buffer(work_buf);
     parser.set_frame_format(dlms_parser::FrameFormat::HDLC);
     parser.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
     parser.set_authentication_key(wrong_key);
     parser.load_default_patterns();
+    std::vector<uint8_t> frame(std::begin(dlms::test_data::hdlc_kamstrup_omnipower_raw_frame),
+                                std::end(dlms::test_data::hdlc_kamstrup_omnipower_raw_frame));
     auto [n, consumed] = parser.parse(
-      dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
+      frame,
       [](const char*, float, const char*, bool) {});
     CHECK(n == 0);
   }

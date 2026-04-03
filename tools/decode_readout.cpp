@@ -264,10 +264,6 @@ int main(int argc, char* argv[]) {
   }
   parser.set_frame_format(fmt);
 
-  // Work buffer — sized to input data (always sufficient)
-  std::vector<uint8_t> work_buf(data.size());
-  parser.set_work_buffer(work_buf);
-
   if (skip_crc) {
     parser.set_skip_crc_check(true);
   }
