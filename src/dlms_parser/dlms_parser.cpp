@@ -1,6 +1,7 @@
 #include "dlms_parser.h"
 #include "log.h"
 #include <algorithm>
+#include <cstddef>
 
 namespace dlms_parser {
 

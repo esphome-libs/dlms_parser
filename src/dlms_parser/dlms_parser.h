@@ -34,7 +34,7 @@ class DlmsParser final : NonCopyableAndNonMovable {
 
   // Check whether buf contains a complete message ready for parse().
   // Stateless — the library does not accumulate; the caller owns the buffer.
-  FrameStatus check_frame(std::span<const uint8_t> buf) const;
+  [[nodiscard]] FrameStatus check_frame(std::span<const uint8_t> buf) const;
 
   // Parse a full frame. Fires cooked_cb for each matched COSEM object.
   // Optionally fires raw_cb with unmodified captures before conversion.
