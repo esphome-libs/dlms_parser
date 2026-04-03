@@ -367,10 +367,9 @@ static constexpr std::array<uint8_t, 6> ZERO_OBIS = {0, 0, 0, 0, 0, 0};
 void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptures& c) {
   // If no OBIS was captured by the pattern, use 0.0.0.0.0.0 as a placeholder.
   // If no OBIS captured, use pattern's default_obis if set, otherwise zero placeholder.
-  auto effective = c;
-  if (effective.obis.empty()) {
-    effective.obis = pat.has_default_obis
-        ? std::span<const uint8_t>(pat.default_obis) : std::span<const uint8_t>(ZERO_OBIS);
+  auto [elem_idx, class_id, obis, value_type, value, has_scaler_unit, scaler, unit_enum] = c;
+  if (obis.empty()) {
+    obis = pat.has_default_obis ? std::span<const uint8_t>(pat.default_obis) : std::span<const uint8_t>(ZERO_OBIS);
   }
 
   objects_found_++;
@@ -383,44 +382,42 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
   if (!this->cooked_cb_) return;
 
   char obis_str_buf[32];
-  obis_to_string(effective.obis, obis_str_buf);
+  obis_to_string(obis, obis_str_buf);
 
-  const float raw_val_f = data_as_float(effective.value_type, effective.value);
+  const float raw_val_f = data_as_float(value_type, value);
   float val_f = raw_val_f;
 
   char val_s_buf[128];
-  data_to_string(effective.value_type, effective.value, val_s_buf);
+  data_to_string(value_type, value, val_s_buf);
 
-  const bool is_numeric = effective.value_type != DLMS_DATA_TYPE_OCTET_STRING &&
-                          effective.value_type != DLMS_DATA_TYPE_STRING &&
-                          effective.value_type != DLMS_DATA_TYPE_STRING_UTF8 &&
-                          effective.value_type != DLMS_DATA_TYPE_DATETIME;
+  const bool is_numeric = value_type != DLMS_DATA_TYPE_OCTET_STRING && value_type != DLMS_DATA_TYPE_STRING &&
+                          value_type != DLMS_DATA_TYPE_STRING_UTF8  && value_type != DLMS_DATA_TYPE_DATETIME;
 
-  if (effective.has_scaler_unit && is_numeric) {
-    val_f *= static_cast<float>(std::pow(10, effective.scaler));
+  if (has_scaler_unit && is_numeric) {
+    val_f *= static_cast<float>(std::pow(10, scaler));
   }
 
-  const uint16_t cid = effective.class_id ? effective.class_id : pat.default_class_id;
+  const uint16_t cid = class_id ? class_id : pat.default_class_id;
   Logger::log(LogLevel::DEBUG, "Pattern '%s' matched at pos %u - class_id=%d obis=%s",
-              pat.name ? pat.name : "UNKNOWN", effective.elem_idx, cid, obis_str_buf);
+              pat.name ? pat.name : "UNKNOWN", elem_idx, cid, obis_str_buf);
 
-  if (effective.has_scaler_unit) {
-    Logger::log(LogLevel::INFO, "  type=%s len=%zu scaler=%d unit=%d",
-                dlms_data_type_to_string(effective.value_type), effective.value.size(), effective.scaler, effective.unit_enum);
+  if (has_scaler_unit) {
+    Logger::log(LogLevel::DEBUG, "  type=%s len=%zu scaler=%d unit=%d",
+                dlms_data_type_to_string(value_type), value.size(), scaler, unit_enum);
   } else {
-    Logger::log(LogLevel::INFO, "  type=%s len=%zu",
-                dlms_data_type_to_string(effective.value_type), effective.value.size());
+    Logger::log(LogLevel::DEBUG, "  type=%s len=%zu",
+                dlms_data_type_to_string(value_type), value.size());
   }
 
-  if (!effective.value.empty()) {
+  if (!value.empty()) {
     char hex_buf[512];
-    format_hex_pretty_to(hex_buf, effective.value);
-    Logger::log(LogLevel::INFO, "  hex  : %s", hex_buf);
+    format_hex_pretty_to(hex_buf, value);
+    Logger::log(LogLevel::DEBUG, "  hex  : %s", hex_buf);
   }
-  Logger::log(LogLevel::INFO, "  str  : '%s'", val_s_buf);
-  Logger::log(LogLevel::INFO, "  float: %f", static_cast<double>(raw_val_f));
-  if (effective.has_scaler_unit && is_numeric) {
-    Logger::log(LogLevel::INFO, "  scaled: %f", static_cast<double>(val_f));
+  Logger::log(LogLevel::DEBUG, "  str  : '%s'", val_s_buf);
+  Logger::log(LogLevel::DEBUG, "  float: %f", static_cast<double>(raw_val_f));
+  if (has_scaler_unit && is_numeric) {
+    Logger::log(LogLevel::DEBUG, "  scaled: %f", static_cast<double>(val_f));
   }
 
   this->cooked_cb_(obis_str_buf, val_f, val_s_buf, is_numeric);
