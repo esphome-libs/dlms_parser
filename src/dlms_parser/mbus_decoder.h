@@ -22,16 +22,9 @@ namespace dlms_parser {
 // The intro (0x68 L L 0x68), C, A, CI, STSAP, DTSAP, CS and 0x16 are all stripped;
 // only the raw DLMS/COSEM application bytes (data...) are returned.
 // Any trailing bytes after the last valid frame are silently ignored.
-class MBusDecoder final : NonCopyableAndNonMovable {
- public:
-  void set_skip_crc_check(const bool skip) { skip_crc_check_ = skip; }
+//
+// In-place decode: extracts and concatenates payloads from all M-Bus frames,
+// writing them sequentially to buf[0..]. Returns a subspan of buf, empty on error.
+std::span<uint8_t> decode_mbus_frames_in_place(std::span<uint8_t> buf, bool skip_crc_check = false);
 
-  // In-place decode: extracts and concatenates payloads from all M-Bus frames,
-  // writing them sequentially to buf[0..]. Returns a subspan of buf, empty on error.
-  std::span<uint8_t> decode(std::span<uint8_t> buf) const;
-
- private:
-  bool skip_crc_check_{false};
-};
-
-}  // namespace dlms_parser
+}

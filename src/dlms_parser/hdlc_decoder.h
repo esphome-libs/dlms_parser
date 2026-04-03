@@ -17,16 +17,9 @@ namespace dlms_parser {
 // - HCS: CRC16/IBM-SDLC over frame[1..before_HCS]
 // - LLC header stripped if present: {0xE6, 0xE7, 0x00} or {0xE6, 0xE6, 0x00}
 // - FCS: CRC16/IBM-SDLC over frame[1..before_FCS]
-class HdlcDecoder final : NonCopyableAndNonMovable {
- public:
-  void set_skip_crc_check(const bool skip) { skip_crc_check_ = skip; }
+//
+// In-place decode: extracts and concatenates payloads from all HDLC frames
+// in buf, writing them sequentially to buf[0..]. Returns a subspan of buf, empty on error.
+std::span<uint8_t> decode_hdlc_frames_in_place(std::span<uint8_t> buf, bool skip_crc_check = false);
 
-  // In-place decode: extracts and concatenates payloads from all HDLC frames
-  // in buf, writing them sequentially to buf[0..]. Returns a subspan of buf, empty on error.
-  std::span<uint8_t> decode(std::span<uint8_t> buf) const;
-
- private:
-  bool skip_crc_check_{false};
-};
-
-}  // namespace dlms_parser
+}

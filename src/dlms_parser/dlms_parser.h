@@ -37,8 +37,7 @@ class DlmsParser final : NonCopyableAndNonMovable {
   Aes128GcmDecryptor& decryptor_;
   ApduHandler apdu_handler_;
   AxdrParser axdr_parser_;
-  MBusDecoder mbus_decoder_;
-  HdlcDecoder hdlc_decoder_;
+  bool skip_crc_check_{false};
 };
 
 }

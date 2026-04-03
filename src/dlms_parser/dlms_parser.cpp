@@ -11,8 +11,7 @@ DlmsParser::DlmsParser(Aes128GcmDecryptor& decryptor) : decryptor_(decryptor) {
 }
 
 void DlmsParser::set_skip_crc_check(const bool skip) {
-  this->hdlc_decoder_.set_skip_crc_check(skip);
-  this->mbus_decoder_.set_skip_crc_check(skip);
+  skip_crc_check_ = skip;
 }
 
 void DlmsParser::set_decryption_key(const Aes128GcmDecryptionKey& key) const {
@@ -53,10 +52,10 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& co
   // Step 1: Frame decode (auto-detect HDLC / MBus / RAW from first byte)
   switch (buf[0]) {
     case 0x7E: // HDLC
-      decoded = hdlc_decoder_.decode(buf);
+      decoded = decode_hdlc_frames_in_place(buf, skip_crc_check_);
       break;
     case 0x68: // MBus
-      decoded = mbus_decoder_.decode(buf);
+      decoded = decode_mbus_frames_in_place(buf, skip_crc_check_);
       break;
     default: // RAW
       decoded = buf;

@@ -12,7 +12,7 @@ static constexpr size_t  MBUS_INTRO  = 4;  // 0x68, L, L, 0x68
 static constexpr size_t  MBUS_HEADER = 9;  // intro(4) + C(1) + A(1) + CI(1) + STSAP(1) + DTSAP(1)
 static constexpr size_t  MBUS_FOOTER = 2;  // CS(1) + 0x16(1)
 
-std::span<uint8_t> MBusDecoder::decode(const std::span<uint8_t> buf) const {
+std::span<uint8_t> decode_mbus_frames_in_place(std::span<uint8_t> buf, bool skip_crc_check) {
   auto remaining = std::as_const(buf);
   size_t write_offset = 0;
 
@@ -49,7 +49,7 @@ std::span<uint8_t> MBusDecoder::decode(const std::span<uint8_t> buf) const {
     }
 
     // Checksum
-    if (!skip_crc_check_) {
+    if (!skip_crc_check) {
       const auto l_bytes = remaining.subspan(MBUS_INTRO, L);
       const auto cs = std::accumulate(l_bytes.begin(), l_bytes.end(), uint8_t{0},
                                       [](uint8_t a, uint8_t b) -> uint8_t { return a + b; });

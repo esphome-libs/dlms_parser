@@ -62,7 +62,7 @@ static size_t address_length(const std::span<const uint8_t> p) {
 static constexpr uint8_t HDLC_FLAG    = 0x7E;
 static constexpr uint8_t HDLC_SEG_BIT = 0x08;  // bit 3 of frame-type byte: "more frames follow"
 
-std::span<uint8_t> HdlcDecoder::decode(const std::span<uint8_t> buf) const {
+std::span<uint8_t> decode_hdlc_frames_in_place(std::span<uint8_t> buf, bool skip_crc_check) {
   size_t read_offset = 0;
   size_t write_offset = 0;
   bool is_first = true;
@@ -104,14 +104,14 @@ std::span<uint8_t> HdlcDecoder::decode(const std::span<uint8_t> buf) const {
 
     // HCS
     if (pos + 2 > inner.size()) return {};
-    if (!skip_crc_check_ && !crc16_x25_check(inner.first(pos + 2))) {
+    if (!skip_crc_check && !crc16_x25_check(inner.first(pos + 2))) {
       Logger::log(LogLevel::WARNING, "HDLC: HCS error");
       return {};
     }
     pos += 2;
 
     // FCS
-    if (!skip_crc_check_ && !crc16_x25_check(inner)) {
+    if (!skip_crc_check && !crc16_x25_check(inner)) {
       Logger::log(LogLevel::WARNING, "HDLC: FCS error");
       return {};
     }
