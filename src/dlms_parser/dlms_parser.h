@@ -11,7 +11,7 @@ namespace dlms_parser {
 // Facade — composes frame decoder, APDU handler, decryptor, and AXDR parser.
 class DlmsParser final : NonCopyableAndNonMovable {
  public:
-  explicit DlmsParser(Aes128GcmDecryptor& decryptor);
+  explicit DlmsParser(Aes128GcmDecryptor* decryptor = nullptr);
 
   void set_skip_crc_check(bool skip);
   void set_decryption_key(const Aes128GcmDecryptionKey& key) const;
@@ -32,7 +32,7 @@ class DlmsParser final : NonCopyableAndNonMovable {
   ParseResult parse(std::span<uint8_t> buf, const DlmsDataCallback& cooked_cb, const DlmsRawCallback& raw_cb = nullptr);
 
  private:
-  Aes128GcmDecryptor& decryptor_;
+  Aes128GcmDecryptor* decryptor_;
   AxdrParser axdr_parser_;
   bool skip_crc_check_{false};
 };

@@ -259,7 +259,7 @@ int main(int argc, char* argv[]) {
 
   // ---- Configure parser ----
   dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
-  dlms_parser::DlmsParser parser(decryptor);
+  dlms_parser::DlmsParser parser(&decryptor);
 
   // Frame format (auto-detected)
   const auto fmt = detect_format(data);

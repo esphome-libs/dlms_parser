@@ -9,18 +9,18 @@ namespace dlms_parser {
 
 enum class FrameFormat { RAW, MBUS, HDLC };
 
-DlmsParser::DlmsParser(Aes128GcmDecryptor& decryptor) : decryptor_(decryptor) {}
+DlmsParser::DlmsParser(Aes128GcmDecryptor* decryptor) : decryptor_(decryptor) {}
 
 void DlmsParser::set_skip_crc_check(const bool skip) {
   skip_crc_check_ = skip;
 }
 
 void DlmsParser::set_decryption_key(const Aes128GcmDecryptionKey& key) const {
-  decryptor_.set_decryption_key(key);
+  decryptor_->set_decryption_key(key);
 }
 
 void DlmsParser::set_authentication_key(const Aes128GcmAuthenticationKey& key) const {
-  decryptor_.set_authentication_key(key);
+  decryptor_->set_authentication_key(key);
 }
 
 void DlmsParser::load_default_patterns() {
@@ -66,7 +66,7 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& co
   if (decoded.empty()) return {};
 
   // Step 2: APDU unwrap (GBT → decrypt → strip header) — sequential loop, no recursion
-  const auto axdr = parse_apdu_in_place(decoded, &decryptor_);
+  const auto axdr = parse_apdu_in_place(decoded, decryptor_);
   if (axdr.empty()) return {};
 
   // Step 3: AXDR parse — loop over successive top-level containers

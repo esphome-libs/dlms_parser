@@ -65,7 +65,7 @@ void run_meter_test(const char* name,
   } log_cleaner;
 
   Aes128GcmDecryptor decryptor;
-  dlms_parser::DlmsParser parser(decryptor);
+  dlms_parser::DlmsParser parser(&decryptor);
   parser.load_default_patterns();
   if (setup_fn) setup_fn(parser);
 
@@ -209,7 +209,7 @@ TEST_CASE("Integration: HDLC") {
 
   SUBCASE("Landis+Gyr ZMF100 - CRC check rejects bad FCS") {
     dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
-    dlms_parser::DlmsParser parser(decryptor);
+    dlms_parser::DlmsParser parser(&decryptor);
     std::vector<uint8_t> frame(std::begin(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame),
                                 std::end(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame));
     auto [n, consumed] = parser.parse(
@@ -335,7 +335,7 @@ TEST_CASE("Integration: HDLC") {
   SUBCASE("Kamstrup Omnipower - wrong auth key rejects frame") {
     const auto wrong_key = dlms_parser::Aes128GcmAuthenticationKey::from_bytes(std::array<uint8_t, 16>{0x00}).value();
     dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
-    dlms_parser::DlmsParser parser(decryptor);
+    dlms_parser::DlmsParser parser(&decryptor);
     parser.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
     parser.set_authentication_key(wrong_key);
     parser.load_default_patterns();
