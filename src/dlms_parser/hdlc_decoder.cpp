@@ -62,42 +62,6 @@ static size_t address_length(const std::span<const uint8_t> p) {
 static constexpr uint8_t HDLC_FLAG    = 0x7E;
 static constexpr uint8_t HDLC_SEG_BIT = 0x08;  // bit 3 of frame-type byte: "more frames follow"
 
-// ---------------------------------------------------------------------------
-// check() — stateless frame completeness check
-// Walks frame boundaries using length fields. Returns COMPLETE when the last
-// frame in the buffer has no segmentation bit set and no more data follows.
-// ---------------------------------------------------------------------------
-FrameStatus HdlcDecoder::check(const std::span<const uint8_t> buf) {
-  if (buf.size() < 2 || buf[0] != HDLC_FLAG) return FrameStatus::ERROR;
-
-  size_t offset = 0;
-  while (offset < buf.size()) {
-    const auto remaining = buf.subspan(offset);
-    if (remaining[0] != HDLC_FLAG) return FrameStatus::ERROR;
-    if (remaining.size() < 3) return FrameStatus::NEED_MORE;  // can't read format field yet
-
-    const bool segmented = (remaining[1] & HDLC_SEG_BIT) != 0;
-    const auto frame_len = static_cast<size_t>(remaining[1] & 0x07U) << 8 | remaining[2];
-    const auto frame_total = frame_len + 2;
-
-    if (frame_total > remaining.size()) return FrameStatus::NEED_MORE;  // frame incomplete
-
-    // Verify closing flag
-    if (remaining[frame_total - 1] != HDLC_FLAG) return FrameStatus::ERROR;
-
-    offset += frame_total;
-
-    if (!segmented && offset >= buf.size()) return FrameStatus::COMPLETE;
-    // Not segmented but more data follows — continue (GBT multi-frame case)
-  }
-
-  return FrameStatus::NEED_MORE;
-}
-
-// ---------------------------------------------------------------------------
-// In-place decode: extracts and concatenates payloads from all HDLC frames
-// in buf, writing them sequentially to buf[0..]. Returns new length, 0 on error.
-// ---------------------------------------------------------------------------
 size_t HdlcDecoder::decode(const std::span<uint8_t> buf) const {
   size_t read_offset = 0;
   size_t write_offset = 0;

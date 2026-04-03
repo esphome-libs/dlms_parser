@@ -37,9 +37,7 @@
 #include "dlms_parser/log.h"
 #include "dlms_parser/decryption/aes_128_gcm_decryptor_mbedtls.h"
 
-// ---------------------------------------------------------------------------
 // Hex file reader — supports spaced hex, concatenated hex, line continuations
-// ---------------------------------------------------------------------------
 static constexpr bool is_hex_char(char c) {
   return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 }
@@ -87,9 +85,7 @@ static std::vector<uint8_t> read_hex_file(std::string_view path) {
   return result;
 }
 
-// ---------------------------------------------------------------------------
 // Binary file reader
-// ---------------------------------------------------------------------------
 static std::vector<uint8_t> read_bin_file(std::string_view path) {
   std::ifstream f(std::string{path}, std::ios::binary | std::ios::ate);
   if (!f) {
@@ -105,9 +101,7 @@ static std::vector<uint8_t> read_bin_file(std::string_view path) {
   return result;
 }
 
-// ---------------------------------------------------------------------------
 // Auto-detect file type: if all bytes are hex chars/spaces/newlines, treat as hex
-// ---------------------------------------------------------------------------
 static bool looks_like_hex_file(std::string_view path) {
   std::ifstream f(std::string{path});
   if (!f) return false;
@@ -129,9 +123,7 @@ static bool looks_like_hex_file(std::string_view path) {
   return true;
 }
 
-// ---------------------------------------------------------------------------
 // Auto-detect frame format from first byte
-// ---------------------------------------------------------------------------
 static dlms_parser::FrameFormat detect_format(const std::vector<uint8_t>& data) {
   if (data.empty()) return dlms_parser::FrameFormat::RAW;
   switch (data[0]) {
@@ -150,9 +142,7 @@ static std::string_view format_name(dlms_parser::FrameFormat fmt) {
   return "?";
 }
 
-// ---------------------------------------------------------------------------
 // Parse hex key string
-// ---------------------------------------------------------------------------
 static std::vector<uint8_t> parse_hex_key(std::string_view hex) {
   std::vector<uint8_t> key;
   if (hex.size() != 32) return {};
@@ -165,9 +155,7 @@ static std::vector<uint8_t> parse_hex_key(std::string_view hex) {
   return key;
 }
 
-// ---------------------------------------------------------------------------
 // Main
-// ---------------------------------------------------------------------------
 int main(int argc, char* argv[]) {
   // Parse arguments
   std::string_view file_path;
@@ -308,27 +296,6 @@ int main(int argc, char* argv[]) {
   std::cout << std::format("Format:  {}{}\n", format_name(fmt), format_str.empty() ? " (auto-detected)" : "");
   if (!key_str.empty()) std::cout << std::format("Key:     {}\n", key_str);
   std::cout << "\n";
-
-  // ---- Check frame completeness (demonstrates the check_frame API) ----
-  auto status = parser.check_frame(data);
-  const char* status_str = "?";
-  switch (status) {
-    case dlms_parser::FrameStatus::COMPLETE:  status_str = "COMPLETE"; break;
-    case dlms_parser::FrameStatus::NEED_MORE: status_str = "NEED_MORE"; break;
-    case dlms_parser::FrameStatus::ERROR:     status_str = "ERROR"; break;
-  }
-  std::cout << std::format("Status:  {}\n\n", status_str);
-
-  if (status == dlms_parser::FrameStatus::NEED_MORE) {
-    std::cerr << "Frame incomplete - more data needed. In a real application,\n"
-                  "keep reading from UART and call check_frame() again with\n"
-                  "the accumulated buffer.\n";
-    return 2;
-  }
-  if (status == dlms_parser::FrameStatus::ERROR) {
-    std::cerr << "Frame error - invalid data. Discard and resync.\n";
-    return 3;
-  }
 
   // ---- Parse ----
   size_t obj_count = 0;

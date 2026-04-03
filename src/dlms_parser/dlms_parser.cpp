@@ -9,18 +9,6 @@ DlmsParser::DlmsParser(Aes128GcmDecryptor& decryptor) : decryptor_(decryptor) {
   apdu_handler_.set_decryptor(&decryptor_);
 }
 
-FrameStatus DlmsParser::check_frame(const std::span<const uint8_t> buf) const {
-  if (buf.empty()) return FrameStatus::NEED_MORE;
-
-  switch (frame_format_) {
-    case FrameFormat::HDLC: return HdlcDecoder::check(buf);
-    case FrameFormat::MBUS: return MBusDecoder::check(buf);
-    case FrameFormat::RAW:
-    default:
-      return FrameStatus::COMPLETE;  // RAW: always complete (caller's responsibility)
-  }
-}
-
 void DlmsParser::set_skip_crc_check(const bool skip) {
   this->hdlc_decoder_.set_skip_crc_check(skip);
   this->mbus_decoder_.set_skip_crc_check(skip);

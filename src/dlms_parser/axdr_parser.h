@@ -24,7 +24,7 @@ struct ParseResult {
 // No knowledge of APDU framing or encryption.
 class AxdrParser final : NonCopyableAndNonMovable {
 public:
-  AxdrParser();
+  AxdrParser() = default;
 
   // Register a named pattern from the DSL string, e.g. "TC,TO,TS,TV".
   void register_pattern(const char* name, const char* dsl, int priority = 10);

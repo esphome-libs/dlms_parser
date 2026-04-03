@@ -12,46 +12,6 @@ static constexpr size_t  MBUS_INTRO  = 4;  // 0x68, L, L, 0x68
 static constexpr size_t  MBUS_HEADER = 9;  // intro(4) + C(1) + A(1) + CI(1) + STSAP(1) + DTSAP(1)
 static constexpr size_t  MBUS_FOOTER = 2;  // CS(1) + 0x16(1)
 
-// ---------------------------------------------------------------------------
-// check() — stateless frame completeness check
-// Walks M-Bus frame boundaries. Multiple frames are expected when CI byte
-// indicates continuation (0x11 for second+ frames). Returns COMPLETE when
-// the last frame's CI is not a continuation indicator.
-// ---------------------------------------------------------------------------
-FrameStatus MBusDecoder::check(const std::span<const uint8_t> buf) {
-  if (buf.empty() || buf[0] != MBUS_START) return FrameStatus::ERROR;
-  if (buf.size() < MBUS_INTRO) return FrameStatus::NEED_MORE;
-
-  auto remaining = buf;
-  while (!remaining.empty()) {
-    if (remaining.size() < MBUS_INTRO) return FrameStatus::NEED_MORE;
-    if (remaining[0] != MBUS_START || remaining[3] != MBUS_START) return FrameStatus::ERROR;
-    if (remaining[1] != remaining[2]) return FrameStatus::ERROR;
-
-    const auto L = static_cast<size_t>(remaining[1]);
-    if (MBUS_INTRO + L < MBUS_HEADER) return FrameStatus::ERROR;
-    const auto frame_size = MBUS_INTRO + L + MBUS_FOOTER;
-    if (remaining.size() < frame_size) return FrameStatus::NEED_MORE;
-
-    // Check stop byte
-    if (remaining[MBUS_INTRO + L + 1] != MBUS_STOP) return FrameStatus::ERROR;
-
-    remaining = remaining.subspan(frame_size);
-
-    // If next byte is another MBUS_START, more frames follow
-    if (!remaining.empty() && remaining[0] == MBUS_START) continue;
-
-    // All valid frames consumed; ignore any trailing garbage
-    return FrameStatus::COMPLETE;
-  }
-
-  return FrameStatus::NEED_MORE;
-}
-
-// ---------------------------------------------------------------------------
-// In-place decode: extracts and concatenates payloads from all M-Bus frames,
-// writing them sequentially to buf[0..]. Returns new length, 0 on error.
-// ---------------------------------------------------------------------------
 size_t MBusDecoder::decode(const std::span<uint8_t> buf) const {
   auto remaining = std::as_const(buf);
   size_t write_offset = 0;
@@ -116,4 +76,4 @@ size_t MBusDecoder::decode(const std::span<uint8_t> buf) const {
   return write_offset;
 }
 
-}  // namespace dlms_parser
+}

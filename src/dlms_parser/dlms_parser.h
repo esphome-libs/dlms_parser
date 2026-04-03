@@ -32,15 +32,9 @@ class DlmsParser final : NonCopyableAndNonMovable {
   // Register with a default OBIS (used when the pattern captures no OBIS).
   void register_pattern(const char* name, const char* dsl, int priority, std::span<const uint8_t, 6> default_obis);
 
-  // Check whether buf contains a complete message ready for parse().
-  // Stateless — the library does not accumulate; the caller owns the buffer.
-  [[nodiscard]] FrameStatus check_frame(std::span<const uint8_t> buf) const;
-
   // Parse a full frame. Fires cooked_cb for each matched COSEM object.
   // Optionally fires raw_cb with unmodified captures before conversion.
-  ParseResult parse(std::span<const uint8_t> buf,
-                    const DlmsDataCallback& cooked_cb,
-                    const DlmsRawCallback& raw_cb = nullptr);
+  ParseResult parse(std::span<const uint8_t> buf, const DlmsDataCallback& cooked_cb, const DlmsRawCallback& raw_cb = nullptr);
 
  private:
   FrameFormat frame_format_{FrameFormat::RAW};
@@ -52,4 +46,4 @@ class DlmsParser final : NonCopyableAndNonMovable {
   HdlcDecoder hdlc_decoder_;
 };
 
-}  // namespace dlms_parser
+}

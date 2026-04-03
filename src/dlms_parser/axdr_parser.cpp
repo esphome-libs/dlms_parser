@@ -11,8 +11,6 @@ namespace dlms_parser {
 // Construction / pattern registry
 // ---------------------------------------------------------------------------
 
-AxdrParser::AxdrParser() = default;
-
 void AxdrParser::register_pattern(const char* name, const char* dsl, const int priority) {
   this->register_pattern_dsl_(name, dsl, priority);
 }

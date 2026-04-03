@@ -21,10 +21,8 @@ class HdlcDecoder final : NonCopyableAndNonMovable {
  public:
   void set_skip_crc_check(const bool skip) { skip_crc_check_ = skip; }
 
-  // Check if buf contains a complete HDLC message ready for decode().
-  static FrameStatus check(std::span<const uint8_t> buf);
-
-  // In-place decode: transforms buf contents, returns new length. 0 = error.
+  // In-place decode: extracts and concatenates payloads from all HDLC frames
+  // in buf, writing them sequentially to buf[0..]. Returns new length, 0 on error.
   size_t decode(std::span<uint8_t> buf) const;
 
  private:
