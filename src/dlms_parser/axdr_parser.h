@@ -15,47 +15,44 @@ namespace dlms_parser {
 using DlmsRawCallback = std::function<void(const AxdrCaptures&, const AxdrDescriptorPattern&)>;
 
 struct ParseResult {
-  size_t count{0};         // number of matched COSEM objects
-  size_t bytes_consumed{0}; // how many bytes of the input buffer were processed
+  size_t count{ 0 };          // number of matched COSEM objects
+  size_t bytes_consumed{ 0 }; // how many bytes of the input buffer were processed
 };
 
 // Recursive AXDR parser with DSL-based pattern matching.
 // Input must start with a DLMS type byte (STRUCTURE 0x02 or ARRAY 0x01).
 // No knowledge of APDU framing or encryption.
 class AxdrParser final : NonCopyableAndNonMovable {
- public:
+public:
   AxdrParser();
 
   // Register a named pattern from the DSL string, e.g. "TC,TO,TS,TV".
   void register_pattern(const char* name, const char* dsl, int priority = 10);
-  void register_pattern(const char* name, const char* dsl, int priority,
-                        std::span<const uint8_t, 6> default_obis);
+  void register_pattern(const char* name, const char* dsl, int priority, std::span<const uint8_t, 6> default_obis);
   void clear_patterns();
 
   // Parse AXDR bytes. Fires cooked_cb and/or raw_cb for each pattern match.
   // Either callback may be nullptr.
-  ParseResult parse(std::span<const uint8_t> axdr,
-                    DlmsDataCallback cooked_cb,
-                    DlmsRawCallback raw_cb = nullptr);
+  ParseResult parse(std::span<const uint8_t> axdr, DlmsDataCallback cooked_cb, DlmsRawCallback raw_cb = nullptr);
 
-  [[nodiscard]] std::span<const AxdrDescriptorPattern> patterns() const { return {patterns_.data(), patterns_count_}; }
+  [[nodiscard]] std::span<const AxdrDescriptorPattern> patterns() const { return { patterns_.data(), patterns_count_ }; }
   [[nodiscard]] size_t patterns_size() const { return patterns_count_; }
 
- private:
+private:
   static constexpr size_t MAX_PATTERNS = 32;
 
   // Pattern registry
   std::array<AxdrDescriptorPattern, MAX_PATTERNS> patterns_;
-  size_t patterns_count_{0};
+  size_t patterns_count_{ 0 };
   AxdrDescriptorPattern& register_pattern_dsl_(const char* name, std::string_view dsl, int priority);
 
   // Parse-time state — reset at the start of each parse() call
   std::span<const uint8_t> buffer_{};
-  size_t pos_{0};
+  size_t pos_{ 0 };
   DlmsDataCallback cooked_cb_;
   DlmsRawCallback raw_cb_;
-  size_t objects_found_{0};
-  uint8_t last_pattern_elements_consumed_{0};
+  size_t objects_found_{ 0 };
+  uint8_t last_pattern_elements_consumed_{ 0 };
 
   // Primitives
   uint8_t read_byte_();
@@ -76,4 +73,4 @@ class AxdrParser final : NonCopyableAndNonMovable {
   void emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptures& c);
 };
 
-}  // namespace dlms_parser
+}
