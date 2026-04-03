@@ -89,7 +89,7 @@ inline void loop() {
     // Define a callback that will be called by the DlmsParser for every parsed value.
     auto on_value = [](const char* obis_code, float float_val, const char* str_val, bool is_numeric) {
       if (is_numeric) {
-        printf("%s = %.3f\n", obis_code, float_val);
+        printf("%s = %.3f\n", obis_code, static_cast<double>(float_val));
       }
       else {
         printf("%s = '%s'\n", obis_code, str_val);
