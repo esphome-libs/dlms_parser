@@ -48,18 +48,17 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& co
 
   auto work_len = buf.size();
 
-  // Step 1: Frame decode (HDLC / MBus / RAW pass-through)
-  switch (frame_format_) {
-    case FrameFormat::HDLC:
+  // Step 1: Frame decode (auto-detect HDLC / MBus / RAW from first byte)
+  switch (buf[0]) {
+    case 0x7E: // HDLC
       work_len = hdlc_decoder_.decode(buf.first(work_len));
       if (work_len == 0) return {};
       break;
-    case FrameFormat::MBUS:
+    case 0x68: // MBus
       work_len = mbus_decoder_.decode(buf.first(work_len));
       if (work_len == 0) return {};
       break;
-    case FrameFormat::RAW:
-    default:
+    default: // RAW
       break;
   }
 

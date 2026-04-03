@@ -8,7 +8,6 @@
 //   ./decode_readout [options] <file>
 //
 // Options:
-//   -f hdlc|mbus|raw    Frame format (default: auto-detect)
 //   -k <hex_key>        AES-128-GCM decryption key (32 hex chars)
 //   -p <dsl>            Register a custom pattern (can be repeated)
 //   -P                  Skip loading default patterns
@@ -18,7 +17,7 @@
 //
 // Examples:
 //   ./decode_readout tests/dumps/hdlc_norway_han_1phase.log
-//   ./decode_readout -f mbus -k 36C66639E48A8CA4D6BC8B282A793BBB tests/dumps/mbus_netz_noe_p1.log
+//   ./decode_readout -k 36C66639E48A8CA4D6BC8B282A793BBB tests/dumps/mbus_netz_noe_p1.log
 //   ./decode_readout -p "TO, TV" -p "L, TSTR" tests/dumps/hdlc_landis_gyr_e450.log
 
 #include <array>
@@ -158,7 +157,6 @@ static std::vector<uint8_t> parse_hex_key(std::string_view hex) {
 int main(int argc, char* argv[]) {
   // Parse arguments
   std::string_view file_path;
-  std::string_view format_str;
   std::string_view key_str;
   std::vector<std::string> custom_patterns;
   bool skip_defaults = false;
@@ -167,9 +165,7 @@ int main(int argc, char* argv[]) {
 
   for (int i = 1; i < argc; i++) {
     std::string_view arg = argv[i];
-    if (arg == "-f" && i + 1 < argc) {
-      format_str = argv[++i];
-    } else if (arg == "-k" && i + 1 < argc) {
+    if (arg == "-k" && i + 1 < argc) {
       key_str = argv[++i];
     } else if (arg == "-p" && i + 1 < argc) {
       custom_patterns.emplace_back(argv[++i]);
@@ -194,7 +190,6 @@ int main(int argc, char* argv[]) {
         "Usage: {} [options] <file>\n"
         "\n"
         "Options:\n"
-        "  -f hdlc|mbus|raw    Frame format (default: auto-detect)\n"
         "  -k <hex_key>        AES-128-GCM decryption key (32 hex chars)\n"
         "  -p <dsl>            Register a custom pattern (repeatable)\n"
         "  -P                  Skip loading default patterns\n"
@@ -204,7 +199,7 @@ int main(int argc, char* argv[]) {
         "\n"
         "Examples:\n"
         "  {} tests/dumps/hdlc_norway_han_1phase.log\n"
-        "  {} -f mbus -k 36C66639E48A8CA4D6BC8B282A793BBB tests/dumps/mbus_netz_noe_p1.log\n"
+        "  {} -k 36C66639E48A8CA4D6BC8B282A793BBB tests/dumps/mbus_netz_noe_p1.log\n"
         "  {} -p \"TO, TV\" -k 5C316162209EBB790B52EB0E7FC5B11C tests/dumps/hdlc_landis_gyr_e450.log\n",
         argv[0], argv[0], argv[0], argv[0]);
     return 1;
@@ -249,20 +244,8 @@ int main(int argc, char* argv[]) {
   dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
   dlms_parser::DlmsParser parser(decryptor);
 
-  // Frame format
-  dlms_parser::FrameFormat fmt;
-  if (!format_str.empty()) {
-    if (format_str == "hdlc") fmt = dlms_parser::FrameFormat::HDLC;
-    else if (format_str == "mbus") fmt = dlms_parser::FrameFormat::MBUS;
-    else if (format_str == "raw") fmt = dlms_parser::FrameFormat::RAW;
-    else {
-      std::cerr << std::format("Error: unknown format '{}' (use hdlc, mbus, or raw)\n", format_str);
-      return 1;
-    }
-  } else {
-    fmt = detect_format(data);
-  }
-  parser.set_frame_format(fmt);
+  // Frame format (auto-detected)
+  const auto fmt = detect_format(data);
 
   if (skip_crc) {
     parser.set_skip_crc_check(true);
@@ -288,7 +271,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::cout << std::format("Input:   {} ({} bytes)\n", file_path, data.size());
-  std::cout << std::format("Format:  {}{}\n", to_string(fmt), format_str.empty() ? " (auto-detected)" : "");
+  std::cout << std::format("Format:  {} (auto-detected)\n", to_string(fmt));
   if (!key_str.empty()) std::cout << std::format("Key:     {}\n", key_str);
   std::cout << "\n";
 

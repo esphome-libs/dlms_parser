@@ -17,7 +17,6 @@ class DlmsParser final : NonCopyableAndNonMovable {
  public:
   explicit DlmsParser(Aes128GcmDecryptor& decryptor);
 
-  void set_frame_format(const FrameFormat fmt) { this->frame_format_ = fmt; }
   void set_skip_crc_check(bool skip);
   void set_decryption_key(const Aes128GcmDecryptionKey& key) const;
   void set_authentication_key(const Aes128GcmAuthenticationKey& key) const;
@@ -37,7 +36,6 @@ class DlmsParser final : NonCopyableAndNonMovable {
   ParseResult parse(std::span<uint8_t> buf, const DlmsDataCallback& cooked_cb, const DlmsRawCallback& raw_cb = nullptr);
 
  private:
-  FrameFormat frame_format_{FrameFormat::RAW};
   Aes128GcmDecryptor& decryptor_;
   ApduHandler apdu_handler_;
   AxdrParser axdr_parser_;

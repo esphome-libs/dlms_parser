@@ -34,7 +34,6 @@ void run_meter_test(const char* name,
                     size_t expected_count,
                     const std::map<std::string, std::string>& expected_strings,
                     const std::map<std::string, float>& expected_floats,
-                    dlms_parser::FrameFormat format = dlms_parser::FrameFormat::RAW,
                     std::function<void(dlms_parser::DlmsParser&)> setup_fn = nullptr) {
 
   // Capture logs into a string instead of printing them directly
@@ -68,7 +67,6 @@ void run_meter_test(const char* name,
   Aes128GcmDecryptor decryptor;
   dlms_parser::DlmsParser parser(decryptor);
   parser.load_default_patterns();
-  parser.set_frame_format(format);
   if (setup_fn) setup_fn(parser);
 
   std::map<std::string, float> captured_floats;
@@ -135,7 +133,6 @@ TEST_CASE("Integration: RAW APDU") {
       dlms::test_data::raw_salzburg_netz_expected_count,
       dlms::test_data::raw_salzburg_netz_expected_strings,
       dlms::test_data::raw_salzburg_netz_expected_floats,
-      dlms_parser::FrameFormat::RAW,
       [](dlms_parser::DlmsParser& p) {
         p.register_pattern("TO, TDTM");
         p.register_pattern("S(TO, TV)");
@@ -165,7 +162,6 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::iskra550_expected_count,
       dlms::test_data::iskra550_expected_strings,
       dlms::test_data::iskra550_expected_floats,
-      dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) { p.register_pattern("S(TO, TV)"); }
     );
   }
@@ -176,8 +172,7 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::norway_han_1phase_expected_count,
       dlms::test_data::norway_han_1phase_expected_strings,
       dlms::test_data::norway_han_1phase_expected_floats,
-      dlms_parser::FrameFormat::HDLC,
-      [](dlms_parser::DlmsParser& p) { 
+      [](dlms_parser::DlmsParser& p) {
         p.register_pattern("S(TO, TV, TSU)");
         p.register_pattern("S(TO, TV)"); 
       }
@@ -190,8 +185,7 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::norway_han_3phase_expected_count,
       dlms::test_data::norway_han_3phase_expected_strings,
       dlms::test_data::norway_han_3phase_expected_floats,
-      dlms_parser::FrameFormat::HDLC,
-      [](dlms_parser::DlmsParser& p) { 
+      [](dlms_parser::DlmsParser& p) {
         p.register_pattern("DateTime", "F, S(TO, TDTM)");
         p.register_pattern("Obis-Value-Scaler-Unit", "S(TO, TV, TSU)"); 
       }
@@ -204,7 +198,6 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_landis_gyr_zmf100_expected_count,
       dlms::test_data::hdlc_landis_gyr_zmf100_expected_strings,
       dlms::test_data::hdlc_landis_gyr_zmf100_expected_floats,
-      dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
         p.set_skip_crc_check(true);
         p.register_pattern("S(TO, TDTM)");
@@ -217,7 +210,6 @@ TEST_CASE("Integration: HDLC") {
   SUBCASE("Landis+Gyr ZMF100 - CRC check rejects bad FCS") {
     dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
     dlms_parser::DlmsParser parser(decryptor);
-    parser.set_frame_format(dlms_parser::FrameFormat::HDLC);
     std::vector<uint8_t> frame(std::begin(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame),
                                 std::end(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame));
     auto [n, consumed] = parser.parse(
@@ -232,7 +224,6 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_landis_gyr_e450_expected_count,
       dlms::test_data::hdlc_landis_gyr_e450_expected_strings,
       dlms::test_data::hdlc_landis_gyr_e450_expected_floats,
-      dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_landis_gyr_e450_key);
         p.register_pattern("DateTime", "F, TDTM");
@@ -247,7 +238,6 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_landis_gyr_e450_expected_count,
       dlms::test_data::hdlc_landis_gyr_e450_expected_strings,
       dlms::test_data::hdlc_landis_gyr_e450_expected_floats,
-      dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_landis_gyr_e450_key);
         p.register_pattern("DateTime", "F, TDTM");
@@ -262,7 +252,6 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_landis_gyr_e450_expected_count,
       dlms::test_data::hdlc_landis_gyr_e450_expected_strings,
       dlms::test_data::hdlc_landis_gyr_e450_expected_floats,
-      dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_landis_gyr_e450_key);
         p.register_pattern("DateTime", "F, TDTM");
@@ -277,7 +266,6 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_lgz_e450_2_expected_count,
       dlms::test_data::hdlc_lgz_e450_2_expected_strings,
       dlms::test_data::hdlc_lgz_e450_2_expected_floats,
-      dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_lgz_e450_2_key);
         p.register_pattern("TO, TV");
@@ -291,7 +279,6 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_floats,
-      dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
         p.register_pattern("Obis List Ver", "F, TSTR");
@@ -306,7 +293,6 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_floats,
-      dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
         p.set_authentication_key(dlms::test_data::hdlc_kamstrup_omnipower_auth_key);
@@ -322,7 +308,6 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_floats,
-      dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
         p.set_authentication_key(dlms::test_data::hdlc_kamstrup_omnipower_auth_key);
@@ -338,7 +323,6 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_floats,
-      dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
         p.set_authentication_key(dlms::test_data::hdlc_kamstrup_omnipower_auth_key);
@@ -352,7 +336,6 @@ TEST_CASE("Integration: HDLC") {
     const auto wrong_key = dlms_parser::Aes128GcmAuthenticationKey::from_bytes(std::array<uint8_t, 16>{0x00}).value();
     dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
     dlms_parser::DlmsParser parser(decryptor);
-    parser.set_frame_format(dlms_parser::FrameFormat::HDLC);
     parser.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
     parser.set_authentication_key(wrong_key);
     parser.load_default_patterns();
@@ -377,7 +360,6 @@ TEST_CASE("Integration: MBus") {
       dlms::test_data::mbus_netz_noe_p1_expected_count,
       dlms::test_data::mbus_netz_noe_p1_expected_strings,
       dlms::test_data::mbus_netz_noe_p1_expected_floats,
-      dlms_parser::FrameFormat::MBUS,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::mbus_netz_noe_p1_key);
         const uint8_t meter_obis[] = {0, 0, 96, 1, 0, 255};  // 0.0.96.1.0.255
