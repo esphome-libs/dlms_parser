@@ -72,6 +72,7 @@ class AxdrParser final : NonCopyableAndNonMovable {
   bool capture_generic_value_(AxdrCaptures& c);
   bool try_match_patterns_(uint8_t elem_idx, uint8_t elem_count);
   bool match_pattern_(uint8_t elem_idx, uint8_t elem_count, const AxdrDescriptorPattern& pat, uint8_t& consumed);
+  static float apply_scaler(float value, int8_t scaler);
   void emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptures& c);
 };
 

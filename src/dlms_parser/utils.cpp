@@ -1,7 +1,6 @@
 #include "utils.h"
 #include <algorithm>
 #include <cinttypes>
-#include <cmath>
 #include <cstdio>
 #include <cstring>
 

@@ -2,7 +2,6 @@
 #include "log.h"
 #include "utils.h"
 #include <algorithm>
-#include <cmath>
 #include <cstdio>
 #include <utility>
 
@@ -364,6 +363,29 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
 
 static constexpr std::array<uint8_t, 6> ZERO_OBIS = {0, 0, 0, 0, 0, 0};
 
+float AxdrParser::apply_scaler(const float value, const int8_t scaler) {
+  if (scaler == 0) return value;
+
+  // Lookup table for 10^0 through 10^9
+  static constexpr float pow10_lut[] = {
+    1e0f, 1e1f, 1e2f, 1e3f, 1e4f, 1e5f, 1e6f, 1e7f, 1e8f, 1e9f
+  };
+
+  // Fast path: use LUT for typical DLMS bounds (-9 to +9)
+  if (scaler > 0 && scaler <= 9) {return value * pow10_lut[scaler];}
+  if (scaler < 0 && scaler >= -9) {return value / pow10_lut[-scaler];}
+
+  // Fallback path: loop for unusually large scalers
+  float multiplier = 1.0f;
+  if (scaler > 0) {
+    for (int i = 0; i < scaler; ++i) multiplier *= 10.0f;
+    return value * multiplier;
+  }
+
+  for (int i = 0; i < -scaler; ++i) multiplier *= 10.0f;
+  return value / multiplier;
+}
+
 void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptures& c) {
   // If no OBIS was captured by the pattern, use 0.0.0.0.0.0 as a placeholder.
   // If no OBIS captured, use pattern's default_obis if set, otherwise zero placeholder.
@@ -394,7 +416,7 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
                           value_type != DLMS_DATA_TYPE_STRING_UTF8  && value_type != DLMS_DATA_TYPE_DATETIME;
 
   if (has_scaler_unit && is_numeric) {
-    val_f *= static_cast<float>(std::pow(10, scaler));
+    val_f = apply_scaler(raw_val_f, scaler);
   }
 
   const uint16_t cid = class_id ? class_id : pat.default_class_id;
