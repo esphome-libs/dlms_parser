@@ -48,24 +48,25 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& co
     return {};
   }
 
-  auto work_len = buf.size();
+  std::span<uint8_t> decoded;
 
   // Step 1: Frame decode (auto-detect HDLC / MBus / RAW from first byte)
   switch (buf[0]) {
     case 0x7E: // HDLC
-      work_len = hdlc_decoder_.decode(buf.first(work_len));
-      if (work_len == 0) return {};
+      decoded = hdlc_decoder_.decode(buf);
       break;
     case 0x68: // MBus
-      work_len = mbus_decoder_.decode(buf.first(work_len));
-      if (work_len == 0) return {};
+      decoded = mbus_decoder_.decode(buf);
       break;
     default: // RAW
+      decoded = buf;
       break;
   }
 
+  if (decoded.empty()) return {};
+
   // Step 2: APDU unwrap (GBT → decrypt → strip header) — sequential loop, no recursion
-  const auto axdr = apdu_handler_.parse(buf.first(work_len));
+  const auto axdr = apdu_handler_.parse(decoded);
   if (axdr.empty()) return {};
 
   // Step 3: AXDR parse — loop over successive top-level containers

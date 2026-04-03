@@ -62,7 +62,7 @@ static size_t address_length(const std::span<const uint8_t> p) {
 static constexpr uint8_t HDLC_FLAG    = 0x7E;
 static constexpr uint8_t HDLC_SEG_BIT = 0x08;  // bit 3 of frame-type byte: "more frames follow"
 
-size_t HdlcDecoder::decode(const std::span<uint8_t> buf) const {
+std::span<uint8_t> HdlcDecoder::decode(const std::span<uint8_t> buf) const {
   size_t read_offset = 0;
   size_t write_offset = 0;
   bool is_first = true;
@@ -71,7 +71,7 @@ size_t HdlcDecoder::decode(const std::span<uint8_t> buf) const {
     const auto remaining = buf.subspan(read_offset);
     if (remaining.size() < 4 || remaining[0] != HDLC_FLAG) {
       Logger::log(LogLevel::WARNING, "HDLC: invalid frame at offset %zu", read_offset);
-      return 0;
+      return {};
     }
 
     const bool segmented = (remaining[1] & HDLC_SEG_BIT) != 0;
@@ -80,7 +80,7 @@ size_t HdlcDecoder::decode(const std::span<uint8_t> buf) const {
 
     if (frame_total > remaining.size()) {
       Logger::log(LogLevel::WARNING, "HDLC: incomplete frame at offset %zu", read_offset);
-      return 0;
+      return {};
     }
 
     // Content between the two 7E flags
@@ -88,32 +88,32 @@ size_t HdlcDecoder::decode(const std::span<uint8_t> buf) const {
 
     if (inner.size() < 9) { // minimum: format(2) + dst(1) + src(1) + ctrl(1) + hcs(2) + fcs(2)
       Logger::log(LogLevel::WARNING, "HDLC: frame too short (%zu bytes)", inner.size());
-      return 0;
+      return {};
     }
 
     // Skip addresses + control
     size_t pos = 2;
     const auto dst_len = address_length(inner.subspan(pos));
-    if (dst_len == 0) return 0;
+    if (dst_len == 0) return {};
     pos += dst_len;
 
     const auto src_len = address_length(inner.subspan(pos));
-    if (src_len == 0) return 0;
+    if (src_len == 0) return {};
     pos += src_len;
     pos += 1;  // control byte
 
     // HCS
-    if (pos + 2 > inner.size()) return 0;
+    if (pos + 2 > inner.size()) return {};
     if (!skip_crc_check_ && !crc16_x25_check(inner.first(pos + 2))) {
       Logger::log(LogLevel::WARNING, "HDLC: HCS error");
-      return 0;
+      return {};
     }
     pos += 2;
 
     // FCS
     if (!skip_crc_check_ && !crc16_x25_check(inner)) {
       Logger::log(LogLevel::WARNING, "HDLC: FCS error");
-      return 0;
+      return {};
     }
 
     const auto data_end = inner.size() - 2;
@@ -139,9 +139,9 @@ size_t HdlcDecoder::decode(const std::span<uint8_t> buf) const {
 
   if (write_offset == 0) {
     Logger::log(LogLevel::WARNING, "HDLC: no payload extracted");
-    return 0;
+    return {};
   }
-  return write_offset;
+  return buf.first(write_offset);
 }
 
 }

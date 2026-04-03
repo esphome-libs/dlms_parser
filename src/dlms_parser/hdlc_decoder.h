@@ -22,8 +22,8 @@ class HdlcDecoder final : NonCopyableAndNonMovable {
   void set_skip_crc_check(const bool skip) { skip_crc_check_ = skip; }
 
   // In-place decode: extracts and concatenates payloads from all HDLC frames
-  // in buf, writing them sequentially to buf[0..]. Returns new length, 0 on error.
-  size_t decode(std::span<uint8_t> buf) const;
+  // in buf, writing them sequentially to buf[0..]. Returns a subspan of buf, empty on error.
+  std::span<uint8_t> decode(std::span<uint8_t> buf) const;
 
  private:
   bool skip_crc_check_{false};

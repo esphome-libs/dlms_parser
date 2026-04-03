@@ -44,9 +44,9 @@ TEST_CASE("MBus Decoder - Payload Decoding (decode)") {
 
   SUBCASE("Single Frame Decoding") {
     auto frame = base_frame;
-    size_t new_len = decoder.decode(frame);
+    const auto result = decoder.decode(frame);
 
-    CHECK(new_len == 3);
+    CHECK(result.size() == 3);
     CHECK(frame[0] == 0xAA);
     CHECK(frame[1] == 0xBB);
     CHECK(frame[2] == 0xCC);
@@ -58,9 +58,9 @@ TEST_CASE("MBus Decoder - Payload Decoding (decode)") {
     build_mbus_frame(frame2, {0xDD, 0xEE, 0xFF});
     multi_frame.insert(multi_frame.end(), frame2.begin(), frame2.end());
 
-    size_t new_len = decoder.decode(multi_frame);
+    const auto result = decoder.decode(multi_frame);
 
-    CHECK(new_len == 6);
+    CHECK(result.size() == 6);
     CHECK(multi_frame[0] == 0xAA);
     CHECK(multi_frame[2] == 0xCC);
     CHECK(multi_frame[3] == 0xDD);
@@ -70,14 +70,14 @@ TEST_CASE("MBus Decoder - Payload Decoding (decode)") {
   SUBCASE("Strict CRC Enabled - Accepts Valid Checksum") {
     decoder.set_skip_crc_check(false);
     auto frame = base_frame;
-    CHECK(decoder.decode(frame) == 3);
+    CHECK(decoder.decode(frame).size() == 3);
   }
 
   SUBCASE("Strict CRC Enabled - Rejects Invalid Checksum") {
     decoder.set_skip_crc_check(false);
     auto frame = base_frame;
     frame[10] ^= 0xFF; // Corrupt a byte
-    CHECK(decoder.decode(frame) == 0);
+    CHECK(decoder.decode(frame).empty());
   }
 }
 
@@ -90,31 +90,31 @@ TEST_CASE("MBus Decoder - Malformed Frame Handling") {
 
   SUBCASE("Decode returns 0 for Length < MBUS_INTRO") {
     auto frame = base_frame;
-    CHECK(decoder.decode({frame.data(), 3}) == 0);
+    CHECK(decoder.decode({frame.data(), 3}).empty());
   }
 
   SUBCASE("Decode returns 0 for Length Mismatch") {
     auto frame = base_frame;
     frame[1] = 0x10;
-    CHECK(decoder.decode(frame) == 0);
+    CHECK(decoder.decode(frame).empty());
   }
 
   SUBCASE("Decode returns 0 for Invalid Stop Byte") {
     auto frame = base_frame;
     frame.back() = 0x17;
-    CHECK(decoder.decode(frame) == 0);
+    CHECK(decoder.decode(frame).empty());
   }
 
   SUBCASE("Decode returns 0 for Incomplete Final Frame") {
     auto frame = base_frame;
-    CHECK(decoder.decode({frame.data(), frame.size() - 1}) == 0);
+    CHECK(decoder.decode({frame.data(), frame.size() - 1}).empty());
   }
 
   SUBCASE("Decode ignores trailing garbage after valid frames") {
     auto frame = base_frame;
     frame.push_back(0xFF);
-    size_t new_len = decoder.decode(frame);
-    CHECK(new_len == 3);
+    const auto result = decoder.decode(frame);
+    CHECK(result.size() == 3);
     CHECK(frame[0] == 0xAA);
     CHECK(frame[1] == 0xBB);
     CHECK(frame[2] == 0xCC);
@@ -128,7 +128,7 @@ TEST_CASE("MBus Decoder - Malformed Frame Handling") {
     multi_frame.insert(multi_frame.end(), frame2.begin(), frame2.end());
 
     // decode() aborts entirely if ANY frame is corrupted
-    CHECK(decoder.decode(multi_frame) == 0);
+    CHECK(decoder.decode(multi_frame).empty());
   }
 
   SUBCASE("Multiple Frames - Second Frame has Checksum Error") {
@@ -140,14 +140,14 @@ TEST_CASE("MBus Decoder - Malformed Frame Handling") {
     multi_frame.insert(multi_frame.end(), frame2.begin(), frame2.end());
 
     // decode() aborts entirely if CRC fails on ANY frame
-    CHECK(decoder.decode(multi_frame) == 0);
+    CHECK(decoder.decode(multi_frame).empty());
   }
 
   SUBCASE("Empty Payload Handling (Frame Size valid, but no Application Data)") {
     std::vector<uint8_t> empty_frame;
     build_mbus_frame(empty_frame, {});
     // Fails because write_offset == 0
-    CHECK(decoder.decode(empty_frame) == 0);
+    CHECK(decoder.decode(empty_frame).empty());
   }
 
   SUBCASE("Mixed Frames - Valid Frame Followed by Empty Frame") {
@@ -157,7 +157,7 @@ TEST_CASE("MBus Decoder - Malformed Frame Handling") {
     multi_frame.insert(multi_frame.end(), empty_frame.begin(), empty_frame.end());
 
     // Succeeds and returns 3, silently ignoring the second empty frame
-    CHECK(decoder.decode(multi_frame) == 3);
+    CHECK(decoder.decode(multi_frame).size() == 3);
   }
 
   SUBCASE("Header Size Too Large for Defined Length (Malformed L)") {
@@ -167,6 +167,6 @@ TEST_CASE("MBus Decoder - Malformed Frame Handling") {
     frame[4+2+1] = 0x16; // Recalculate Stop Byte position
 
     // Fails because MBUS_HEADER > MBUS_INTRO + L
-    CHECK(decoder.decode({frame.data(), 8}) == 0);
+    CHECK(decoder.decode({frame.data(), 8}).empty());
   }
 }

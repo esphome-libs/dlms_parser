@@ -39,9 +39,9 @@ TEST_CASE("HDLC Decoder - Payload Decoding (decode)") {
 
   SUBCASE("Single Frame with LLC Stripping (E6 E6 00)") {
     auto frame = BASE_FRAME;
-    size_t new_len = decoder.decode(frame);
+    const auto result = decoder.decode(frame);
 
-    CHECK(new_len == 3);
+    CHECK(result.size() == 3);
     CHECK(frame[0] == 0xAA);
     CHECK(frame[1] == 0xBB);
     CHECK(frame[2] == 0xCC);
@@ -50,9 +50,9 @@ TEST_CASE("HDLC Decoder - Payload Decoding (decode)") {
   SUBCASE("Single Frame with Alternative LLC Stripping (E6 E7 00)") {
     auto frame = BASE_FRAME;
     frame[9] = 0xE7;
-    size_t new_len = decoder.decode(frame);
+    const auto result = decoder.decode(frame);
 
-    CHECK(new_len == 3);
+    CHECK(result.size() == 3);
     CHECK(frame[0] == 0xAA);
     CHECK(frame[1] == 0xBB);
     CHECK(frame[2] == 0xCC);
@@ -64,8 +64,8 @@ TEST_CASE("HDLC Decoder - Payload Decoding (decode)") {
     frame[9] = 0x34;
     frame[10] = 0x56;
 
-    size_t new_len = decoder.decode(frame);
-    CHECK(new_len == 6);
+    const auto result = decoder.decode(frame);
+    CHECK(result.size() == 6);
     CHECK(frame[0] == 0x12);
     CHECK(frame[1] == 0x34);
     CHECK(frame[2] == 0x56);
@@ -82,8 +82,8 @@ TEST_CASE("HDLC Decoder - Payload Decoding (decode)") {
       0x7E
     };
     update_frame_length(frame);
-    size_t new_len = decoder.decode(frame);
-    CHECK(new_len == 2);
+    const auto result = decoder.decode(frame);
+    CHECK(result.size() == 2);
     CHECK(frame[0] == 0xE6);
     CHECK(frame[1] == 0xE6);
   }
@@ -108,8 +108,8 @@ TEST_CASE("HDLC Decoder - Payload Decoding (decode)") {
     multi_frame.insert(multi_frame.end(), frame1.begin(), frame1.end());
     multi_frame.insert(multi_frame.end(), frame2.begin(), frame2.end());
 
-    size_t new_len = decoder.decode(multi_frame);
-    CHECK(new_len == 5);
+    const auto result = decoder.decode(multi_frame);
+    CHECK(result.size() == 5);
     CHECK(multi_frame[0] == 0xAA);
     CHECK(multi_frame[1] == 0xBB);
     CHECK(multi_frame[2] == 0xCC);
@@ -136,11 +136,11 @@ TEST_CASE("HDLC Decoder - Payload Decoding (decode)") {
     multi_frame.insert(multi_frame.end(), frame1.begin(), frame1.end());
     multi_frame.insert(multi_frame.end(), frame2.begin(), frame2.end());
 
-    size_t new_len = decoder.decode(multi_frame);
+    const auto result = decoder.decode(multi_frame);
 
     // Frame 1 payload: AA BB CC
     // Frame 2 payload: E6 E6 00 DD EE
-    CHECK(new_len == 8);
+    CHECK(result.size() == 8);
     CHECK(multi_frame[0] == 0xAA);
     CHECK(multi_frame[3] == 0xE6);
     CHECK(multi_frame[4] == 0xE6);
@@ -158,7 +158,7 @@ TEST_CASE("HDLC Decoder - Payload Decoding (decode)") {
     multi_frame.insert(multi_frame.end(), frame1.begin(), frame1.end());
     multi_frame.insert(multi_frame.end(), frame2.begin(), frame2.end());
 
-    CHECK(decoder.decode(multi_frame) == 0);
+    CHECK(decoder.decode(multi_frame).empty());
   }
 }
 
@@ -175,8 +175,8 @@ TEST_CASE("HDLC Decoder - Address Length Decoding") {
     };
     update_frame_length(frame);
 
-    size_t new_len = decoder.decode(frame);
-    CHECK(new_len == 2);
+    const auto result = decoder.decode(frame);
+    CHECK(result.size() == 2);
     CHECK(frame[0] == 0xAA);
   }
 
@@ -189,8 +189,8 @@ TEST_CASE("HDLC Decoder - Address Length Decoding") {
     };
     update_frame_length(frame);
 
-    size_t new_len = decoder.decode(frame);
-    CHECK(new_len == 2);
+    const auto result = decoder.decode(frame);
+    CHECK(result.size() == 2);
     CHECK(frame[0] == 0xAA);
   }
 
@@ -202,7 +202,7 @@ TEST_CASE("HDLC Decoder - Address Length Decoding") {
     };
     update_frame_length(frame);
 
-    CHECK(decoder.decode(frame) == 0);
+    CHECK(decoder.decode(frame).empty());
   }
 
   SUBCASE("Invalid Source Address Length (No LSB=1 within 4 bytes)") {
@@ -214,7 +214,7 @@ TEST_CASE("HDLC Decoder - Address Length Decoding") {
     };
     update_frame_length(frame);
 
-    CHECK(decoder.decode(frame) == 0);
+    CHECK(decoder.decode(frame).empty());
   }
 
   SUBCASE("Truncated Address Field runs out of bounds") {
@@ -224,7 +224,7 @@ TEST_CASE("HDLC Decoder - Address Length Decoding") {
       0x33, 0x44, 0x7E
     };
     update_frame_length(frame);
-    CHECK(decoder.decode(frame) == 0);
+    CHECK(decoder.decode(frame).empty());
   }
 }
 
@@ -235,25 +235,25 @@ TEST_CASE("HDLC Decoder - Malformed Frame Handling") {
   SUBCASE("Length field mismatch vs buffer boundaries") {
     auto frame = BASE_FRAME;
     frame[2] += 2;
-    CHECK(decoder.decode(frame) == 0);
+    CHECK(decoder.decode(frame).empty());
   }
 
   SUBCASE("Frame too short inside flags (< 9 bytes)") {
     std::vector<uint8_t> short_frame = { 0x7E, 0xA0, 0x00, 0x03, 0x21, 0x93, 0x11, 0x33, 0x44, 0x7E };
     update_frame_length(short_frame);
-    CHECK(decoder.decode(short_frame) == 0);
+    CHECK(decoder.decode(short_frame).empty());
   }
 
   SUBCASE("Strict CRC enabled - Rejects invalid HCS") {
     decoder.set_skip_crc_check(false);
     auto frame = BASE_FRAME; // BASE_FRAME has garbage for both HCS and FCS
-    CHECK(decoder.decode(frame) == 0);
+    CHECK(decoder.decode(frame).empty());
   }
 
   SUBCASE("Strict CRC enabled - Accepts valid CRC") {
     decoder.set_skip_crc_check(false);
     std::vector frame(std::begin(dlms::test_data::iskra550_frame3), std::end(dlms::test_data::iskra550_frame3));
-    CHECK(decoder.decode(frame) > 0);
+    CHECK_FALSE(decoder.decode(frame).empty());
   }
 
   SUBCASE("Strict CRC enabled - HCS valid, FCS invalid") {
@@ -263,7 +263,7 @@ TEST_CASE("HDLC Decoder - Malformed Frame Handling") {
     // Flip a bit in the payload area to invalidate the FCS while keeping HCS mathematically intact
     frame[16] ^= 0xFF;
 
-    CHECK(decoder.decode(frame) == 0);
+    CHECK(decoder.decode(frame).empty());
   }
 
   SUBCASE("No payload extracted edge case") {
@@ -275,6 +275,6 @@ TEST_CASE("HDLC Decoder - Malformed Frame Handling") {
       0x7E
     };
     update_frame_length(no_data_frame);
-    CHECK(decoder.decode(no_data_frame) == 0);
+    CHECK(decoder.decode(no_data_frame).empty());
   }
 }
