@@ -1,3 +1,5 @@
+#include <cstdio>
+
 // Include decryption implementation if your smart meter uses encryption. Choose one depending on the encryption library you use.
 #include "dlms_parser/decryption/aes_128_gcm_decryptor_mbedtls.h"
 // #include "dlms_parser/decryption/aes_128_gcm_decryptor_bearssl.h"
@@ -5,11 +7,6 @@
 
 // Include the main parser header
 #include "dlms_parser/dlms_parser.h"
-
-#include <array>
-#include <cstdio>
-#include <stdexcept>
-#include <string>
 
 // Dummy functions to make the example compile
 long millis() { return 0; }
@@ -49,17 +46,15 @@ inline void configure_parser() {
 
   // Set logging function if you want to capture logs. By default, the parser does not log anything.
   dlms_parser::Logger::set_log_function([](const dlms_parser::LogLevel log_level, const char* fmt, va_list args) {
-    std::string level_str;
     switch (log_level) {
-    case dlms_parser::LogLevel::DEBUG:        level_str = "[DBG] "; break;
-    case dlms_parser::LogLevel::VERY_VERBOSE: level_str = "[VV]  "; break;
-    case dlms_parser::LogLevel::VERBOSE:      level_str = "[VRB] "; break;
-    case dlms_parser::LogLevel::INFO:         level_str = "[INF] "; break;
-    case dlms_parser::LogLevel::WARNING:      level_str = "[WRN] "; break;
-    case dlms_parser::LogLevel::ERROR:        level_str = "[ERR] "; break;
-    default: throw std::runtime_error("Unknown log level");
+    case dlms_parser::LogLevel::DEBUG:        printf("[DBG] "); break;
+    case dlms_parser::LogLevel::VERY_VERBOSE: printf("[VV]  "); break;
+    case dlms_parser::LogLevel::VERBOSE:      printf("[VRB] "); break;
+    case dlms_parser::LogLevel::INFO:         printf("[INF] "); break;
+    case dlms_parser::LogLevel::WARNING:      printf("[WRN] "); break;
+    case dlms_parser::LogLevel::ERROR:        printf("[ERR] "); break;
     }
-    vprintf((level_str + fmt).c_str(), args);
+    vprintf(fmt, args);
   });
 }
 
