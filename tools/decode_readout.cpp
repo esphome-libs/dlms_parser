@@ -31,7 +31,6 @@
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <vector>
 
 #include "dlms_parser/dlms_parser.h"
 #include "dlms_parser/log.h"
@@ -124,7 +123,7 @@ static bool looks_like_hex_file(std::string_view path) {
 }
 
 // Auto-detect frame format from first byte
-static dlms_parser::FrameFormat detect_format(const std::vector<uint8_t>& data) {
+static dlms_parser::FrameFormat detect_format(const std::span<const uint8_t> data) {
   if (data.empty()) return dlms_parser::FrameFormat::RAW;
   switch (data[0]) {
     case 0x7E: return dlms_parser::FrameFormat::HDLC;
@@ -133,7 +132,7 @@ static dlms_parser::FrameFormat detect_format(const std::vector<uint8_t>& data) 
   }
 }
 
-static std::string_view format_name(dlms_parser::FrameFormat fmt) {
+static const char* to_string(dlms_parser::FrameFormat fmt) {
   switch (fmt) {
     case dlms_parser::FrameFormat::HDLC: return "HDLC";
     case dlms_parser::FrameFormat::MBUS: return "MBUS";
@@ -293,7 +292,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::cout << std::format("Input:   {} ({} bytes)\n", file_path, data.size());
-  std::cout << std::format("Format:  {}{}\n", format_name(fmt), format_str.empty() ? " (auto-detected)" : "");
+  std::cout << std::format("Format:  {}{}\n", to_string(fmt), format_str.empty() ? " (auto-detected)" : "");
   if (!key_str.empty()) std::cout << std::format("Key:     {}\n", key_str);
   std::cout << "\n";
 
