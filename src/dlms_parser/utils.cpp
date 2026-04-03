@@ -16,7 +16,7 @@ float data_as_float(const DlmsDataType value_type, const std::span<const uint8_t
   case DLMS_DATA_TYPE_ENUM:
   case DLMS_DATA_TYPE_UINT8: return ptr[0];
   case DLMS_DATA_TYPE_INT8: return static_cast<int8_t>(ptr[0]);
-  case DLMS_DATA_TYPE_BIT_STRING: return static_cast<float>(ptr[0]);
+  case DLMS_DATA_TYPE_BIT_STRING: return ptr[0];
   case DLMS_DATA_TYPE_UINT16: return len >= 2 ? static_cast<float>(be16(ptr)) : 0.0f;
   case DLMS_DATA_TYPE_INT16: return len >= 2 ? static_cast<float>(static_cast<int16_t>(be16(ptr))) : 0.0f;
   case DLMS_DATA_TYPE_UINT32: return len >= 4 ? static_cast<float>(be32(ptr)) : 0.0f;
@@ -74,9 +74,9 @@ bool test_if_date_time_12b(const std::span<const uint8_t> p) {
   return true;
 }
 
-void datetime_to_string(const std::span<const uint8_t> data, const std::span<char> out) {
-  if (!out.empty()) out[0] = '\0';
-  if (data.size() < 12 || out.empty()) return;
+void datetime_to_string(const std::span<const uint8_t> data, const std::span<char> buffer) {
+  if (!buffer.empty()) buffer[0] = '\0';
+  if (data.size() < 12 || buffer.empty()) return;
 
   const uint16_t year = be16(data.data());
   const uint8_t month = data[2], day = data[3];
@@ -84,54 +84,54 @@ void datetime_to_string(const std::span<const uint8_t> data, const std::span<cha
   const uint8_t hundredths = data[8];
   const auto deviation = static_cast<int16_t>(be16(data.data() + 9));
 
-  auto advance = [&](size_t& p, const int n) { if (n > 0 && p + static_cast<size_t>(n) < out.size()) p += static_cast<size_t>(n); };
+  auto advance = [&](size_t& p, const int n) { if (n > 0 && p + static_cast<size_t>(n) < buffer.size()) p += static_cast<size_t>(n); };
 
   size_t pos = 0;
   // Date: YYYY-MM-DD
   if (year != 0x0000 && year != 0xFFFF)
-    advance(pos, snprintf(out.data() + pos, out.size() - pos, "%04u", year));
+    advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, "%04u", year));
   else
-    advance(pos, snprintf(out.data() + pos, out.size() - pos, "????"));
-  advance(pos, snprintf(out.data() + pos, out.size() - pos, "-"));
+    advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, "????"));
+  advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, "-"));
   if (month != 0xFF && month >= 1 && month <= 12)
-    advance(pos, snprintf(out.data() + pos, out.size() - pos, "%02u", month));
+    advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, "%02u", month));
   else
-    advance(pos, snprintf(out.data() + pos, out.size() - pos, "??"));
-  advance(pos, snprintf(out.data() + pos, out.size() - pos, "-"));
+    advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, "??"));
+  advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, "-"));
   if (day != 0xFF && day >= 1 && day <= 31)
-    advance(pos, snprintf(out.data() + pos, out.size() - pos, "%02u", day));
+    advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, "%02u", day));
   else
-    advance(pos, snprintf(out.data() + pos, out.size() - pos, "??"));
+    advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, "??"));
   // Time: HH:MM:SS
-  advance(pos, snprintf(out.data() + pos, out.size() - pos, " "));
+  advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, " "));
   if (hour != 0xFF && hour <= 23)
-    advance(pos, snprintf(out.data() + pos, out.size() - pos, "%02u", hour));
+    advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, "%02u", hour));
   else
-    advance(pos, snprintf(out.data() + pos, out.size() - pos, "??"));
-  advance(pos, snprintf(out.data() + pos, out.size() - pos, ":"));
+    advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, "??"));
+  advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, ":"));
   if (minute != 0xFF && minute <= 59)
-    advance(pos, snprintf(out.data() + pos, out.size() - pos, "%02u", minute));
+    advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, "%02u", minute));
   else
-    advance(pos, snprintf(out.data() + pos, out.size() - pos, "??"));
-  advance(pos, snprintf(out.data() + pos, out.size() - pos, ":"));
+    advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, "??"));
+  advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, ":"));
   if (second != 0xFF && second <= 59)
-    advance(pos, snprintf(out.data() + pos, out.size() - pos, "%02u", second));
+    advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, "%02u", second));
   else
-    advance(pos, snprintf(out.data() + pos, out.size() - pos, "??"));
+    advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, "??"));
   // Hundredths
   if (hundredths != 0xFF && hundredths <= 99)
-    advance(pos, snprintf(out.data() + pos, out.size() - pos, ".%02u", hundredths));
+    advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, ".%02u", hundredths));
   // Timezone deviation
   if (deviation != static_cast<int16_t>(0x8000)) {
     const int abs_dev = deviation >= 0 ? deviation : -deviation;
-    advance(pos, snprintf(out.data() + pos, out.size() - pos, " %c%02d:%02d",
+    advance(pos, snprintf(buffer.data() + pos, buffer.size() - pos, " %c%02d:%02d",
                     deviation >= 0 ? '+' : '-', abs_dev / 60, abs_dev % 60));
   }
 }
 
-void data_to_string(const DlmsDataType value_type, const std::span<const uint8_t> data, const std::span<char> out) {
-  if (!out.empty()) out[0] = '\0';
-  if (data.empty() || out.empty()) return;
+void data_to_string(const DlmsDataType value_type, const std::span<const uint8_t> data, const std::span<char> buffer) {
+  if (!buffer.empty()) buffer[0] = '\0';
+  if (data.empty() || buffer.empty()) return;
 
   auto hex_of = [](const std::span<const uint8_t> input, const std::span<char> output) {
     if (output.empty()) return;
@@ -147,49 +147,49 @@ void data_to_string(const DlmsDataType value_type, const std::span<const uint8_t
   case DLMS_DATA_TYPE_OCTET_STRING:
   case DLMS_DATA_TYPE_STRING:
   case DLMS_DATA_TYPE_STRING_UTF8: {
-    const size_t copy_len = std::min(data.size(), out.size() - 1);
-    std::memcpy(out.data(), data.data(), copy_len);
-    out[copy_len] = '\0';
+    const size_t copy_len = std::min(data.size(), buffer.size() - 1);
+    std::memcpy(buffer.data(), data.data(), copy_len);
+    buffer[copy_len] = '\0';
     break;
   }
   case DLMS_DATA_TYPE_DATETIME:
-    datetime_to_string(data, out);
+    datetime_to_string(data, buffer);
     break;
   case DLMS_DATA_TYPE_BIT_STRING:
   case DLMS_DATA_TYPE_BINARY_CODED_DECIMAL:
   case DLMS_DATA_TYPE_DATE:
   case DLMS_DATA_TYPE_TIME:
-    hex_of(data, out);
+    hex_of(data, buffer);
     break;
   case DLMS_DATA_TYPE_BOOLEAN:
   case DLMS_DATA_TYPE_ENUM:
   case DLMS_DATA_TYPE_UINT8:
-    snprintf(out.data(), out.size(), "%u", static_cast<unsigned>(data[0]));
+    snprintf(buffer.data(), buffer.size(), "%u", static_cast<unsigned>(data[0]));
     break;
   case DLMS_DATA_TYPE_INT8:
-    snprintf(out.data(), out.size(), "%d", static_cast<int>(static_cast<int8_t>(data[0])));
+    snprintf(buffer.data(), buffer.size(), "%d", static_cast<int>(static_cast<int8_t>(data[0])));
     break;
   case DLMS_DATA_TYPE_UINT16:
-    if (data.size() >= 2) snprintf(out.data(), out.size(), "%u", be16(data.data()));
+    if (data.size() >= 2) snprintf(buffer.data(), buffer.size(), "%u", be16(data.data()));
     break;
   case DLMS_DATA_TYPE_INT16:
-    if (data.size() >= 2) snprintf(out.data(), out.size(), "%d", static_cast<int16_t>(be16(data.data())));
+    if (data.size() >= 2) snprintf(buffer.data(), buffer.size(), "%d", static_cast<int16_t>(be16(data.data())));
     break;
   case DLMS_DATA_TYPE_UINT32:
-    if (data.size() >= 4) snprintf(out.data(), out.size(), "%" PRIu32, be32(data.data()));
+    if (data.size() >= 4) snprintf(buffer.data(), buffer.size(), "%" PRIu32, be32(data.data()));
     break;
   case DLMS_DATA_TYPE_INT32:
-    if (data.size() >= 4) snprintf(out.data(), out.size(), "%" PRId32, static_cast<int32_t>(be32(data.data())));
+    if (data.size() >= 4) snprintf(buffer.data(), buffer.size(), "%" PRId32, static_cast<int32_t>(be32(data.data())));
     break;
   case DLMS_DATA_TYPE_UINT64:
-    if (data.size() >= 8) snprintf(out.data(), out.size(), "%" PRIu64, be64(data.data()));
+    if (data.size() >= 8) snprintf(buffer.data(), buffer.size(), "%" PRIu64, be64(data.data()));
     break;
   case DLMS_DATA_TYPE_INT64:
-    if (data.size() >= 8) snprintf(out.data(), out.size(), "%" PRId64, static_cast<int64_t>(be64(data.data())));
+    if (data.size() >= 8) snprintf(buffer.data(), buffer.size(), "%" PRId64, static_cast<int64_t>(be64(data.data())));
     break;
   case DLMS_DATA_TYPE_FLOAT32:
   case DLMS_DATA_TYPE_FLOAT64: {
-    snprintf(out.data(), out.size(), "%f", static_cast<double>(data_as_float(value_type, data)));
+    snprintf(buffer.data(), buffer.size(), "%f", static_cast<double>(data_as_float(value_type, data)));
     break;
   }
   default:
@@ -211,10 +211,10 @@ uint32_t read_ber_length(const std::span<const uint8_t> buf, size_t& pos) {
   return length;
 }
 
-void obis_to_string(const std::span<const uint8_t> obis, const std::span<char> out) {
-  if (!out.empty()) out[0] = '\0';
-  if (obis.size() < 6 || out.empty()) return;
-  snprintf(out.data(), out.size(), "%u.%u.%u.%u.%u.%u", obis[0], obis[1], obis[2], obis[3], obis[4], obis[5]);
+void obis_to_string(const std::span<const uint8_t> obis, const std::span<char> buffer) {
+  if (!buffer.empty()) buffer[0] = '\0';
+  if (obis.size() < 6 || buffer.empty()) return;
+  snprintf(buffer.data(), buffer.size(), "%u.%u.%u.%u.%u.%u", obis[0], obis[1], obis[2], obis[3], obis[4], obis[5]);
 }
 
 const char* dlms_data_type_to_string(const DlmsDataType vt) {
