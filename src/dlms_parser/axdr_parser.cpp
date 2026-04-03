@@ -517,6 +517,13 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
       add_step(AxdrTokenType::EXPECT_UNIT_ENUM_TAGGED);
       add_step(AxdrTokenType::GOING_UP);
     }
+    else if (tok == "ADV") {
+      add_step(AxdrTokenType::EXPECT_TO_BE_FIRST);
+      add_step(AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED);
+      add_step(AxdrTokenType::EXPECT_OBIS6_UNTAGGED);
+      add_step(AxdrTokenType::EXPECT_ATTR8_UNTAGGED);
+      add_step(AxdrTokenType::EXPECT_VALUE_GENERIC);
+    }
     else if (tok == "DN") add_step(AxdrTokenType::GOING_DOWN);
     else if (tok == "UP") add_step(AxdrTokenType::GOING_UP);
   };

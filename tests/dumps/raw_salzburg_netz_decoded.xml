@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='utf-8'?>
+<DataNotification LongInvokeId="0017FA98">
+  <DateTime Value="2022-11-12 16:54:00.00 -01:00" />
+  <STRUCTURE Qty="16">
+    <OCTETSTRING Value="0.0.1.0.0.255" Name="Clock / datetime" />
+    <OCTETSTRING Value="2022-11-12 16:54:00.00 -01:00" />
+    <STRUCTURE Qty="2">
+      <OCTETSTRING Value="0.0.96.1.0.255" Name="Meter serial number" />
+      <OCTETSTRING Value="1KFM0200234804" />
+    </STRUCTURE>
+    <STRUCTURE Qty="2">
+      <OCTETSTRING Value="0.0.42.0.0.255" Name="Logical device name" />
+      <OCTETSTRING Value="KFM1200200234804" />
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.32.7.0.255" Name="Voltage L1 (V)" />
+      <UINT16 Value="2292" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-1" />
+        <ENUM Value="35" Unit="V" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.52.7.0.255" Name="Voltage L2 (V)" />
+      <UINT16 Value="2316" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-1" />
+        <ENUM Value="35" Unit="V" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.72.7.0.255" Name="Voltage L3 (V)" />
+      <UINT16 Value="2314" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-1" />
+        <ENUM Value="35" Unit="V" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.31.7.0.255" Name="Current L1 (A)" />
+      <UINT16 Value="165" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-2" />
+        <ENUM Value="33" Unit="A" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.51.7.0.255" Name="Current L2 (A)" />
+      <UINT16 Value="173" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-2" />
+        <ENUM Value="33" Unit="A" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.71.7.0.255" Name="Current L3 (A)" />
+      <UINT16 Value="37" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-2" />
+        <ENUM Value="33" Unit="A" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.1.7.0.255" Name="Active power+ (W)" />
+      <UINT32 Value="714" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="27" Unit="W" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.2.7.0.255" Name="Active power- (W)" />
+      <UINT32 Value="0" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="27" Unit="W" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.1.8.0.255" Name="Active energy+ total (Wh)" />
+      <UINT32 Value="1327456" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="30" Unit="Wh" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.2.8.0.255" Name="Active energy- total (Wh)" />
+      <UINT32 Value="0" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="30" Unit="Wh" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.3.8.0.255" Name="Reactive energy+ total (varh)" />
+      <UINT32 Value="4818" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="32" Unit="varh" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.4.8.0.255" Name="Reactive energy- total (varh)" />
+      <UINT32 Value="376416" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="32" Unit="varh" />
+      </STRUCTURE>
+    </STRUCTURE>
+  </STRUCTURE>
+</DataNotification>

@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='utf-8'?>
+<GeneralGloCiphering SystemTitle="4C475A677370B177" FrameCounter="1539018">
+  <DataNotification LongInvokeId="00177BCA">
+    <DateTime Value="2022-02-21 17:37:30" />
+    <STRUCTURE Qty="33">
+      <OCTETSTRING Value="2022-02-21 17:37:30" />
+      <OCTETSTRING Value="1.0.1.8.0.255" Name="Active energy+ total (Wh)" />
+      <UINT32 Value="4408736" />
+      <OCTETSTRING Value="1.0.1.8.1.255" Name="Active energy+ T1 (Wh)" />
+      <UINT32 Value="3593919" />
+      <OCTETSTRING Value="1.0.1.8.2.255" Name="Active energy+ T2 (Wh)" />
+      <UINT32 Value="814817" />
+      <OCTETSTRING Value="1.0.1.7.0.255" Name="Active power+ (W)" />
+      <UINT32 Value="2893" />
+      <OCTETSTRING Value="1.0.2.8.0.255" Name="Active energy- total (Wh)" />
+      <UINT32 Value="0" />
+      <OCTETSTRING Value="1.0.2.8.1.255" Name="Active energy- T1 (Wh)" />
+      <UINT32 Value="0" />
+      <OCTETSTRING Value="1.0.2.8.2.255" Name="Active energy- T2 (Wh)" />
+      <UINT32 Value="0" />
+      <OCTETSTRING Value="1.0.2.7.0.255" Name="Active power- (W)" />
+      <UINT32 Value="0" />
+      <OCTETSTRING Value="1.0.3.8.0.255" Name="Reactive energy+ total (varh)" />
+      <UINT32 Value="1591784" />
+      <OCTETSTRING Value="1.0.3.8.1.255" />
+      <UINT32 Value="1358750" />
+      <OCTETSTRING Value="1.0.3.8.2.255" />
+      <UINT32 Value="233034" />
+      <OCTETSTRING Value="1.0.3.7.0.255" Name="Reactive power+ (var)" />
+      <UINT32 Value="1735" />
+      <OCTETSTRING Value="1.0.4.8.0.255" Name="Reactive energy- total (varh)" />
+      <UINT32 Value="1401005" />
+      <OCTETSTRING Value="1.0.4.8.1.255" />
+      <UINT32 Value="872483" />
+      <OCTETSTRING Value="1.0.4.8.2.255" />
+      <UINT32 Value="528522" />
+      <OCTETSTRING Value="1.0.4.7.0.255" Name="Reactive power- (var)" />
+      <UINT32 Value="0" />
+    </STRUCTURE>
+  </DataNotification>
+</GeneralGloCiphering>

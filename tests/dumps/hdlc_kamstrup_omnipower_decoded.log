@@ -1,3 +1,4 @@
+XML:   tests/dumps/hdlc_kamstrup_omnipower_decoded.xml
 Input: tests/dumps/hdlc_kamstrup_omnipower.log (491 bytes)
 Key:   00112233445566778899AABBCCDDEEFF (from .key file)
 

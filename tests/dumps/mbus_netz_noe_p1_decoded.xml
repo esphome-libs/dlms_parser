@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='utf-8'?>
+<GeneralGloCiphering SystemTitle="4B464D6750000009" FrameCounter="35">
+  <DataNotification LongInvokeId="8006870E">
+    <DateTime Value="2021-09-27 09:47:15.00 -02:00" />
+    <STRUCTURE Qty="35">
+      <OCTETSTRING Value="2021-09-27 09:47:15.00 -02:00" />
+      <OCTETSTRING Value="1.0.1.8.0.255" Name="Active energy+ total (Wh)" />
+      <UINT32 Value="12937" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="30" Unit="Wh" />
+      </STRUCTURE>
+      <OCTETSTRING Value="1.0.2.8.0.255" Name="Active energy- total (Wh)" />
+      <UINT32 Value="0" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="30" Unit="Wh" />
+      </STRUCTURE>
+      <OCTETSTRING Value="1.0.1.7.0.255" Name="Active power+ (W)" />
+      <UINT32 Value="0" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="27" Unit="W" />
+      </STRUCTURE>
+      <OCTETSTRING Value="1.0.2.7.0.255" Name="Active power- (W)" />
+      <UINT32 Value="0" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="27" Unit="W" />
+      </STRUCTURE>
+      <OCTETSTRING Value="1.0.32.7.0.255" Name="Voltage L1 (V)" />
+      <UINT16 Value="2337" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-1" />
+        <ENUM Value="35" Unit="V" />
+      </STRUCTURE>
+      <OCTETSTRING Value="1.0.52.7.0.255" Name="Voltage L2 (V)" />
+      <UINT16 Value="0" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-1" />
+        <ENUM Value="35" Unit="V" />
+      </STRUCTURE>
+      <OCTETSTRING Value="1.0.72.7.0.255" Name="Voltage L3 (V)" />
+      <UINT16 Value="0" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-1" />
+        <ENUM Value="35" Unit="V" />
+      </STRUCTURE>
+      <OCTETSTRING Value="1.0.31.7.0.255" Name="Current L1 (A)" />
+      <UINT16 Value="0" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-2" />
+        <ENUM Value="33" Unit="A" />
+      </STRUCTURE>
+      <OCTETSTRING Value="1.0.51.7.0.255" Name="Current L2 (A)" />
+      <UINT16 Value="0" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-2" />
+        <ENUM Value="33" Unit="A" />
+      </STRUCTURE>
+      <OCTETSTRING Value="1.0.71.7.0.255" Name="Current L3 (A)" />
+      <UINT16 Value="0" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-2" />
+        <ENUM Value="33" Unit="A" />
+      </STRUCTURE>
+      <OCTETSTRING Value="1.0.13.7.0.255" Name="Power factor" />
+      <UINT16 Value="1000" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-3" />
+        <ENUM Value="255" />
+      </STRUCTURE>
+      <OCTETSTRING Value="181220000009" />
+    </STRUCTURE>
+  </DataNotification>
+</GeneralGloCiphering>

@@ -1,0 +1,225 @@
+<?xml version='1.0' encoding='utf-8'?>
+<DataNotification LongInvokeId="00000001">
+  <DateTime />
+  <STRUCTURE Qty="2">
+    <ENUM Value="1" Unit="a" />
+    <ARRAY Qty="27">
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0001" />
+          <InstanceId Value="0.0.42.0.0.255" /> <!-- Logical device name -->
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <OCTETSTRING Value="EGD012345" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0028" />
+          <InstanceId Value="0.2.25.9.0.255" />
+          <AttributeId Value="01" />
+        </AttributeDescriptor>
+        <OCTETSTRING Value="0.2.25.9.0.255" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0001" />
+          <InstanceId Value="0.0.96.1.0.255" /> <!-- Meter serial number -->
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <OCTETSTRING Value="0123456789" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0046" />
+          <InstanceId Value="0.0.96.3.10.255" />
+          <AttributeId Value="03" />
+        </AttributeDescriptor>
+        <ENUM Value="1" Unit="a" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0047" />
+          <InstanceId Value="0.0.17.0.0.255" />
+          <AttributeId Value="03" />
+        </AttributeDescriptor>
+        <UINT32 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0046" />
+          <InstanceId Value="0.1.96.3.10.255" />
+          <AttributeId Value="03" />
+        </AttributeDescriptor>
+        <ENUM Value="1" Unit="a" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0046" />
+          <InstanceId Value="0.2.96.3.10.255" />
+          <AttributeId Value="03" />
+        </AttributeDescriptor>
+        <ENUM Value="1" Unit="a" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0046" />
+          <InstanceId Value="0.3.96.3.10.255" />
+          <AttributeId Value="03" />
+        </AttributeDescriptor>
+        <ENUM Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0046" />
+          <InstanceId Value="0.4.96.3.10.255" />
+          <AttributeId Value="03" />
+        </AttributeDescriptor>
+        <ENUM Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0046" />
+          <InstanceId Value="0.5.96.3.10.255" />
+          <AttributeId Value="03" />
+        </AttributeDescriptor>
+        <ENUM Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0046" />
+          <InstanceId Value="0.6.96.3.10.255" />
+          <AttributeId Value="03" />
+        </AttributeDescriptor>
+        <ENUM Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0001" />
+          <InstanceId Value="0.0.96.14.0.255" />
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <OCTETSTRING Value="T3" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0003" />
+          <InstanceId Value="1.0.1.7.0.255" /> <!-- Active power+ (W) -->
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <UINT32 Value="3" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0003" />
+          <InstanceId Value="1.0.21.7.0.255" /> <!-- Active power+ L1 (W) -->
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <UINT32 Value="1" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0003" />
+          <InstanceId Value="1.0.41.7.0.255" /> <!-- Active power+ L2 (W) -->
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <UINT32 Value="1" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0003" />
+          <InstanceId Value="1.0.61.7.0.255" /> <!-- Active power+ L3 (W) -->
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <UINT32 Value="1" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0003" />
+          <InstanceId Value="1.0.2.7.0.255" /> <!-- Active power- (W) -->
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <UINT32 Value="3" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0003" />
+          <InstanceId Value="1.0.22.7.0.255" /> <!-- Active power- L1 (W) -->
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <UINT32 Value="1" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0003" />
+          <InstanceId Value="1.0.42.7.0.255" /> <!-- Active power- L2 (W) -->
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <UINT32 Value="1" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0003" />
+          <InstanceId Value="1.0.62.7.0.255" /> <!-- Active power- L3 (W) -->
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <UINT32 Value="1" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0003" />
+          <InstanceId Value="1.0.1.8.0.255" /> <!-- Active energy+ total (Wh) -->
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <UINT32 Value="8" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0003" />
+          <InstanceId Value="1.0.1.8.1.255" /> <!-- Active energy+ T1 (Wh) -->
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <UINT32 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0003" />
+          <InstanceId Value="1.0.1.8.2.255" /> <!-- Active energy+ T2 (Wh) -->
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <UINT32 Value="4" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0003" />
+          <InstanceId Value="1.0.1.8.3.255" />
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <UINT32 Value="4" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0003" />
+          <InstanceId Value="1.0.1.8.4.255" />
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <UINT32 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0003" />
+          <InstanceId Value="1.0.2.8.0.255" /> <!-- Active energy- total (Wh) -->
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <UINT32 Value="4" />
+      </STRUCTURE>
+      <STRUCTURE Qty="2">
+        <AttributeDescriptor>
+          <ClassId Value="0001" />
+          <InstanceId Value="0.0.96.13.0.255" />
+          <AttributeId Value="02" />
+        </AttributeDescriptor>
+        <OCTETSTRING Value="" />
+      </STRUCTURE>
+    </ARRAY>
+  </STRUCTURE>
+</DataNotification>

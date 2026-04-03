@@ -1,0 +1,94 @@
+<?xml version='1.0' encoding='utf-8'?>
+<DataNotification LongInvokeId="4000004D">
+  <DateTime Value="2022-11-03 15:38:25 -03:00" />
+  <STRUCTURE Qty="7">
+    <ARRAY Qty="7">
+      <STRUCTURE Qty="6">
+        <UINT16 Value="40" />
+        <OCTETSTRING Value="0.0.25.9.0.255" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+        <STRUCTURE Qty="2">
+          <ENUM Value="0" />
+          <NullData />
+        </STRUCTURE>
+        <ARRAY Qty="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="6">
+        <UINT16 Value="1" />
+        <OCTETSTRING Value="0.0.96.5.134.255" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+        <STRUCTURE Qty="2">
+          <ENUM Value="0" />
+          <NullData />
+        </STRUCTURE>
+        <ARRAY Qty="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="6">
+        <UINT16 Value="1" />
+        <OCTETSTRING Value="0.0.42.0.0.255" Name="Logical device name" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+        <STRUCTURE Qty="2">
+          <ENUM Value="0" />
+          <NullData />
+        </STRUCTURE>
+        <ARRAY Qty="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="6">
+        <UINT16 Value="1" />
+        <OCTETSTRING Value="0.0.96.1.0.255" Name="Meter serial number" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+        <STRUCTURE Qty="2">
+          <ENUM Value="0" />
+          <NullData />
+        </STRUCTURE>
+        <ARRAY Qty="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="6">
+        <UINT16 Value="1" />
+        <OCTETSTRING Value="0.0.97.98.0.255" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+        <STRUCTURE Qty="2">
+          <ENUM Value="0" />
+          <NullData />
+        </STRUCTURE>
+        <ARRAY Qty="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="6">
+        <UINT16 Value="1" />
+        <OCTETSTRING Value="0.0.97.98.10.255" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+        <STRUCTURE Qty="2">
+          <ENUM Value="0" />
+          <NullData />
+        </STRUCTURE>
+        <ARRAY Qty="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="6">
+        <UINT16 Value="1" />
+        <OCTETSTRING Value="0.0.96.5.135.255" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+        <STRUCTURE Qty="2">
+          <ENUM Value="0" />
+          <NullData />
+        </STRUCTURE>
+        <ARRAY Qty="0" />
+      </STRUCTURE>
+    </ARRAY>
+    <ENUM Value="1" Unit="a" />
+    <OCTETSTRING Value="EMR0222173608710" />
+    <OCTETSTRING Value="012415173608710" />
+    <UINT32 Value="16" />
+    <UINT32 Value="65535" />
+    <STRUCTURE Qty="2">
+      <OCTETSTRING Value="0.0.99.98.4.255" />
+      <UINT16 Value="3" />
+    </STRUCTURE>
+  </STRUCTURE>
+</DataNotification>

@@ -65,6 +65,13 @@ static std::vector<uint8_t> read_hex_file(std::string_view path) {
   // Extract contiguous hex pairs, skip everything else.
   std::vector<uint8_t> result;
   const char* p = text.c_str();
+  // Skip UTF-8 BOM if present
+  if (text.size() >= 3 &&
+      static_cast<unsigned char>(p[0]) == 0xEF &&
+      static_cast<unsigned char>(p[1]) == 0xBB &&
+      static_cast<unsigned char>(p[2]) == 0xBF) {
+    p += 3;
+  }
   while (*p) {
     // Skip non-hex separators
     while (*p && !is_hex_char(*p)) p++;
@@ -106,17 +113,25 @@ static bool looks_like_hex_file(std::string_view path) {
   std::array<char, 256> buf{};
   f.read(buf.data(), buf.size() - 1);
   auto n = static_cast<size_t>(f.gcount());
-  for (size_t i = 0; i < n; i++) {
+  size_t i = 0;
+  // Skip UTF-8 BOM if present (EF BB BF)
+  if (n >= 3 &&
+      static_cast<unsigned char>(buf[0]) == 0xEF &&
+      static_cast<unsigned char>(buf[1]) == 0xBB &&
+      static_cast<unsigned char>(buf[2]) == 0xBF) {
+    i = 3;
+  }
+  for (; i < n; i++) {
     auto c = static_cast<unsigned char>(buf[i]);
     if (is_hex_char(static_cast<char>(c)) ||
         c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '-' || c == ',') {
       continue;
     }
-    // Non-printable byte (control char or high byte) → likely raw binary
+    // Non-printable byte (control char or high byte) -- likely raw binary
     if (c < 0x20 || c >= 0x7F) {
       return false;
     }
-    // Printable non-hex ASCII (log-file comments, labels) — still treat as hex text
+    // Printable non-hex ASCII (log-file comments, labels) -- still treat as hex text
   }
   return true;
 }
@@ -278,20 +293,24 @@ int main(int argc, char* argv[]) {
   std::cout << "\n";
 
   // ---- Parse ----
-  size_t obj_count = 0;
+  size_t obj_count_numeric = 0;
+  size_t obj_count_string = 0;
 
   auto cooked_cb = [&](const char* obis, float val, const char* str, bool is_numeric) {
-    obj_count++;
     if (is_numeric) {
-      std::cout << std::format("  [{:2}] {:<20} = {:.4f}\n", obj_count, obis, static_cast<double>(val));
+      obj_count_numeric++;
+      std::cout << std::format("  [{:2}] {:<20} = {:.4f}\n", obj_count_numeric, obis, static_cast<double>(val));
     } else {
-      std::cout << std::format("  [{:2}] {:<20} = \"{}\"\n", obj_count, obis, str);
+      obj_count_string++;
+      std::cout << std::format("  [{:2}] {:<20} = \"{}\"\n", obj_count_string, obis, str);
     }
   };
 
   auto [count, consumed] = parser.parse(data, cooked_cb);
 
   std::cout << std::format("\nTotal: {} objects matched, {} bytes consumed\n", count, consumed);
+  std::cout << std::format("  Numeric: {}\n", obj_count_numeric);
+  std::cout << std::format("  String:  {}\n", obj_count_string);
 
   return count > 0 ? 0 : 1;
 }

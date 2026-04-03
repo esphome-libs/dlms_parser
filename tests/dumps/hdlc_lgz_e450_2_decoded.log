@@ -1,3 +1,4 @@
+XML:   tests/dumps/hdlc_lgz_e450_2_decoded.xml
 Input: tests/dumps/hdlc_lgz_e450_2.log (332 bytes)
 Key:   5FDE26FE7A1A36B6E1C0BA048FA9A023 (from .key file)
 

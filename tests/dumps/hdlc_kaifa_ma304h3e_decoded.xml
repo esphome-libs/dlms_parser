@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<DataNotification LongInvokeId="40000000">
+  <DateTime Value="2017-09-15 05:33:40" />
+  <STRUCTURE Qty="13">
+    <OCTETSTRING Value="KFM_001" />
+    <OCTETSTRING Value="6970631401753985" />
+    <OCTETSTRING Value="MA304H3E" />
+    <UINT32 Value="948" />
+    <UINT32 Value="0" />
+    <UINT32 Value="0" />
+    <UINT32 Value="64" />
+    <UINT32 Value="1416" />
+    <UINT32 Value="3241" />
+    <UINT32 Value="3119" />
+    <UINT32 Value="2385" />
+    <UINT32 Value="0" />
+    <UINT32 Value="2389" />
+  </STRUCTURE>
+</DataNotification>

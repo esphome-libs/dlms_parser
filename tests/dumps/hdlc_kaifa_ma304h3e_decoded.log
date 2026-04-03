@@ -1,3 +1,4 @@
+XML:   tests/dumps/hdlc_kaifa_ma304h3e_decoded.xml
 Input: tests/dumps/hdlc_kaifa_ma304h3e.log (123 bytes)
 
 === HDLC frame 1 (123 bytes) ===

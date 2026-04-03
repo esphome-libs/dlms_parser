@@ -1,55 +1,33 @@
-XML:   tests/dumps/raw_egd_example_decoded.xml
-Input: tests/dumps/raw_egd_example.log (435 bytes)
+Input: tests/dumps/raw_sagecom_xt211.log (355 bytes)
 
 === Transport: RAW (no frame wrapper) ===
 
 === APDU: DATA-NOTIFICATION ===
 0F                                     <-- DATA-NOTIFICATION tag
-00 00 00 01                              <-- Long-Invoke-ID
+80 00 F1 D5                              <-- Long-Invoke-ID
 00                                     <-- DateTime: absent
 
-=== AXDR payload (429 bytes) ===
+=== AXDR payload (349 bytes) ===
 02                                     <-- STRUCTURE
   02                                   <-- 2 elements
   --- element [1/2] ---
   16 01                                      <-- ENUM = 1 (a)
   --- element [2/2] ---
   01                                     <-- ARRAY
-    1B                                   <-- 27 elements
-    --- element [1/27] ---
+    16                                   <-- 22 elements
+    --- element [1/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
         00 01                                  <-- class-id = 1
-        00 00 2A 00 00 FF                        <-- OBIS 0.0.42.0.0.255, Logical device name
-        02                                     <-- attr-id = 2
-      --- element [2/2] ---
-      09                                     <-- OCTET_STRING
-        09                                   <-- length = 9
-        45 47 44 30 31 32 33 34 35
-        = "EGD012345"
-    --- element [2/27] ---
-    02                                     <-- STRUCTURE
-      02                                   <-- 2 elements
-      --- element [1/2]: COSEM attribute descriptor ---
-        00 28                                  <-- class-id = 40
-        00 02 19 09 00 FF                        <-- OBIS 0.2.25.9.0.255
-        01                                     <-- attr-id = 1
-      --- element [2/2] ---
-      09 06 00 02 19 09 00 FF                    <-- OBIS 0.2.25.9.0.255
-    --- element [3/27] ---
-    02                                     <-- STRUCTURE
-      02                                   <-- 2 elements
-      --- element [1/2]: COSEM attribute descriptor ---
-        00 01                                  <-- class-id = 1
-        00 00 60 01 00 FF                        <-- OBIS 0.0.96.1.0.255, Meter serial number
+        00 00 60 01 01 FF                        <-- OBIS 0.0.96.1.1.255, Meter ID
         02                                     <-- attr-id = 2
       --- element [2/2] ---
       09                                     <-- OCTET_STRING
         0A                                   <-- length = 10
-        30 31 32 33 34 35 36 37 38 39
-        = "0123456789"
-    --- element [4/27] ---
+        35 31 30 30 30 30 35 31 34 39
+        = "5100005149"
+    --- element [2/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -58,7 +36,7 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         03                                     <-- attr-id = 3
       --- element [2/2] ---
       16 01                                      <-- ENUM = 1 (a)
-    --- element [5/27] ---
+    --- element [3/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -67,7 +45,7 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         03                                     <-- attr-id = 3
       --- element [2/2] ---
       06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
-    --- element [6/27] ---
+    --- element [4/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -76,7 +54,7 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         03                                     <-- attr-id = 3
       --- element [2/2] ---
       16 01                                      <-- ENUM = 1 (a)
-    --- element [7/27] ---
+    --- element [5/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -84,8 +62,8 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         00 02 60 03 0A FF                        <-- OBIS 0.2.96.3.10.255
         03                                     <-- attr-id = 3
       --- element [2/2] ---
-      16 01                                      <-- ENUM = 1 (a)
-    --- element [8/27] ---
+      16 00                                      <-- ENUM = 0
+    --- element [6/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -94,7 +72,7 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         03                                     <-- attr-id = 3
       --- element [2/2] ---
       16 00                                      <-- ENUM = 0
-    --- element [9/27] ---
+    --- element [7/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -103,25 +81,7 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         03                                     <-- attr-id = 3
       --- element [2/2] ---
       16 00                                      <-- ENUM = 0
-    --- element [10/27] ---
-    02                                     <-- STRUCTURE
-      02                                   <-- 2 elements
-      --- element [1/2]: COSEM attribute descriptor ---
-        00 46                                  <-- class-id = 70
-        00 05 60 03 0A FF                        <-- OBIS 0.5.96.3.10.255
-        03                                     <-- attr-id = 3
-      --- element [2/2] ---
-      16 00                                      <-- ENUM = 0
-    --- element [11/27] ---
-    02                                     <-- STRUCTURE
-      02                                   <-- 2 elements
-      --- element [1/2]: COSEM attribute descriptor ---
-        00 46                                  <-- class-id = 70
-        00 06 60 03 0A FF                        <-- OBIS 0.6.96.3.10.255
-        03                                     <-- attr-id = 3
-      --- element [2/2] ---
-      16 00                                      <-- ENUM = 0
-    --- element [12/27] ---
+    --- element [8/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -131,9 +91,9 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
       --- element [2/2] ---
       09                                     <-- OCTET_STRING
         02                                   <-- length = 2
-        54 33
-        = "T3"
-    --- element [13/27] ---
+        54 32
+        = "T2"
+    --- element [9/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -141,8 +101,8 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         01 00 01 07 00 FF                        <-- OBIS 1.0.1.7.0.255, Active power+ (W)
         02                                     <-- attr-id = 2
       --- element [2/2] ---
-      06 00 00 00 03                             <-- UINT32 = 3 (0x00000003)
-    --- element [14/27] ---
+      06 00 00 07 A4                             <-- UINT32 = 1956 (0x000007A4)
+    --- element [10/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -150,8 +110,8 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         01 00 15 07 00 FF                        <-- OBIS 1.0.21.7.0.255, Active power+ L1 (W)
         02                                     <-- attr-id = 2
       --- element [2/2] ---
-      06 00 00 00 01                             <-- UINT32 = 1 (0x00000001)
-    --- element [15/27] ---
+      06 00 00 00 C6                             <-- UINT32 = 198 (0x000000C6)
+    --- element [11/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -159,8 +119,8 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         01 00 29 07 00 FF                        <-- OBIS 1.0.41.7.0.255, Active power+ L2 (W)
         02                                     <-- attr-id = 2
       --- element [2/2] ---
-      06 00 00 00 01                             <-- UINT32 = 1 (0x00000001)
-    --- element [16/27] ---
+      06 00 00 06 A7                             <-- UINT32 = 1703 (0x000006A7)
+    --- element [12/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -168,8 +128,8 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         01 00 3D 07 00 FF                        <-- OBIS 1.0.61.7.0.255, Active power+ L3 (W)
         02                                     <-- attr-id = 2
       --- element [2/2] ---
-      06 00 00 00 01                             <-- UINT32 = 1 (0x00000001)
-    --- element [17/27] ---
+      06 00 00 00 36                             <-- UINT32 = 54 (0x00000036)
+    --- element [13/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -177,8 +137,8 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         01 00 02 07 00 FF                        <-- OBIS 1.0.2.7.0.255, Active power- (W)
         02                                     <-- attr-id = 2
       --- element [2/2] ---
-      06 00 00 00 03                             <-- UINT32 = 3 (0x00000003)
-    --- element [18/27] ---
+      06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+    --- element [14/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -186,8 +146,8 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         01 00 16 07 00 FF                        <-- OBIS 1.0.22.7.0.255, Active power- L1 (W)
         02                                     <-- attr-id = 2
       --- element [2/2] ---
-      06 00 00 00 01                             <-- UINT32 = 1 (0x00000001)
-    --- element [19/27] ---
+      06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+    --- element [15/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -195,8 +155,8 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         01 00 2A 07 00 FF                        <-- OBIS 1.0.42.7.0.255, Active power- L2 (W)
         02                                     <-- attr-id = 2
       --- element [2/2] ---
-      06 00 00 00 01                             <-- UINT32 = 1 (0x00000001)
-    --- element [20/27] ---
+      06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+    --- element [16/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -204,8 +164,8 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         01 00 3E 07 00 FF                        <-- OBIS 1.0.62.7.0.255, Active power- L3 (W)
         02                                     <-- attr-id = 2
       --- element [2/2] ---
-      06 00 00 00 01                             <-- UINT32 = 1 (0x00000001)
-    --- element [21/27] ---
+      06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+    --- element [17/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -213,8 +173,8 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         01 00 01 08 00 FF                        <-- OBIS 1.0.1.8.0.255, Active energy+ total (Wh)
         02                                     <-- attr-id = 2
       --- element [2/2] ---
-      06 00 00 00 08                             <-- UINT32 = 8 (0x00000008)
-    --- element [22/27] ---
+      06 00 4A FA 82                             <-- UINT32 = 4913794 (0x004AFA82)
+    --- element [18/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -222,8 +182,8 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         01 00 01 08 01 FF                        <-- OBIS 1.0.1.8.1.255, Active energy+ T1 (Wh)
         02                                     <-- attr-id = 2
       --- element [2/2] ---
-      06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
-    --- element [23/27] ---
+      06 00 0E 7A C5                             <-- UINT32 = 948933 (0x000E7AC5)
+    --- element [19/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -231,8 +191,8 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         01 00 01 08 02 FF                        <-- OBIS 1.0.1.8.2.255, Active energy+ T2 (Wh)
         02                                     <-- attr-id = 2
       --- element [2/2] ---
-      06 00 00 00 04                             <-- UINT32 = 4 (0x00000004)
-    --- element [24/27] ---
+      06 00 3C 7F BC                             <-- UINT32 = 3964860 (0x003C7FBC)
+    --- element [20/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -240,8 +200,8 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         01 00 01 08 03 FF                        <-- OBIS 1.0.1.8.3.255
         02                                     <-- attr-id = 2
       --- element [2/2] ---
-      06 00 00 00 04                             <-- UINT32 = 4 (0x00000004)
-    --- element [25/27] ---
+      06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+    --- element [21/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -250,7 +210,7 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         02                                     <-- attr-id = 2
       --- element [2/2] ---
       06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
-    --- element [26/27] ---
+    --- element [22/22] ---
     02                                     <-- STRUCTURE
       02                                   <-- 2 elements
       --- element [1/2]: COSEM attribute descriptor ---
@@ -258,16 +218,4 @@ Input: tests/dumps/raw_egd_example.log (435 bytes)
         01 00 02 08 00 FF                        <-- OBIS 1.0.2.8.0.255, Active energy- total (Wh)
         02                                     <-- attr-id = 2
       --- element [2/2] ---
-      06 00 00 00 04                             <-- UINT32 = 4 (0x00000004)
-    --- element [27/27] ---
-    02                                     <-- STRUCTURE
-      02                                   <-- 2 elements
-      --- element [1/2]: COSEM attribute descriptor ---
-        00 01                                  <-- class-id = 1
-        00 00 60 0D 00 FF                        <-- OBIS 0.0.96.13.0.255
-        02                                     <-- attr-id = 2
-      --- element [2/2] ---
-      09                                     <-- OCTET_STRING
-        00                                   <-- length = 0
-        
-        = ""
+      06 00 00 00 34                             <-- UINT32 = 52 (0x00000034)

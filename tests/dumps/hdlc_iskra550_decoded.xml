@@ -1,0 +1,126 @@
+<?xml version='1.0' encoding='utf-8'?>
+<DataNotification LongInvokeId="000026EB">
+  <DateTime Value="2023-04-01 21:32:35.00 -02:00" />
+  <STRUCTURE Qty="16">
+    <STRUCTURE Qty="2">
+      <OCTETSTRING Value="0.0.96.1.0.255" Name="Meter serial number" />
+      <OCTETSTRING Value="84895126" />
+    </STRUCTURE>
+    <STRUCTURE Qty="2">
+      <OCTETSTRING Value="0.0.96.1.1.255" Name="Meter ID" />
+      <OCTETSTRING Value="49.54.48.52.53.54" />
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.1.7.0.255" Name="Active power+ (W)" />
+      <UINT32 Value="182" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="27" Unit="W" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.2.7.0.255" Name="Active power- (W)" />
+      <UINT32 Value="0" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="27" Unit="W" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.1.8.0.255" Name="Active energy+ total (Wh)" />
+      <UINT32 Value="261927" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="30" Unit="Wh" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.2.8.0.255" Name="Active energy- total (Wh)" />
+      <UINT32 Value="63832" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="30" Unit="Wh" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.32.7.0.255" Name="Voltage L1 (V)" />
+      <UINT16 Value="2364" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-1" />
+        <ENUM Value="35" Unit="V" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.52.7.0.255" Name="Voltage L2 (V)" />
+      <UINT16 Value="2344" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-1" />
+        <ENUM Value="35" Unit="V" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.72.7.0.255" Name="Voltage L3 (V)" />
+      <UINT16 Value="2370" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-1" />
+        <ENUM Value="35" Unit="V" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.31.7.0.255" Name="Current L1 (A)" />
+      <UINT16 Value="63" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-2" />
+        <ENUM Value="33" Unit="A" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.51.7.0.255" Name="Current L2 (A)" />
+      <UINT16 Value="89" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-2" />
+        <ENUM Value="33" Unit="A" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.71.7.0.255" Name="Current L3 (A)" />
+      <UINT16 Value="68" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="-2" />
+        <ENUM Value="33" Unit="A" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.1.8.1.255" Name="Active energy+ T1 (Wh)" />
+      <UINT32 Value="82426" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="30" Unit="Wh" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.1.8.2.255" Name="Active energy+ T2 (Wh)" />
+      <UINT32 Value="179501" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="30" Unit="Wh" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.2.8.1.255" Name="Active energy- T1 (Wh)" />
+      <UINT32 Value="50647" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="30" Unit="Wh" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.2.8.2.255" Name="Active energy- T2 (Wh)" />
+      <UINT32 Value="13185" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="30" Unit="Wh" />
+      </STRUCTURE>
+    </STRUCTURE>
+  </STRUCTURE>
+</DataNotification>

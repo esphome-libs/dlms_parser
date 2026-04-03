@@ -27,7 +27,7 @@ void DlmsParser::load_default_patterns() {
   axdr_parser_.register_pattern("T1", "TC,TO,TS,TV", 10);
   axdr_parser_.register_pattern("T2", "TO,TV,TSU", 20);
   axdr_parser_.register_pattern("T3", "TV,TC,TSU,TO", 30);
-  axdr_parser_.register_pattern("U.ZPA", "F,C,O,A,TV", 40);
+  axdr_parser_.register_pattern("ADV", "ADV", 40);
 }
 
 void DlmsParser::register_pattern(const char* dsl) {

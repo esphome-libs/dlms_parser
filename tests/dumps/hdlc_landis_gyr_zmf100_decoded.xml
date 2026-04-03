@@ -1,0 +1,79 @@
+<?xml version='1.0' encoding='utf-8'?>
+<DataNotification LongInvokeId="40000000">
+  <DateTime />
+  <ARRAY Qty="18">
+    <STRUCTURE Qty="2">
+      <OCTETSTRING Value="1.1.0.2.129.255" Name="Meter type identifier" />
+      <VISIBLESTRING Value="EMBRIQ_V1_1" />
+    </STRUCTURE>
+    <STRUCTURE Qty="2">
+      <OCTETSTRING Value="0.0.96.1.0.255" Name="Meter serial number" />
+      <VISIBLESTRING Value="40799390" />
+    </STRUCTURE>
+    <STRUCTURE Qty="2">
+      <OCTETSTRING Value="0.0.96.1.7.255" Name="Meter firmware" />
+      <VISIBLESTRING Value="ZMF1" />
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.1.7.0.255" Name="Active power+ (W)" />
+      <UINT32 Value="560" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="27" Unit="W" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.2.7.0.255" Name="Active power- (W)" />
+      <UINT32 Value="0" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="27" Unit="W" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.3.7.0.255" Name="Reactive power+ (var)" />
+      <UINT32 Value="0" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="29" Unit="var" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <OCTETSTRING Value="1.0.4.7.0.255" Name="Reactive power- (var)" />
+      <UINT32 Value="0" />
+      <STRUCTURE Qty="2">
+        <INT8 Value="0" />
+        <ENUM Value="29" Unit="var" />
+      </STRUCTURE>
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <UINT32 Value="151060511" />
+      <Unknown0x07 />
+      <NullData />
+    </STRUCTURE>
+    <Unknown0xFF />
+    <INT16 Value="244" />
+    <STRUCTURE Qty="2">
+      <INT8 Value="-2" />
+      <ENUM Value="33" Unit="A" />
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <UINT32 Value="151060531" />
+      <Unknown0x07 />
+      <NullData />
+    </STRUCTURE>
+    <Unknown0xFF />
+    <INT16 Value="0" />
+    <STRUCTURE Qty="2">
+      <INT8 Value="-2" />
+      <ENUM Value="33" Unit="A" />
+    </STRUCTURE>
+    <STRUCTURE Qty="3">
+      <UINT32 Value="151060551" />
+      <Unknown0x07 />
+      <NullData />
+    </STRUCTURE>
+    <Unknown0xFF />
+    <INT16 Value="0" />
+  </ARRAY>
+</DataNotification>

@@ -1,3 +1,4 @@
+XML:   tests/dumps/hdlc_landis_gyr_e450_decoded.xml
 Input: tests/dumps/hdlc_landis_gyr_e450.log (332 bytes)
 Key:   5C316162209EBB790B52EB0E7FC5B11C (from .key file)
 

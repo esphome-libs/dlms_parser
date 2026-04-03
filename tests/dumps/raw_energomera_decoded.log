@@ -1,13 +1,188 @@
-Input: tests/dumps/raw_energomera.log (262 bytes)
+XML:   tests/dumps/raw_energomera_decoded.xml
+Input: tests/dumps/raw_energomera.log (274 bytes)
 
 === Transport: RAW (no frame wrapper) ===
 
 === APDU: DATA-NOTIFICATION ===
 0F                                     <-- DATA-NOTIFICATION tag
-26 19 FF FF                              <-- Long-Invoke-ID
-4C                                     <-- DateTime: unknown flag
+40 00 00 4D                              <-- Long-Invoke-ID
+0C                                     <-- DateTime: 12 raw bytes
+  07 E6 0B 03 FF 0F 26 19 FF FF 4C FF
+  = 2022-11-03 15:38:25 -03:00 (summer time)
 
-=== AXDR payload (244 bytes) ===
-00                                     <-- NULL
-
-Unparsed tail (243 bytes): 00 19 09 00 FF 0F 02 12 00 00 02 02 16 00 01 00 02 06 12 00 01 09 06 00 00 60 05 86 FF 0F 02 12
+=== AXDR payload (256 bytes) ===
+02                                     <-- STRUCTURE
+  07                                   <-- 7 elements
+  --- element [1/7] ---
+  01                                     <-- ARRAY
+    07                                   <-- 7 elements
+    --- element [1/7] ---
+    02                                     <-- STRUCTURE
+      06                                   <-- 6 elements
+      --- element [1/6] ---
+      12 00 28                                   <-- UINT16 = 40
+      --- element [2/6] ---
+      09 06 00 00 19 09 00 FF                    <-- OBIS 0.0.25.9.0.255
+      --- element [3/6] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/6] ---
+      12 00 00                                   <-- UINT16 = 0
+      --- element [5/6] ---
+      02                                     <-- STRUCTURE
+        02                                   <-- 2 elements
+        --- element [1/2] ---
+        16 00                                      <-- ENUM = 0
+        --- element [2/2] ---
+        00                                     <-- NULL
+      --- element [6/6] ---
+      01                                     <-- ARRAY
+        00                                   <-- 0 elements
+    --- element [2/7] ---
+    02                                     <-- STRUCTURE
+      06                                   <-- 6 elements
+      --- element [1/6] ---
+      12 00 01                                   <-- UINT16 = 1
+      --- element [2/6] ---
+      09 06 00 00 60 05 86 FF                    <-- OBIS 0.0.96.5.134.255
+      --- element [3/6] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/6] ---
+      12 00 00                                   <-- UINT16 = 0
+      --- element [5/6] ---
+      02                                     <-- STRUCTURE
+        02                                   <-- 2 elements
+        --- element [1/2] ---
+        16 00                                      <-- ENUM = 0
+        --- element [2/2] ---
+        00                                     <-- NULL
+      --- element [6/6] ---
+      01                                     <-- ARRAY
+        00                                   <-- 0 elements
+    --- element [3/7] ---
+    02                                     <-- STRUCTURE
+      06                                   <-- 6 elements
+      --- element [1/6] ---
+      12 00 01                                   <-- UINT16 = 1
+      --- element [2/6] ---
+      09 06 00 00 2A 00 00 FF                    <-- OBIS 0.0.42.0.0.255, Logical device name
+      --- element [3/6] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/6] ---
+      12 00 00                                   <-- UINT16 = 0
+      --- element [5/6] ---
+      02                                     <-- STRUCTURE
+        02                                   <-- 2 elements
+        --- element [1/2] ---
+        16 00                                      <-- ENUM = 0
+        --- element [2/2] ---
+        00                                     <-- NULL
+      --- element [6/6] ---
+      01                                     <-- ARRAY
+        00                                   <-- 0 elements
+    --- element [4/7] ---
+    02                                     <-- STRUCTURE
+      06                                   <-- 6 elements
+      --- element [1/6] ---
+      12 00 01                                   <-- UINT16 = 1
+      --- element [2/6] ---
+      09 06 00 00 60 01 00 FF                    <-- OBIS 0.0.96.1.0.255, Meter serial number
+      --- element [3/6] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/6] ---
+      12 00 00                                   <-- UINT16 = 0
+      --- element [5/6] ---
+      02                                     <-- STRUCTURE
+        02                                   <-- 2 elements
+        --- element [1/2] ---
+        16 00                                      <-- ENUM = 0
+        --- element [2/2] ---
+        00                                     <-- NULL
+      --- element [6/6] ---
+      01                                     <-- ARRAY
+        00                                   <-- 0 elements
+    --- element [5/7] ---
+    02                                     <-- STRUCTURE
+      06                                   <-- 6 elements
+      --- element [1/6] ---
+      12 00 01                                   <-- UINT16 = 1
+      --- element [2/6] ---
+      09 06 00 00 61 62 00 FF                    <-- OBIS 0.0.97.98.0.255
+      --- element [3/6] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/6] ---
+      12 00 00                                   <-- UINT16 = 0
+      --- element [5/6] ---
+      02                                     <-- STRUCTURE
+        02                                   <-- 2 elements
+        --- element [1/2] ---
+        16 00                                      <-- ENUM = 0
+        --- element [2/2] ---
+        00                                     <-- NULL
+      --- element [6/6] ---
+      01                                     <-- ARRAY
+        00                                   <-- 0 elements
+    --- element [6/7] ---
+    02                                     <-- STRUCTURE
+      06                                   <-- 6 elements
+      --- element [1/6] ---
+      12 00 01                                   <-- UINT16 = 1
+      --- element [2/6] ---
+      09 06 00 00 61 62 0A FF                    <-- OBIS 0.0.97.98.10.255
+      --- element [3/6] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/6] ---
+      12 00 00                                   <-- UINT16 = 0
+      --- element [5/6] ---
+      02                                     <-- STRUCTURE
+        02                                   <-- 2 elements
+        --- element [1/2] ---
+        16 00                                      <-- ENUM = 0
+        --- element [2/2] ---
+        00                                     <-- NULL
+      --- element [6/6] ---
+      01                                     <-- ARRAY
+        00                                   <-- 0 elements
+    --- element [7/7] ---
+    02                                     <-- STRUCTURE
+      06                                   <-- 6 elements
+      --- element [1/6] ---
+      12 00 01                                   <-- UINT16 = 1
+      --- element [2/6] ---
+      09 06 00 00 60 05 87 FF                    <-- OBIS 0.0.96.5.135.255
+      --- element [3/6] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/6] ---
+      12 00 00                                   <-- UINT16 = 0
+      --- element [5/6] ---
+      02                                     <-- STRUCTURE
+        02                                   <-- 2 elements
+        --- element [1/2] ---
+        16 00                                      <-- ENUM = 0
+        --- element [2/2] ---
+        00                                     <-- NULL
+      --- element [6/6] ---
+      01                                     <-- ARRAY
+        00                                   <-- 0 elements
+  --- element [2/7] ---
+  16 01                                      <-- ENUM = 1 (a)
+  --- element [3/7] ---
+  09                                     <-- OCTET_STRING
+    10                                   <-- length = 16
+    45 4D 52 30 32 32 32 31 37 33 36 30 38 37 31 30
+    = "EMR0222173608710"
+  --- element [4/7] ---
+  09                                     <-- OCTET_STRING
+    20                                   <-- length = 32
+    30 31 32 34 31 35 31 37 33 36 30 38 37 31 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+    = "012415173608710"
+  --- element [5/7] ---
+  06 00 00 00 10                             <-- UINT32 = 16 (0x00000010)
+  --- element [6/7] ---
+  06 00 00 FF FF                             <-- UINT32 = 65535 (0x0000FFFF)
+  --- element [7/7] ---
+  02                                     <-- STRUCTURE
+    02                                   <-- 2 elements
+    --- element [1/2] ---
+    09 06 00 00 63 62 04 FF                    <-- OBIS 0.0.99.98.4.255
+    --- element [2/2] ---
+    12 00 03                                   <-- UINT16 = 3
