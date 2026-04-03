@@ -1,7 +1,6 @@
 #pragma once
 
 #include <psa/crypto.h>
-#include <algorithm>
 #include "aes_128_gcm_decryptor.h"
 #include "../utils.h"
 #include "../log.h"

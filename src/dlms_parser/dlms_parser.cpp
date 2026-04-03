@@ -1,5 +1,8 @@
 #include "dlms_parser.h"
+#include "apdu_handler.h"
+#include "hdlc_decoder.h"
 #include "log.h"
+#include "mbus_decoder.h"
 #include <cstddef>
 
 namespace dlms_parser {
