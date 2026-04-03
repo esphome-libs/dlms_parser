@@ -121,21 +121,23 @@ static bool looks_like_hex_file(std::string_view path) {
   return true;
 }
 
+enum class FrameFormat { RAW, MBUS, HDLC };
+
 // Auto-detect frame format from first byte
-static dlms_parser::FrameFormat detect_format(const std::span<const uint8_t> data) {
-  if (data.empty()) return dlms_parser::FrameFormat::RAW;
+static FrameFormat detect_format(const std::span<const uint8_t> data) {
+  if (data.empty()) return FrameFormat::RAW;
   switch (data[0]) {
-    case 0x7E: return dlms_parser::FrameFormat::HDLC;
-    case 0x68: return dlms_parser::FrameFormat::MBUS;
-    default:   return dlms_parser::FrameFormat::RAW;
+    case 0x7E: return FrameFormat::HDLC;
+    case 0x68: return FrameFormat::MBUS;
+    default:   return FrameFormat::RAW;
   }
 }
 
-static const char* to_string(dlms_parser::FrameFormat fmt) {
+static const char* to_string(FrameFormat fmt) {
   switch (fmt) {
-    case dlms_parser::FrameFormat::HDLC: return "HDLC";
-    case dlms_parser::FrameFormat::MBUS: return "MBUS";
-    case dlms_parser::FrameFormat::RAW:  return "RAW";
+    case FrameFormat::HDLC: return "HDLC";
+    case FrameFormat::MBUS: return "MBUS";
+    case FrameFormat::RAW:  return "RAW";
   }
   return "?";
 }

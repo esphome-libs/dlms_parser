@@ -4,6 +4,8 @@
 
 namespace dlms_parser {
 
+enum class FrameFormat { RAW, MBUS, HDLC };
+
 DlmsParser::DlmsParser(Aes128GcmDecryptor& decryptor) : decryptor_(decryptor) {
   apdu_handler_.set_decryptor(&decryptor_);
 }

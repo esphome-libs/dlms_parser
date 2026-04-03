@@ -10,8 +10,6 @@
 
 namespace dlms_parser {
 
-enum class FrameFormat { RAW, MBUS, HDLC };
-
 // Facade — composes frame decoder, APDU handler, decryptor, and AXDR parser.
 class DlmsParser final : NonCopyableAndNonMovable {
  public:
