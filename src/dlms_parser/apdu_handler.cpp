@@ -169,9 +169,8 @@ std::span<uint8_t> parse_apdu_in_place(std::span<uint8_t> buf, Aes128GcmDecrypto
         Logger::log(LogLevel::ERROR, "Decryption failed (auth tag mismatch?)");
         return {};
       }
-      std::ranges::copy(buf.subspan(pos, payload_len), buf.begin());
       Logger::log(LogLevel::DEBUG, "Decrypted %u bytes", payload_len);
-      buf = buf.first(payload_len);
+      buf = buf.subspan(pos, payload_len);
       continue;  // re-enter loop to process decrypted content
     }
   }
