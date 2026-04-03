@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdarg>
-#include <cstdio>
 #include <functional>
 
 namespace dlms_parser {

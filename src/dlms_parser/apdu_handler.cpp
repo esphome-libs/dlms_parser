@@ -3,7 +3,6 @@
 #include "utils.h"
 #include <algorithm>
 #include <array>
-#include <ranges>
 
 namespace dlms_parser {
 

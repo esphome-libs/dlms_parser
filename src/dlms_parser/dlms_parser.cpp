@@ -3,7 +3,6 @@
 #include "hdlc_decoder.h"
 #include "log.h"
 #include "mbus_decoder.h"
-#include <cstddef>
 
 namespace dlms_parser {
 

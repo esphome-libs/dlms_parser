@@ -1,7 +1,5 @@
 #include <doctest.h>
 #include <string_view>
-#include <string>
-#include <array>
 #include <cstring>
 #include <ostream>
 

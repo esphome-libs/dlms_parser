@@ -2,7 +2,6 @@
 #include "log.h"
 #include "utils.h"
 #include <algorithm>
-#include <cstdio>
 #include <utility>
 
 namespace dlms_parser {

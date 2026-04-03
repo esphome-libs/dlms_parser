@@ -1,11 +1,8 @@
 #include <doctest.h>
 #include <vector>
 #include <cstdint>
-#include <cstring>
-#include <string_view>
 
 #include "dlms_parser/hdlc_decoder.h"
-#include "dlms_parser/types.h"
 #include "expected/hdlc_iskra550.h"
 
 using namespace dlms_parser;
