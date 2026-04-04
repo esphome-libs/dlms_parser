@@ -9,18 +9,82 @@ It is designed for embedded and integration-heavy environments such as ESPHome, 
 - **Encryption**: AES-128-GCM decryption and optional authentication tag verification for `General-GLO-Ciphering` and `General-DED-Ciphering` APDUs
 - **Pattern matching**: DSL-based AXDR descriptor patterns with built-in presets and custom registration
 - **Callback API**: cooked callback delivers OBIS code + scaled value; raw callback gives full capture details
-- **Embedded-friendly**: no heap allocation in the hot path; stack-only per-frame parsing
+- **Embedded-friendly**: no heap allocation during parsing
 - **Portable**: builds on ESP32 (IDF/Arduino), ESP8266, Linux, macOS, Windows
 
 ## How to use
 
 Complete example with the explanation: [test_example.cpp](https://github.com/esphome-libs/dlms_parser/blob/main/tests/test_example.cpp)
 
-## Documentation
+## How to creating custom patterns to match your meter's telegram structure
 
-- [HOWTO.md](HOWTO.md): practical guide, examples, troubleshooting
-- [REFERENCE.md](REFERENCE.md): public API, pattern DSL, protocol/reference notes
-- [ARCHITECTURE.md](ARCHITECTURE.md): component diagram and module responsibilities
+The parser starts with no registered AXDR patterns. Load the built-ins first unless you want full control:
+
+```cpp
+parser.load_default_patterns();
+```
+
+Built-in patterns
+
+| Name    | Priority | Typical use                               |
+|---------|---------:|-------------------------------------------|
+| `T1`    |       10 | class ID, tagged OBIS, scaler, value      |
+| `T2`    |       20 | tagged OBIS, value, scaler-unit structure |
+| `T3`    |       30 | value first, class ID, scaler-unit, OBIS  |
+| `U.ZPA` |       40 | untagged ZPA/Aidon-style layouts          |
+
+Register a custom pattern when your meter emits a different structure
+
+```cpp
+// Simple — name="CUSTOM", priority=0 (tried before built-ins)
+parser.register_pattern("TC, TO, TDTM");
+
+// Named with explicit priority
+parser.register_pattern("MyPattern", "TO, TV, S(TS, TU)", 5);
+
+// With default OBIS — used when the pattern captures no OBIS code
+const uint8_t meter_obis[] = {0, 0, 96, 1, 0, 255};  // 0.0.96.1.0.255
+parser.register_pattern("MeterID", "L, TSTR", 0, meter_obis);
+```
+
+Pattern priority matters:
+
+- lower priority number is tried first
+- `register_pattern(dsl)` uses priority `0`
+- built-ins start at priority `10`
+
+Common examples:
+
+```cpp
+parser.register_pattern("TC, TO, TDTM");          // datetime value
+parser.register_pattern("C, O, A, V, TS, TU");    // untagged flat
+parser.register_pattern("TO, TV, S(TS, TU)");     // tagged with scaler-unit
+parser.register_pattern("TO, TV");                // flat OBIS + value pairs (no scaler)
+parser.register_pattern("L, TSTR");               // last element as string
+parser.register_pattern("TOW, TV, TSU");          // Landis+Gyr swapped OBIS
+```
+
+### Token reference
+| Token          | Meaning                                    | Hex example                     |
+|----------------|--------------------------------------------|---------------------------------|
+| `F`            | first element guard                        | position check only             |
+| `L`            | last element guard                         | position check only             |
+| `C`            | class ID, 2-byte uint16 without tag        | `00 03`                         |
+| `TC`           | tagged class ID                            | `12 00 03`                      |
+| `O`            | OBIS code, 6-byte octet string without tag | `01 00 01 08 00 FF`             |
+| `TO`           | tagged OBIS code                           | `09 06 01 00 01 08 00 FF`       |
+| `TOW`          | tagged OBIS with swapped tag bytes         | `06 09 01 00 1F 07 00 FF`       |
+| `A`            | attribute index, 1-byte uint8 without tag  | `02`                            |
+| `TA`           | tagged attribute                           | `11 02` or `0F 02`              |
+| `V` / `TV`     | generic value                              | `06 00 00 07 A4`                |
+| `TSTR`         | tagged string-like value                   | `09 08 38 34 38 39 35 31 32 36` |
+| `TDTM`         | tagged 12-byte date-time value             | `19 ...` or `09 0C ...`         |
+| `TS`           | tagged scaler                              | `0F FF`                         |
+| `TU`           | tagged unit enum                           | `16 23`                         |
+| `TSU`          | tagged scaler-unit pair                    | `02 02 0F FF 16 23`             |
+| `S(x, y, ...)` | inline sub-structure                       | `02 03`                         |
+| `DN`           | descend into nested structure              | control token                   |
+| `UP`           | return from nested structure               | control token                   |
 
 ## How to add the library to your project
 
@@ -43,18 +107,9 @@ target_link_libraries(your_project_name PRIVATE dlms_parser)
 ```
 
 ## How to work with the codebase
-
 You can open the repository using any IDE that supports CMake.
 
 ## References
-
-### This library builds on work from
-
-- [esphome-dlms-cosem](https://github.com/latonita/esphome-dlms-cosem) - original ESPHome DLMS/COSEM component and AXDR parser
-- [xt211](https://github.com/Tomer27cz/xt211) - Sagemcom XT211 parser, instrumental in de-Guruxing the protocol handling
-
-### External References
-
 - [DLMS/COSEM Architecture and Protocols. Green Book Edition 11](https://github.com/zhuyangfei/DLMS-green-book/blob/main/Green-Book-Ed-11-V1-0.pdf)
 - [CONSUMER INFORMATION INTERFACE (CII) SPECIFICATION](https://wiki.weble.ch/articles/landys_e450_docs/customer_information_interface_(cii)_specification.pdf)
 - [EWK Energie AG. Smart meter customer interface](https://ewk-energie.ch/wp-content/uploads/2025/08/smart-meter-kundenschnittstelle.pdf)
