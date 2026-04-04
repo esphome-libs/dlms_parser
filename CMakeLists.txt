@@ -90,9 +90,8 @@ myproject_enable_sanitizers(dlms_parser_sanitizers ON ${ENABLE_SANITIZER_LEAK} O
 target_link_libraries(dlms_parser PUBLIC dlms_parser_sanitizers)
 if(MSVC)
   cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH MSVC_TOOLS_DIR)
-  file(COPY "${MSVC_TOOLS_DIR}/clang_rt.asan_dynamic-x86_64.dll"
-            "${MSVC_TOOLS_DIR}/clang_rt.asan_dynamic-x86_64.pdb"
-       DESTINATION "${CMAKE_BINARY_DIR}")
+  file(GLOB ASAN_RUNTIME_FILES "${MSVC_TOOLS_DIR}/clang_rt.asan_dynamic-*")
+  file(COPY ${ASAN_RUNTIME_FILES} DESTINATION "${CMAKE_BINARY_DIR}")
 endif()
 
 # dlms_parser_test
