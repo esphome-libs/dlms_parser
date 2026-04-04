@@ -88,6 +88,12 @@ else()
 endif()
 myproject_enable_sanitizers(dlms_parser_sanitizers ON ${ENABLE_SANITIZER_LEAK} ON OFF OFF)
 target_link_libraries(dlms_parser PUBLIC dlms_parser_sanitizers)
+if(MSVC)
+  cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH MSVC_TOOLS_DIR)
+  file(COPY "${MSVC_TOOLS_DIR}/clang_rt.asan_dynamic-x86_64.dll"
+            "${MSVC_TOOLS_DIR}/clang_rt.asan_dynamic-x86_64.pdb"
+       DESTINATION "${CMAKE_BINARY_DIR}")
+endif()
 
 # dlms_parser_test
 file(GLOB_RECURSE dlms_parser_test_src_files CONFIGURE_DEPENDS "tests/*.h" "tests/*.cpp")
