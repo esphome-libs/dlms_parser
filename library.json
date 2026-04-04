@@ -1,7 +1,7 @@
 {
   "name": "dlms_parser",
   "version": "1.0.0",
-  "description": "A lightweight, standalone C++ library for parsing DLMS/COSEM AXDR payloads and MBus/HDLC frames, designed for embedded environments like ESPHome. ",
+  "description": "A lightweight, standalone C++ library for parsing DLMS/COSEM AXDR payloads and MBus/HDLC frames, designed for embedded environments like ESPHome.",
   "keywords": [
     "dlms",
     "cosem",
@@ -39,8 +39,6 @@
       "library.json",
       "LICENSE",
       "README.md",
-      "HOWTO.md",
-      "REFERENCE.md",
       "src/*"
     ]
   }
