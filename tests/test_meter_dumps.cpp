@@ -23,49 +23,55 @@
 #include "tests/expected/hdlc_landis_gyr_zmf100.h"
 #include "tests/expected/hdlc_landis_gyr_e450.h"
 #include "tests/expected/hdlc_lgz_e450_2.h"
+#include "tests/expected/hdlc_kaifa_ma304h3e.h"
 #include "tests/expected/hdlc_kamstrup_omnipower.h"
 #include "tests/expected/mbus_netz_noe_p1.h"
 
-template<typename Aes128GcmDecryptor = dlms_parser::Aes128GcmDecryptorMbedTls>
-void run_meter_test(const char* name,
-                    std::span<const uint8_t> payload,
-                    size_t expected_count,
-                    const std::map<std::string, std::string>& expected_strings,
-                    const std::map<std::string, float>& expected_floats,
-                    std::function<void(dlms_parser::DlmsParser&)> setup_fn = nullptr) {
+class LogCapturer : dlms_parser::NonCopyableAndNonMovable {
+public:
+  LogCapturer() {
+    dlms_parser::Logger::set_log_function([&](const dlms_parser::LogLevel log_level, const char* fmt, va_list args) {
+      std::array<char, 2000> buffer;
+      vsnprintf(buffer.data(), buffer.size(), fmt, args);
 
-  // Capture logs into a string instead of printing them directly
-  std::string parser_log;
-  parser_log += std::format("\n========== {} ==========\n", name);
-
-  dlms_parser::Logger::set_log_function([&parser_log](const dlms_parser::LogLevel log_level, const char* fmt, va_list args) {
-    std::array<char, 2000> buffer;
-    vsnprintf(buffer.data(), buffer.size(), fmt, args);
-
-    const char* level_str;
-    switch(log_level) {
+      const char* level_str;
+      switch (log_level) {
       case dlms_parser::LogLevel::DEBUG:        level_str = "[DBG] "; break;
       case dlms_parser::LogLevel::VERY_VERBOSE: level_str = "[VV]  "; break;
       case dlms_parser::LogLevel::VERBOSE:      level_str = "[VRB] "; break;
       case dlms_parser::LogLevel::INFO:         level_str = "[INF] "; break;
       case dlms_parser::LogLevel::WARNING:      level_str = "[WRN] "; break;
       case dlms_parser::LogLevel::ERROR:        level_str = "[ERR] "; break;
-      default: throw std::runtime_error("Unknown log level");
-    }
+      }
 
-    parser_log += std::format("{}{}\n", level_str, buffer.data());
-  });
+      log_messages += std::format("{}{}\n", level_str, buffer.data());
+      });
+  }
 
-  struct LogCleaner {
-    ~LogCleaner() {
-      dlms_parser::Logger::set_log_function([](dlms_parser::LogLevel, const char*, va_list) {});
-    }
-  } log_cleaner;
+  ~LogCapturer() {
+    dlms_parser::Logger::set_log_function([](auto, auto, auto) {});
+  }
 
+  std::string get_logs() const {
+    return log_messages;
+  }
+
+private:
+  std::string log_messages;
+};
+
+template<typename Aes128GcmDecryptor = dlms_parser::Aes128GcmDecryptorMbedTls>
+void run_meter_test(std::span<const uint8_t> payload,
+                    size_t expected_count,
+                    const std::map<std::string, std::string>& expected_strings,
+                    const std::map<std::string, float>& expected_floats,
+                    std::function<void(dlms_parser::DlmsParser&)> setup_fn = [](auto&) {}) {
+  LogCapturer log_capturer;
+  
   Aes128GcmDecryptor decryptor;
   dlms_parser::DlmsParser parser(&decryptor);
   parser.load_default_patterns();
-  if (setup_fn) setup_fn(parser);
+  setup_fn(parser);
 
   std::map<std::string, float> captured_floats;
   std::map<std::string, std::string> captured_strings;
@@ -81,7 +87,7 @@ void run_meter_test(const char* name,
   std::vector<uint8_t> mutable_payload(payload.begin(), payload.end());
   auto [objects_found, bytes_consumed] = parser.parse(mutable_payload, callback);
 
-  INFO(parser_log);
+  INFO(log_capturer.get_logs());
 
   REQUIRE(objects_found == expected_count);
 
@@ -108,7 +114,7 @@ void run_meter_test(const char* name,
 TEST_CASE("Integration: RAW APDU") {
 
   SUBCASE("Sagemcom XT211") {
-    run_meter_test("Sagemcom XT211",
+    run_meter_test(
       dlms::test_data::sagemcom_xt211_raw_frame,
       dlms::test_data::sagemcom_xt211_expected_count,
       dlms::test_data::sagemcom_xt211_expected_strings,
@@ -116,8 +122,31 @@ TEST_CASE("Integration: RAW APDU") {
     );
   }
 
+  SUBCASE("Sagemcom XT211. Duplicated frame at the end") {
+    std::vector<uint8_t> duplicated_frame(std::begin(dlms::test_data::sagemcom_xt211_raw_frame), std::end(dlms::test_data::sagemcom_xt211_raw_frame));
+    duplicated_frame.insert(duplicated_frame.end(), std::begin(dlms::test_data::sagemcom_xt211_raw_frame), std::end(dlms::test_data::sagemcom_xt211_raw_frame));
+    run_meter_test(
+      duplicated_frame,
+      39,
+      dlms::test_data::sagemcom_xt211_expected_strings,
+      dlms::test_data::sagemcom_xt211_expected_floats
+    );
+  }
+
+  SUBCASE("Sagemcom XT211 and the half of the same data at the end") {
+    std::vector<uint8_t> duplicated_frame(std::begin(dlms::test_data::sagemcom_xt211_raw_frame), std::end(dlms::test_data::sagemcom_xt211_raw_frame));
+    const auto half = std::size(dlms::test_data::sagemcom_xt211_raw_frame) / 2;
+    duplicated_frame.insert(duplicated_frame.end(), std::begin(dlms::test_data::sagemcom_xt211_raw_frame), std::begin(dlms::test_data::sagemcom_xt211_raw_frame) + half);
+    run_meter_test(
+      duplicated_frame,
+      27,
+      dlms::test_data::sagemcom_xt211_expected_strings,
+      dlms::test_data::sagemcom_xt211_expected_floats
+    );
+  }
+
   SUBCASE("Energomera") {
-    run_meter_test("Energomera",
+    run_meter_test(
       dlms::test_data::raw_energomera_frame,
       dlms::test_data::raw_energomera_expected_count,
       dlms::test_data::raw_energomera_expected_strings,
@@ -126,7 +155,7 @@ TEST_CASE("Integration: RAW APDU") {
   }
 
   SUBCASE("Salzburg Netz") {
-    run_meter_test("Salzburg Netz",
+    run_meter_test(
       dlms::test_data::raw_salzburg_netz_frame,
       dlms::test_data::raw_salzburg_netz_expected_count,
       dlms::test_data::raw_salzburg_netz_expected_strings,
@@ -139,7 +168,7 @@ TEST_CASE("Integration: RAW APDU") {
   }
 
   SUBCASE("EGD Example") {
-    run_meter_test("EGD Example",
+    run_meter_test(
       dlms::test_data::egd_example_raw_frame,
       dlms::test_data::egd_example_expected_count,
       dlms::test_data::egd_example_expected_strings,
@@ -155,7 +184,7 @@ TEST_CASE("Integration: RAW APDU") {
 TEST_CASE("Integration: HDLC") {
 
   SUBCASE("Iskra 550 (3 segmented frames)") {
-    run_meter_test("Iskra 550 (3 segmented frames)",
+    run_meter_test(
       dlms::test_data::iskra550_raw_frame,
       dlms::test_data::iskra550_expected_count,
       dlms::test_data::iskra550_expected_strings,
@@ -164,8 +193,30 @@ TEST_CASE("Integration: HDLC") {
     );
   }
 
+  SUBCASE("Iskra 550 (3 segmented frames) and the same data at the end. Should ignore the duplicated part") {
+    std::vector<uint8_t> duplicated_frame(std::begin(dlms::test_data::iskra550_raw_frame), std::end(dlms::test_data::iskra550_raw_frame));
+    duplicated_frame.insert(duplicated_frame.end(), std::begin(dlms::test_data::iskra550_raw_frame), std::end(dlms::test_data::iskra550_raw_frame));
+    run_meter_test(
+      duplicated_frame,
+      dlms::test_data::iskra550_expected_count,
+      dlms::test_data::iskra550_expected_strings,
+      dlms::test_data::iskra550_expected_floats,
+      [](dlms_parser::DlmsParser& p) { p.register_pattern("S(TO, TV)"); }
+    );
+  }
+
+  SUBCASE("Iskra 550 (3 segmented frames) and the half of the same data at the end. Should fail") {
+    std::vector<uint8_t> duplicated_frame(std::begin(dlms::test_data::iskra550_raw_frame), std::end(dlms::test_data::iskra550_raw_frame));
+    const auto half = std::size(dlms::test_data::iskra550_raw_frame) / 2;
+    duplicated_frame.insert(duplicated_frame.end(), std::begin(dlms::test_data::iskra550_raw_frame), std::begin(dlms::test_data::iskra550_raw_frame) + half);
+    dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
+    dlms_parser::DlmsParser parser(&decryptor);
+    auto [n, consumed] = parser.parse(duplicated_frame, [](auto, auto, auto, auto) {});
+    CHECK(n == 0);
+  }
+
   SUBCASE("Norway HAN 1-phase (Aidon)") {
-    run_meter_test("Norway HAN 1-phase (Aidon)",
+    run_meter_test(
       dlms::test_data::norway_han_1phase_raw_frame,
       dlms::test_data::norway_han_1phase_expected_count,
       dlms::test_data::norway_han_1phase_expected_strings,
@@ -178,7 +229,7 @@ TEST_CASE("Integration: HDLC") {
   }
 
   SUBCASE("Norway HAN 3-phase (Aidon)") {
-    run_meter_test("Norway HAN 3-phase (Aidon)",
+    run_meter_test(
       dlms::test_data::norway_han_3phase_raw_frame,
       dlms::test_data::norway_han_3phase_expected_count,
       dlms::test_data::norway_han_3phase_expected_strings,
@@ -191,7 +242,7 @@ TEST_CASE("Integration: HDLC") {
   }
 
   SUBCASE("Landis+Gyr ZMF100") {
-    run_meter_test("Landis+Gyr ZMF100",
+    run_meter_test(
       dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame,
       dlms::test_data::hdlc_landis_gyr_zmf100_expected_count,
       dlms::test_data::hdlc_landis_gyr_zmf100_expected_strings,
@@ -210,14 +261,12 @@ TEST_CASE("Integration: HDLC") {
     dlms_parser::DlmsParser parser(&decryptor);
     std::vector<uint8_t> frame(std::begin(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame),
                                 std::end(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame));
-    auto [n, consumed] = parser.parse(
-      frame,
-      [](const char*, float, const char*, bool) {});
+    auto [n, consumed] = parser.parse(frame, [](auto, auto, auto, auto) {});
     CHECK(n == 0);
   }
 
   SUBCASE("Landis+Gyr E450 (GBT + encrypted). Use MbedTls") {
-    run_meter_test("Landis+Gyr E450 (GBT + encrypted). Use MbedTls",
+    run_meter_test(
       dlms::test_data::hdlc_landis_gyr_e450_raw_frame,
       dlms::test_data::hdlc_landis_gyr_e450_expected_count,
       dlms::test_data::hdlc_landis_gyr_e450_expected_strings,
@@ -231,7 +280,7 @@ TEST_CASE("Integration: HDLC") {
   }
 
   SUBCASE("Landis+Gyr E450 (GBT + encrypted). Use BearSsl") {
-    run_meter_test<dlms_parser::Aes128GcmDecryptorBearSsl>("Landis+Gyr E450 (GBT + encrypted). Use BearSsl",
+    run_meter_test<dlms_parser::Aes128GcmDecryptorBearSsl>(
       dlms::test_data::hdlc_landis_gyr_e450_raw_frame,
       dlms::test_data::hdlc_landis_gyr_e450_expected_count,
       dlms::test_data::hdlc_landis_gyr_e450_expected_strings,
@@ -245,7 +294,7 @@ TEST_CASE("Integration: HDLC") {
   }
 
   SUBCASE("Landis+Gyr E450 (GBT + encrypted). Use TF-PSA") {
-    run_meter_test<dlms_parser::Aes128GcmDecryptorTfPsa>("Landis+Gyr E450 (GBT + encrypted). Use PSA Crypto",
+    run_meter_test<dlms_parser::Aes128GcmDecryptorTfPsa>(
       dlms::test_data::hdlc_landis_gyr_e450_raw_frame,
       dlms::test_data::hdlc_landis_gyr_e450_expected_count,
       dlms::test_data::hdlc_landis_gyr_e450_expected_strings,
@@ -259,7 +308,7 @@ TEST_CASE("Integration: HDLC") {
   }
 
   SUBCASE("Landis+Gyr E450 #2 (GBT + encrypted)") {
-    run_meter_test("Landis+Gyr E450 #2 (GBT + encrypted)",
+    run_meter_test(
       dlms::test_data::hdlc_lgz_e450_2_raw_frame,
       dlms::test_data::hdlc_lgz_e450_2_expected_count,
       dlms::test_data::hdlc_lgz_e450_2_expected_strings,
@@ -272,7 +321,7 @@ TEST_CASE("Integration: HDLC") {
   }
 
   SUBCASE("Kamstrup Omnipower (encrypted, no auth key)") {
-    run_meter_test("Kamstrup Omnipower (encrypted, no auth key)",
+    run_meter_test(
       dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,
@@ -286,7 +335,7 @@ TEST_CASE("Integration: HDLC") {
   }
 
   SUBCASE("Kamstrup Omnipower (encrypted + authenticated)") {
-    run_meter_test("Kamstrup Omnipower (encrypted + authenticated)",
+    run_meter_test(
       dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,
@@ -301,7 +350,7 @@ TEST_CASE("Integration: HDLC") {
   }
 
   SUBCASE("Kamstrup Omnipower (encrypted + authenticated). BearSsl") {
-    run_meter_test<dlms_parser::Aes128GcmDecryptorBearSsl>("Kamstrup Omnipower (encrypted + authenticated)",
+    run_meter_test<dlms_parser::Aes128GcmDecryptorBearSsl>(
       dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,
@@ -316,7 +365,7 @@ TEST_CASE("Integration: HDLC") {
   }
 
   SUBCASE("Kamstrup Omnipower (encrypted + authenticated). Use TF-PSA") {
-    run_meter_test<dlms_parser::Aes128GcmDecryptorTfPsa>("Kamstrup Omnipower (encrypted + authenticated)",
+    run_meter_test<dlms_parser::Aes128GcmDecryptorTfPsa>(
       dlms::test_data::hdlc_kamstrup_omnipower_raw_frame,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_count,
       dlms::test_data::hdlc_kamstrup_omnipower_expected_strings,
@@ -330,6 +379,15 @@ TEST_CASE("Integration: HDLC") {
     );
   }
 
+  SUBCASE("Kaifa MA304H3E") {
+    run_meter_test(
+      dlms::test_data::hdlc_kaifa_ma304h3e_raw_frame,
+      dlms::test_data::hdlc_kaifa_ma304h3e_expected_count,
+      dlms::test_data::hdlc_kaifa_ma304h3e_expected_strings,
+      dlms::test_data::hdlc_kaifa_ma304h3e_expected_floats
+    );
+  }
+
   SUBCASE("Kamstrup Omnipower - wrong auth key rejects frame") {
     const auto wrong_key = dlms_parser::Aes128GcmAuthenticationKey::from_bytes(std::array<uint8_t, 16>{0x00}).value();
     dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
@@ -339,9 +397,7 @@ TEST_CASE("Integration: HDLC") {
     parser.load_default_patterns();
     std::vector<uint8_t> frame(std::begin(dlms::test_data::hdlc_kamstrup_omnipower_raw_frame),
                                 std::end(dlms::test_data::hdlc_kamstrup_omnipower_raw_frame));
-    auto [n, consumed] = parser.parse(
-      frame,
-      [](const char*, float, const char*, bool) {});
+    auto [n, consumed] = parser.parse(frame, [](auto, auto, auto, auto) {});
     CHECK(n == 0);
   }
 
@@ -353,7 +409,7 @@ TEST_CASE("Integration: HDLC") {
 TEST_CASE("Integration: MBus") {
 
   SUBCASE("Netz NOE P1 (encrypted)") {
-    run_meter_test("Netz NOE P1 (encrypted)",
+    run_meter_test(
       dlms::test_data::mbus_netz_noe_p1_raw_frame,
       dlms::test_data::mbus_netz_noe_p1_expected_count,
       dlms::test_data::mbus_netz_noe_p1_expected_strings,
@@ -367,4 +423,30 @@ TEST_CASE("Integration: MBus") {
     );
   }
 
+  SUBCASE("Netz NOE P1 (encrypted) and the same data at the end. Should ignore the duplicated part") {
+    std::vector<uint8_t> duplicated_frame(std::begin(dlms::test_data::mbus_netz_noe_p1_raw_frame), std::end(dlms::test_data::mbus_netz_noe_p1_raw_frame));
+    duplicated_frame.insert(duplicated_frame.end(), std::begin(dlms::test_data::mbus_netz_noe_p1_raw_frame), std::end(dlms::test_data::mbus_netz_noe_p1_raw_frame));
+    run_meter_test(
+      duplicated_frame,
+      dlms::test_data::mbus_netz_noe_p1_expected_count,
+      dlms::test_data::mbus_netz_noe_p1_expected_strings,
+      dlms::test_data::mbus_netz_noe_p1_expected_floats,
+      [](dlms_parser::DlmsParser& p) {
+        p.set_decryption_key(dlms::test_data::mbus_netz_noe_p1_key);
+        const uint8_t meter_obis[] = { 0, 0, 96, 1, 0, 255 };  // 0.0.96.1.0.255
+        p.register_pattern("MeterID", "L, TSTR", 0, meter_obis);
+        p.register_pattern("Obis-Value-Scaler-Unit", "S(TO, TV, TSU)");
+      }
+    );
+  }
+
+  SUBCASE("Netz NOE P1 (encrypted) and the half of the same data at the end. Should fail") {
+    std::vector<uint8_t> duplicated_frame(std::begin(dlms::test_data::mbus_netz_noe_p1_raw_frame), std::end(dlms::test_data::mbus_netz_noe_p1_raw_frame));
+    const auto half = std::size(dlms::test_data::mbus_netz_noe_p1_raw_frame) / 2;
+    duplicated_frame.insert(duplicated_frame.end(), std::begin(dlms::test_data::mbus_netz_noe_p1_raw_frame), std::begin(dlms::test_data::mbus_netz_noe_p1_raw_frame) + half);
+    dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
+    dlms_parser::DlmsParser parser(&decryptor);
+    auto [n, consumed] = parser.parse(duplicated_frame, [](auto, auto, auto, auto) {});
+    CHECK(n == 0);
+  }
 }
