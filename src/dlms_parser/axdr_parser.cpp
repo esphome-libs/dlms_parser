@@ -135,7 +135,7 @@ bool AxdrParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
     return false;
   }
 
-  Logger::log(LogLevel::DEBUG, "Parsing %s with %d elements at pos %zu (depth %d)",
+  Logger::log(LogLevel::VERBOSE, "Parsing %s with %d elements at pos %zu (depth %d)",
               type == DLMS_DATA_TYPE_STRUCTURE ? "STRUCTURE" : "ARRAY",
               elements_count, this->pos_ - 1, depth);
 
@@ -417,26 +417,26 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
   }
 
   const uint16_t cid = class_id ? class_id : pat.default_class_id;
-  Logger::log(LogLevel::DEBUG, "Pattern '%s' matched at pos %u - class_id=%d obis=%s",
+  Logger::log(LogLevel::VERBOSE, "Pattern '%s' matched at pos %u - class_id=%d obis=%s",
               pat.name ? pat.name : "UNKNOWN", elem_idx, cid, obis_str_buf);
 
   if (has_scaler_unit) {
-    Logger::log(LogLevel::DEBUG, "  type=%s len=%zu scaler=%d unit=%d",
+    Logger::log(LogLevel::VERBOSE, "  type=%s len=%zu scaler=%d unit=%d",
                 dlms_data_type_to_string(value_type), value.size(), scaler, unit_enum);
   } else {
-    Logger::log(LogLevel::DEBUG, "  type=%s len=%zu",
+    Logger::log(LogLevel::VERBOSE, "  type=%s len=%zu",
                 dlms_data_type_to_string(value_type), value.size());
   }
 
   if (!value.empty()) {
     char hex_buf[512];
     format_hex_pretty_to(hex_buf, value);
-    Logger::log(LogLevel::DEBUG, "  hex  : %s", hex_buf);
+    Logger::log(LogLevel::VERBOSE, "  hex  : %s", hex_buf);
   }
-  Logger::log(LogLevel::DEBUG, "  str  : '%s'", val_s_buf);
-  Logger::log(LogLevel::DEBUG, "  float: %f", static_cast<double>(raw_val_f));
+  Logger::log(LogLevel::VERBOSE, "  str  : '%s'", val_s_buf);
+  Logger::log(LogLevel::VERBOSE, "  float: %f", static_cast<double>(raw_val_f));
   if (has_scaler_unit && is_numeric) {
-    Logger::log(LogLevel::DEBUG, "  scaled: %f", static_cast<double>(val_f));
+    Logger::log(LogLevel::VERBOSE, "  scaled: %f", static_cast<double>(val_f));
   }
 
   this->cooked_cb_(obis_str_buf, val_f, val_s_buf, is_numeric);

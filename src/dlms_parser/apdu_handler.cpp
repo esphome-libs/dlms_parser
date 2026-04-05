@@ -36,14 +36,14 @@ std::span<uint8_t> parse_apdu_in_place(std::span<uint8_t> buf, Aes128GcmDecrypto
 
     // --- Raw AXDR (0x01/0x02): done
     if (tag == DLMS_DATA_TYPE_ARRAY || tag == DLMS_DATA_TYPE_STRUCTURE) {
-      Logger::log(LogLevel::DEBUG, "Found raw AXDR %s (0x%02X) - no APDU wrapper",
+      Logger::log(LogLevel::VERBOSE, "Found raw AXDR %s (0x%02X) - no APDU wrapper",
                   tag == DLMS_DATA_TYPE_ARRAY ? "ARRAY" : "STRUCTURE", tag);
       return buf;
     }
 
     // --- DATA-NOTIFICATION (0x0F): strip header, return AXDR
     if (tag == DLMS_APDU_DATA_NOTIFICATION) {
-      Logger::log(LogLevel::DEBUG, "Found DATA-NOTIFICATION (0x0F)");
+      Logger::log(LogLevel::VERBOSE, "Found DATA-NOTIFICATION (0x0F)");
       size_t pos = 1;
       if (pos + 4 > buf.size()) return {};
       pos += 4;  // Long-Invoke-ID
@@ -76,7 +76,7 @@ std::span<uint8_t> parse_apdu_in_place(std::span<uint8_t> buf, Aes128GcmDecrypto
     // --- General-Block-Transfer (0xE0): reassemble blocks in-place
     // Block format: E0 [ctrl:1] [block_num:2] [block_num_ack:2] [BER_len] [data...]
     if (tag == DLMS_APDU_GENERAL_BLOCK_TRANSFER) {
-      Logger::log(LogLevel::DEBUG, "Found General-Block-Transfer (0xE0)");
+      Logger::log(LogLevel::VERBOSE, "Found General-Block-Transfer (0xE0)");
       size_t read_pos = 0;
       size_t write_pos = 0;
 
@@ -107,14 +107,14 @@ std::span<uint8_t> parse_apdu_in_place(std::span<uint8_t> buf, Aes128GcmDecrypto
         Logger::log(LogLevel::WARNING, "GBT: no payload after reassembly");
         return {};
       }
-      Logger::log(LogLevel::DEBUG, "GBT: reassembled %zu bytes", write_pos);
+      Logger::log(LogLevel::VERBOSE, "GBT: reassembled %zu bytes", write_pos);
       buf = buf.first(write_pos);
       continue;  // re-enter loop to process reassembled content
     }
 
     // --- Ciphered APDU (0xDB/0xDF): decrypt in-place
     if (tag == DLMS_APDU_GENERAL_GLO_CIPHERING || tag == DLMS_APDU_GENERAL_DED_CIPHERING) {
-      Logger::log(LogLevel::DEBUG, "Found ciphered APDU (0x%02X)", tag);
+      Logger::log(LogLevel::VERBOSE, "Found ciphered APDU (0x%02X)", tag);
 
       if (!decryptor || !decryptor->decryption_key()) {
         Logger::log(LogLevel::WARNING, "Encrypted APDU received but no decryption key is set");
@@ -168,7 +168,7 @@ std::span<uint8_t> parse_apdu_in_place(std::span<uint8_t> buf, Aes128GcmDecrypto
         Logger::log(LogLevel::ERROR, "Decryption failed (auth tag mismatch?)");
         return {};
       }
-      Logger::log(LogLevel::DEBUG, "Decrypted %u bytes", payload_len);
+      Logger::log(LogLevel::VERBOSE, "Decrypted %u bytes", payload_len);
       buf = buf.subspan(pos, payload_len);
       continue;  // re-enter loop to process decrypted content
     }
