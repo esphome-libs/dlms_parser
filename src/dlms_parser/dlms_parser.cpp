@@ -41,7 +41,7 @@ void DlmsParser::register_pattern(const char* name, const char* dsl, const int p
   axdr_parser_.register_pattern(name, dsl, priority, default_obis);
 }
 
-ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& cooked_cb, const DlmsRawCallback& raw_cb) {
+ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& cooked_cb) {
   if (buf.empty()) {
     Logger::log(LogLevel::ERROR, "Empty buffer passed to parse()");
     return {};
@@ -72,7 +72,7 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& co
   ParseResult result;
   size_t offset = 0;
   while (offset < axdr.size()) {
-    auto [count, bytes_consumed] = axdr_parser_.parse(axdr.subspan(offset), cooked_cb, raw_cb);
+    auto [count, bytes_consumed] = axdr_parser_.parse(axdr.subspan(offset), cooked_cb);
     if (bytes_consumed == 0) break;
     result.count += count;
     result.bytes_consumed += bytes_consumed;

@@ -28,13 +28,12 @@ void AxdrParser::clear_patterns() {
 // Public parse entry point
 // ---------------------------------------------------------------------------
 
-ParseResult AxdrParser::parse(const std::span<const uint8_t> axdr, DlmsDataCallback cooked_cb, DlmsRawCallback raw_cb) {
+ParseResult AxdrParser::parse(const std::span<const uint8_t> axdr, DlmsDataCallback cooked_cb) {
   if (axdr.empty()) return {};
 
   buffer_ = axdr;
   pos_ = 0;
   cooked_cb_ = std::move(cooked_cb);
-  raw_cb_ = std::move(raw_cb);
   objects_found_ = 0;
   last_pattern_elements_consumed_ = 0;
 
@@ -392,11 +391,6 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
   }
 
   objects_found_++;
-
-  // Raw callback — delivers original captures (obis may be empty)
-  if (this->raw_cb_) {
-    this->raw_cb_(c, pat);
-  }
 
   if (!this->cooked_cb_) return;
 

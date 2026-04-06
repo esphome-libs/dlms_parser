@@ -11,9 +11,6 @@
 
 namespace dlms_parser {
 
-// Callback delivering raw captured data before any conversion.
-using DlmsRawCallback = std::function<void(const AxdrCaptures&, const AxdrDescriptorPattern&)>;
-
 struct ParseResult {
   size_t count{ 0 };          // number of matched COSEM objects
   size_t bytes_consumed{ 0 }; // how many bytes of the input buffer were processed
@@ -33,7 +30,7 @@ public:
 
   // Parse AXDR bytes. Fires cooked_cb and/or raw_cb for each pattern match.
   // Either callback may be nullptr.
-  ParseResult parse(std::span<const uint8_t> axdr, DlmsDataCallback cooked_cb, DlmsRawCallback raw_cb = nullptr);
+  ParseResult parse(std::span<const uint8_t> axdr, DlmsDataCallback cooked_cb);
 
   [[nodiscard]] std::span<const AxdrDescriptorPattern> patterns() const { return { patterns_.data(), patterns_count_ }; }
   [[nodiscard]] size_t patterns_size() const { return patterns_count_; }
@@ -50,7 +47,6 @@ private:
   std::span<const uint8_t> buffer_{};
   size_t pos_{ 0 };
   DlmsDataCallback cooked_cb_;
-  DlmsRawCallback raw_cb_;
   size_t objects_found_{ 0 };
   uint8_t last_pattern_elements_consumed_{ 0 };
 

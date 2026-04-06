@@ -1,6 +1,13 @@
 #pragma once
 
+#if __has_include(<bearssl/bearssl.h>)
+#include <bearssl/bearssl.h>
+#elif __has_include(<bearssl.h>)
 #include <bearssl.h>
+#else
+#error "BearSSL header not found"
+#endif
+
 #include "aes_128_gcm_decryptor.h"
 #include "../utils.h"
 #include "../log.h"

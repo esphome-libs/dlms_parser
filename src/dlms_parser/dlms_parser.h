@@ -29,7 +29,7 @@ class DlmsParser final : NonCopyableAndNonMovable {
   // Parse a full frame (in-place). buf is modified during parsing.
   // Fires cooked_cb for each matched COSEM object.
   // Optionally fires raw_cb with unmodified captures before conversion.
-  ParseResult parse(std::span<uint8_t> buf, const DlmsDataCallback& cooked_cb, const DlmsRawCallback& raw_cb = nullptr);
+  ParseResult parse(std::span<uint8_t> buf, const DlmsDataCallback& cooked_cb);
 
  private:
   Aes128GcmDecryptor* decryptor_;
