@@ -6,7 +6,21 @@
 
 namespace dlms_parser {
 
-enum class FrameFormat { RAW, MBUS, HDLC };
+static void log_span_as_hex(const LogLevel level, const std::span<const uint8_t> data) {
+  constexpr size_t kCharsPerChunk = 200;
+  constexpr size_t kBytesPerChunk = kCharsPerChunk / 2;
+  for (size_t i = 0; i < data.size(); i += kBytesPerChunk) {
+    char hex[kCharsPerChunk + 1];
+    const size_t n = std::min(kBytesPerChunk, data.size() - i);
+    for (size_t j = 0; j < n; ++j) {
+      constexpr char kHex[] = "0123456789ABCDEF";
+      hex[j * 2] = kHex[data[i + j] >> 4];
+      hex[j * 2 + 1] = kHex[data[i + j] & 0x0F];
+    }
+    hex[n * 2] = '\0';
+    Logger::log(level, "%s", hex);
+  }
+}
 
 DlmsParser::DlmsParser(Aes128GcmDecryptor* decryptor) : decryptor_(decryptor) {}
 
@@ -47,6 +61,10 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& co
     return {};
   }
 
+  Logger::log(LogLevel::DEBUG, "Buffer content:");
+  log_span_as_hex(LogLevel::DEBUG, buf);
+  Logger::log(LogLevel::DEBUG, "============");
+
   std::span<uint8_t> decoded;
 
   // Step 1: Frame decode (auto-detect HDLC / MBus / RAW from first byte)
@@ -78,6 +96,15 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& co
     result.bytes_consumed += bytes_consumed;
     offset += bytes_consumed;
   }
+
+  if(result.count == 0) {
+    Logger::log(LogLevel::ERROR, "No COSEM objects found in AXDR payload");
+  }
+
+  Logger::log(LogLevel::DEBUG, "Unencrypted AXDR payload:");
+  log_span_as_hex(LogLevel::DEBUG, axdr);
+  Logger::log(LogLevel::DEBUG, "============");
+
   return result;
 }
 
