@@ -61,9 +61,9 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& co
     return {};
   }
 
-  Logger::log(LogLevel::DEBUG, "Buffer content:");
-  log_span_as_hex(LogLevel::DEBUG, buf);
-  Logger::log(LogLevel::DEBUG, "============");
+  Logger::log(LogLevel::VERY_VERBOSE, "Buffer content:");
+  log_span_as_hex(LogLevel::VERY_VERBOSE, buf);
+  Logger::log(LogLevel::VERY_VERBOSE, "============");
 
   std::span<uint8_t> decoded;
 
@@ -101,9 +101,9 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& co
     Logger::log(LogLevel::ERROR, "No COSEM objects found in AXDR payload");
   }
 
-  Logger::log(LogLevel::DEBUG, "Unencrypted AXDR payload:");
-  log_span_as_hex(LogLevel::DEBUG, axdr);
-  Logger::log(LogLevel::DEBUG, "============");
+  Logger::log(LogLevel::VERY_VERBOSE, "Unencrypted AXDR payload:");
+  log_span_as_hex(LogLevel::VERY_VERBOSE, axdr);
+  Logger::log(LogLevel::VERY_VERBOSE, "============");
 
   return result;
 }
