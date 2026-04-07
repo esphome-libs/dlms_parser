@@ -150,7 +150,7 @@ bool AxdrParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
     }
 
     if (this->pos_ >= this->buffer_.size()) {
-      Logger::log(LogLevel::VERBOSE, "Unexpected end while reading element %d of %s",
+      Logger::log(LogLevel::WARNING, "Unexpected end while reading element %d of %s",
                   elements_consumed + 1, type == DLMS_DATA_TYPE_STRUCTURE ? "STRUCTURE" : "ARRAY");
       return false;
     }
@@ -160,7 +160,7 @@ bool AxdrParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
     elements_consumed++;
 
     if (this->pos_ == original_position) {
-      Logger::log(LogLevel::VERBOSE, "No progress at pos %zu, aborting to avoid infinite loop",
+      Logger::log(LogLevel::WARNING, "No progress at pos %zu, aborting to avoid infinite loop",
                   original_position);
       return false;
     }
