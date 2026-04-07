@@ -26,12 +26,12 @@ parser.load_default_patterns();
 
 Built-in patterns
 
-| Name    | Priority | Typical use                               |
-|---------|---------:|-------------------------------------------|
-| `T1`    |       10 | class ID, tagged OBIS, scaler, value      |
-| `T2`    |       20 | tagged OBIS, value, scaler-unit structure |
-| `T3`    |       30 | value first, class ID, scaler-unit, OBIS  |
-| `U.ZPA` |       40 | untagged ZPA/Aidon-style layouts          |
+| Name  | Priority | Typical use                               |
+|-------|---------:|-------------------------------------------|
+| `T1`  |       10 | class ID, tagged OBIS, scaler, value      |
+| `T2`  |       20 | tagged OBIS, value, scaler-unit structure |
+| `T3`  |       30 | value first, class ID, scaler-unit, OBIS  |
+| `ADV` |       40 | untagged ZPA/Aidon-style layouts          |
 
 Register a custom pattern when your meter emits a different structure
 
