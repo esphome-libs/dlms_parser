@@ -1,5 +1,5 @@
 version: "1.0.0"
-description: "A lightweight, standalone C++ library for parsing DLMS/COSEM AXDR payloads."
+description: "A C++20 library for parsing DLMS/COSEM push telegrams from electricity meters. It is designed for embedded and integration-heavy environments such as ESPHome"
 url: "https://github.com/esphome-libs/dlms_parser"
 files:
   exclude:
