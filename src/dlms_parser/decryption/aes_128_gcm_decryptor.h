@@ -50,7 +50,7 @@ class Aes128GcmDecryptor {
  public:
   virtual void set_decryption_key(const Aes128GcmDecryptionKey& key) = 0;
 
-  virtual void set_authentication_key(const Aes128GcmAuthenticationKey& key) {
+  void set_authentication_key(const Aes128GcmAuthenticationKey& key) {
     auth_key_ = key;
   }
 

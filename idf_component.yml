@@ -5,7 +5,7 @@ files:
   exclude:
     - "**/*"
   include:
-    - src/**
+    - src/**/*
     - LICENSE
     - README.md
     - CMakeLists.txt
