@@ -1,6 +1,5 @@
 #pragma once
 
-#include "types.h"
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -28,6 +27,33 @@ protected:
 public:
   NonCopyableAndNonMovable(NonCopyableAndNonMovable&&) = delete;
   NonCopyableAndNonMovable& operator=(NonCopyableAndNonMovable&&) = delete;
+};
+
+enum DlmsDataType : uint8_t {
+  DLMS_DATA_TYPE_NONE = 0,
+  DLMS_DATA_TYPE_ARRAY = 1,
+  DLMS_DATA_TYPE_STRUCTURE = 2,
+  DLMS_DATA_TYPE_BOOLEAN = 3,
+  DLMS_DATA_TYPE_BIT_STRING = 4,
+  DLMS_DATA_TYPE_INT32 = 5,
+  DLMS_DATA_TYPE_UINT32 = 6,
+  DLMS_DATA_TYPE_OCTET_STRING = 9,
+  DLMS_DATA_TYPE_STRING = 10,
+  DLMS_DATA_TYPE_STRING_UTF8 = 12,
+  DLMS_DATA_TYPE_BINARY_CODED_DECIMAL = 13,
+  DLMS_DATA_TYPE_INT8 = 15,
+  DLMS_DATA_TYPE_INT16 = 16,
+  DLMS_DATA_TYPE_UINT8 = 17,
+  DLMS_DATA_TYPE_UINT16 = 18,
+  DLMS_DATA_TYPE_COMPACT_ARRAY = 19,
+  DLMS_DATA_TYPE_INT64 = 20,
+  DLMS_DATA_TYPE_UINT64 = 21,
+  DLMS_DATA_TYPE_ENUM = 22,
+  DLMS_DATA_TYPE_FLOAT32 = 23,
+  DLMS_DATA_TYPE_FLOAT64 = 24,
+  DLMS_DATA_TYPE_DATETIME = 25,
+  DLMS_DATA_TYPE_DATE = 26,
+  DLMS_DATA_TYPE_TIME = 27
 };
 
 inline uint16_t be16(const uint8_t* p) { return static_cast<uint16_t>(static_cast<unsigned>(p[0]) << 8 | p[1]); }

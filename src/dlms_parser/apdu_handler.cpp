@@ -6,6 +6,22 @@
 
 namespace dlms_parser {
 
+enum DlmsCipherConstants : uint8_t {
+  DLMS_SYSTITLE_LENGTH = 8,
+  DLMS_FRAME_COUNTER_LENGTH = 4,
+  DLMS_IV_LENGTH = 12,
+  DLMS_GCM_TAG_LENGTH = 12,
+  DLMS_LENGTH_SINGLE_BYTE_MAX = 127,
+  DLMS_LENGTH_CORRECTION = 5
+};
+
+enum DlmsApduTag : uint8_t {
+  DLMS_APDU_DATA_NOTIFICATION = 0x0F,
+  DLMS_APDU_GENERAL_BLOCK_TRANSFER = 0xE0,
+  DLMS_APDU_GENERAL_GLO_CIPHERING = 0xDB,
+  DLMS_APDU_GENERAL_DED_CIPHERING = 0xDF
+}; // There will be more, keep as list (not single line)
+
 static bool is_known_tag(const uint8_t b) {
   switch (b) {
   case DLMS_APDU_GENERAL_BLOCK_TRANSFER:

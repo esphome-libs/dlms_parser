@@ -1,7 +1,5 @@
 #pragma once
 
-#include "pattern.h"
-#include "types.h"
 #include "utils.h"
 #include <cstdint>
 #include <functional>
@@ -10,6 +8,56 @@
 #include <array>
 
 namespace dlms_parser {
+
+enum class AxdrTokenType : uint8_t {
+  EXPECT_TO_BE_FIRST,
+  EXPECT_TO_BE_LAST,
+  EXPECT_TYPE_EXACT,
+  EXPECT_TYPE_U_I_8,
+  EXPECT_CLASS_ID_UNTAGGED,
+  EXPECT_OBIS6_TAGGED,
+  EXPECT_OBIS6_TAGGED_WRONG,
+  EXPECT_OBIS6_UNTAGGED,
+  EXPECT_ATTR8_UNTAGGED,
+  EXPECT_VALUE_GENERIC,
+  EXPECT_VALUE_DATE_TIME,
+  EXPECT_VALUE_OCTET_STRING,
+  EXPECT_STRUCTURE_N,
+  EXPECT_SCALER_TAGGED,
+  EXPECT_UNIT_ENUM_TAGGED,
+  GOING_DOWN,
+  GOING_UP,
+  END_OF_PATTERN = 0xFF
+};
+
+struct AxdrPatternStep {
+  AxdrTokenType type{};
+  uint8_t param_u8_a{ 0 };
+};
+
+struct AxdrDescriptorPattern {
+  const char* name{ nullptr };
+  int priority{ 0 };
+  AxdrPatternStep steps[32]{};
+  uint16_t default_class_id{ 0 };
+  bool has_default_obis{ false };
+  std::array<uint8_t, 6> default_obis{};
+};
+
+struct AxdrCaptures {
+  uint32_t elem_idx{ 0 };
+  uint16_t class_id{ 0 };
+  std::span<const uint8_t> obis{};
+  DlmsDataType value_type{ DLMS_DATA_TYPE_NONE };
+  std::span<const uint8_t> value{};
+
+  bool has_scaler_unit{ false };
+  int8_t scaler{ 0 };
+  uint8_t unit_enum{ 0 };
+};
+
+// Callback: OBIS code, numeric value, string value, is_numeric flag
+using DlmsDataCallback = std::function<void(const char* obis_code, float float_val, const char* str_val, bool is_numeric)>;
 
 struct ParseResult {
   size_t count{ 0 };          // number of matched COSEM objects
