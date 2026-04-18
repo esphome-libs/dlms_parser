@@ -4,11 +4,12 @@
 #include <string_view>
 #include <ostream>
 
+#include "test_util.h"
 #include "dlms_parser/utils.h"
 
 using namespace dlms_parser;
 
-TEST_CASE("Endianness Conversions") {
+TEST_CASE_FIXTURE(LogFixture, "Endianness Conversions") {
   SUBCASE("be16") {
     constexpr uint8_t data[] = {0x12, 0x34};
     CHECK(be16(data) == 0x1234);
@@ -25,66 +26,7 @@ TEST_CASE("Endianness Conversions") {
   }
 }
 
-TEST_CASE("OBIS String Formatting") {
-  std::array<char, 32> buffer{};
-
-  SUBCASE("Valid OBIS code") {
-    const uint8_t obis[] = {1, 0, 96, 1, 0, 255};
-    obis_to_string(obis, buffer);
-    CHECK(std::string_view(buffer.data()) == "1.0.96.1.0.255");
-  }
-
-  SUBCASE("Zeroed OBIS code") {
-    const uint8_t obis[] = {0, 0, 0, 0, 0, 0};
-    obis_to_string(obis, buffer);
-    CHECK(std::string_view(buffer.data()) == "0.0.0.0.0.0");
-  }
-
-  SUBCASE("Max length enforcement") {
-    const uint8_t obis[] = {1, 0, 96, 1, 0, 255};
-    obis_to_string(obis, std::span<char>{buffer.data(), 10});
-    // Should safely truncate
-    CHECK(std::string_view(buffer.data()) == "1.0.96.1.");
-  }
-
-  SUBCASE("Null pointer safety") {
-    buffer[0] = 'X'; // Fill with dummy data
-    obis_to_string({}, buffer);
-    CHECK(std::string_view(buffer.data()) == ""); // Should be null-terminated at index 0
-  }
-}
-
-TEST_CASE("Hex Formatting (format_hex_pretty_to)") {
-  std::array<char, 64> buffer{};
-
-  SUBCASE("Normal data") {
-    constexpr uint8_t data[] = {0xDE, 0xAD, 0xBE, 0xEF};
-    format_hex_pretty_to(buffer, data);
-    CHECK(std::string_view(buffer.data()) == "DE.AD.BE.EF");
-  }
-
-  SUBCASE("Empty data") {
-    format_hex_pretty_to(buffer, {});
-    CHECK(std::string_view(buffer.data()) == "");
-  }
-
-  SUBCASE("Zero max length") {
-    constexpr uint8_t data[] = {0xDE, 0xAD};
-    buffer[0] = 'X';
-    format_hex_pretty_to(std::span<char>{buffer.data(), 0}, data);
-    CHECK(buffer[0] == 'X'); // Should not have written anything, not even \0
-  }
-
-  SUBCASE("Truncated by max length") {
-    constexpr uint8_t data[] = {0xDE, 0xAD, 0xBE, 0xEF};
-    // We pass 7 because it briefly needs space to write "DE.AD." + '\0' (7 bytes)
-    // before the function strips the trailing dot.
-    format_hex_pretty_to(std::span<char>{buffer.data(), 7}, data);
-    CHECK(std::string_view(buffer.data()) == "DE.AD");
-  }
-}
-
-TEST_CASE("BER Length Decoding") {
+TEST_CASE_FIXTURE(LogFixture, "BER Length Decoding") {
   SUBCASE("Short form length (<= 127)") {
     constexpr uint8_t data[] = {0x7F}; // 127
     size_t pos = 0;
@@ -125,77 +67,29 @@ TEST_CASE("BER Length Decoding") {
   }
 }
 
-TEST_CASE("Data Size and Type Properties") {
+TEST_CASE_FIXTURE(LogFixture, "Data Size and Type Properties") {
   SUBCASE("Data Sizes") {
-    CHECK(get_data_type_size(DLMS_DATA_TYPE_NONE) == 0);
-    CHECK(get_data_type_size(DLMS_DATA_TYPE_UINT8) == 1);
-    CHECK(get_data_type_size(DLMS_DATA_TYPE_UINT16) == 2);
-    CHECK(get_data_type_size(DLMS_DATA_TYPE_FLOAT32) == 4);
-    CHECK(get_data_type_size(DLMS_DATA_TYPE_FLOAT64) == 8);
-    CHECK(get_data_type_size(DLMS_DATA_TYPE_DATETIME) == 12);
-    CHECK(get_data_type_size(DLMS_DATA_TYPE_DATE) == 5);
-    CHECK(get_data_type_size(DLMS_DATA_TYPE_TIME) == 4);
-    CHECK(get_data_type_size(DLMS_DATA_TYPE_OCTET_STRING) == -1); // Variable length
+    CHECK(get_data_type_size(DlmsDataType::NONE) == 0);
+    CHECK(get_data_type_size(DlmsDataType::UINT8) == 1);
+    CHECK(get_data_type_size(DlmsDataType::UINT16) == 2);
+    CHECK(get_data_type_size(DlmsDataType::FLOAT32) == 4);
+    CHECK(get_data_type_size(DlmsDataType::FLOAT64) == 8);
+    CHECK(get_data_type_size(DlmsDataType::DATETIME) == 12);
+    CHECK(get_data_type_size(DlmsDataType::DATE) == 5);
+    CHECK(get_data_type_size(DlmsDataType::TIME) == 4);
+    CHECK(get_data_type_size(DlmsDataType::OCTET_STRING) == -1); // Variable length
   }
 
   SUBCASE("Value Type Checks") {
-    CHECK(is_value_data_type(DLMS_DATA_TYPE_UINT16) == true);
-    CHECK(is_value_data_type(DLMS_DATA_TYPE_FLOAT32) == true);
-    CHECK(is_value_data_type(DLMS_DATA_TYPE_STRING) == true);
-    CHECK(is_value_data_type(DLMS_DATA_TYPE_ARRAY) == false);
-    CHECK(is_value_data_type(DLMS_DATA_TYPE_STRUCTURE) == false);
+    CHECK(is_value_data_type(DlmsDataType::UINT16) == true);
+    CHECK(is_value_data_type(DlmsDataType::FLOAT32) == true);
+    CHECK(is_value_data_type(DlmsDataType::STRING) == true);
+    CHECK(is_value_data_type(DlmsDataType::ARRAY) == false);
+    CHECK(is_value_data_type(DlmsDataType::STRUCTURE) == false);
   }
 }
 
-TEST_CASE("Float Conversion (data_as_float)") {
-  SUBCASE("Null pointer and zero length") {
-    CHECK(data_as_float(DLMS_DATA_TYPE_UINT8, {}) == 0.0f);
-    uint8_t dummy = 0;
-    CHECK(data_as_float(DLMS_DATA_TYPE_UINT8, {&dummy, 0}) == 0.0f);
-  }
-
-  SUBCASE("Unsigned Integers") {
-    constexpr uint8_t u8[] = {255};
-    CHECK(data_as_float(DLMS_DATA_TYPE_UINT8, u8) == 255.0f);
-
-    constexpr uint8_t u16[] = {0x01, 0x00}; // 256
-    CHECK(data_as_float(DLMS_DATA_TYPE_UINT16, u16) == 256.0f);
-
-    constexpr uint8_t u32[] = {0x00, 0x01, 0x00, 0x00}; // 65536
-    CHECK(data_as_float(DLMS_DATA_TYPE_UINT32, u32) == 65536.0f);
-  }
-
-  SUBCASE("Signed Integers") {
-    constexpr uint8_t i8[] = {0xFF}; // -1
-    CHECK(data_as_float(DLMS_DATA_TYPE_INT8, i8) == -1.0f);
-
-    constexpr uint8_t i16[] = {0xFF, 0xFE}; // -2
-    CHECK(data_as_float(DLMS_DATA_TYPE_INT16, i16) == -2.0f);
-
-    constexpr uint8_t i32[] = {0xFF, 0xFF, 0xFF, 0xFD}; // -3
-    CHECK(data_as_float(DLMS_DATA_TYPE_INT32, i32) == -3.0f);
-  }
-
-  SUBCASE("Float32") {
-    constexpr uint8_t f32_pos[] = {0x41, 0x20, 0x00, 0x00}; // 10.0f in IEEE 754
-    CHECK(data_as_float(DLMS_DATA_TYPE_FLOAT32, f32_pos) == 10.0f);
-
-    constexpr uint8_t f32_neg[] = {0xC1, 0x20, 0x00, 0x00}; // -10.0f
-    CHECK(data_as_float(DLMS_DATA_TYPE_FLOAT32, f32_neg) == -10.0f);
-  }
-
-  SUBCASE("Float64") {
-    const uint8_t f64[] = {0x40, 0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // 10.0 in IEEE 754 double
-    CHECK(data_as_float(DLMS_DATA_TYPE_FLOAT64, f64) == 10.0f);
-  }
-
-  SUBCASE("Safe guarding against short lengths") {
-    constexpr uint8_t f32[] = {0x41, 0x20, 0x00}; // Missing last byte
-    CHECK(data_as_float(DLMS_DATA_TYPE_FLOAT32, {f32, 3}) == 0.0f);
-  }
-}
-
-TEST_CASE("DLMS Datetime 12-byte Validation") {
+TEST_CASE_FIXTURE(LogFixture, "DLMS Datetime 12-byte Validation") {
   SUBCASE("Null pointer safety") {
     CHECK(test_if_date_time_12b({}) == false);
   }
@@ -237,7 +131,7 @@ TEST_CASE("DLMS Datetime 12-byte Validation") {
   }
 }
 
-TEST_CASE("DLMS Datetime Formatting") {
+TEST_CASE_FIXTURE(LogFixture, "DLMS Datetime Formatting") {
   std::array<char, 64> buffer{};
 
   SUBCASE("Format fully specified datetime") {
@@ -276,45 +170,10 @@ TEST_CASE("DLMS Datetime Formatting") {
   }
 }
 
-TEST_CASE("Data to String formatting") {
-  std::array<char, 128> buffer{};
-
-  SUBCASE("String types") {
-    constexpr uint8_t str[] = {'H', 'e', 'l', 'l', 'o'};
-    data_to_string(DLMS_DATA_TYPE_STRING, str, buffer);
-    CHECK(std::string_view(buffer.data()) == "Hello");
-  }
-
-  SUBCASE("Numeric types") {
-    constexpr uint8_t u32[] = {0x00, 0x00, 0x04, 0xD2}; // 1234
-    data_to_string(DLMS_DATA_TYPE_UINT32, u32, buffer);
-    CHECK(std::string_view(buffer.data()) == "1234");
-  }
-
-  SUBCASE("Bit strings fallback to hex") {
-    constexpr uint8_t bits[] = {0xAB, 0xCD};
-    data_to_string(DLMS_DATA_TYPE_BIT_STRING, bits, buffer);
-    CHECK(std::string_view(buffer.data()) == "abcd"); // The function uses %02x
-  }
-
-  SUBCASE("Float32 formatting") {
-    constexpr uint8_t f32[] = {0x41, 0x20, 0x00, 0x00}; // 10.0f
-    data_to_string(DLMS_DATA_TYPE_FLOAT32, f32, buffer);
-    // Uses %f, so it appends decimal zeros
-    CHECK(std::string_view(buffer.data()).find("10.00000") == 0);
-  }
-
-  SUBCASE("Null pointer safety") {
-    buffer[0] = 'X';
-    data_to_string(DLMS_DATA_TYPE_STRING, {}, buffer);
-    CHECK(std::string_view(buffer.data()) == "");
-  }
-}
-
-TEST_CASE("DLMS Data Type to String") {
-  CHECK(std::string_view(dlms_data_type_to_string(DLMS_DATA_TYPE_NONE)) == "NONE");
-  CHECK(std::string_view(dlms_data_type_to_string(DLMS_DATA_TYPE_FLOAT32)) == "FLOAT32");
-  CHECK(std::string_view(dlms_data_type_to_string(DLMS_DATA_TYPE_DATETIME)) == "DATETIME");
+TEST_CASE_FIXTURE(LogFixture, "DLMS Data Type to String") {
+  CHECK(std::string_view(to_string(DlmsDataType::NONE)) == "NONE");
+  CHECK(std::string_view(to_string(DlmsDataType::FLOAT32)) == "FLOAT32");
+  CHECK(std::string_view(to_string(DlmsDataType::DATETIME)) == "DATETIME");
   // Test fallback/default case
-  CHECK(std::string_view(dlms_data_type_to_string(static_cast<DlmsDataType>(99))) == "UNKNOWN");
+  CHECK(std::string_view(to_string(static_cast<DlmsDataType>(99))) == "UNKNOWN");
 }

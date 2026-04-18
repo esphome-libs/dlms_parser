@@ -2,6 +2,8 @@
 #include <vector>
 #include <cstdint>
 
+#include "test_util.h"
+
 #include "dlms_parser/mbus_decoder.h"
 
 using namespace dlms_parser;
@@ -33,7 +35,7 @@ static void build_mbus_frame(std::vector<uint8_t>& frame, const std::vector<uint
   frame.push_back(0x16);
 }
 
-TEST_CASE("MBus Decoder - Payload Decoding (decode)") {
+TEST_CASE_FIXTURE(LogFixture, "MBus Decoder - Payload Decoding (decode)") {
 
   std::vector<uint8_t> base_frame;
   build_mbus_frame(base_frame, {0xAA, 0xBB, 0xCC});
@@ -75,7 +77,7 @@ TEST_CASE("MBus Decoder - Payload Decoding (decode)") {
   }
 }
 
-TEST_CASE("MBus Decoder - Malformed Frame Handling") {
+TEST_CASE_FIXTURE(LogFixture, "MBus Decoder - Malformed Frame Handling") {
 
   std::vector<uint8_t> base_frame;
   build_mbus_frame(base_frame, {0xAA, 0xBB, 0xCC});

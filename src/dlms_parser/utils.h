@@ -2,9 +2,39 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdarg>
 #include <span>
+#include <functional>
 
 namespace dlms_parser {
+
+enum class LogLevel {
+  DEBUG,
+  VERY_VERBOSE,
+  VERBOSE,
+  INFO,
+  WARNING,
+  ERROR,
+};
+
+class Logger final {
+public:
+  static void set_log_function(std::function<void(LogLevel log_level, const char* fmt, va_list args)> func) { _log_function = std::move(func); }
+
+#if defined(__clang__) || defined(__GNUC__)
+    __attribute__((format(printf, 2, 3)))
+#endif
+    static void log(LogLevel log_level, const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    _log_function(log_level, fmt, args);
+    va_end(args);
+  }
+
+private:
+  Logger() = default;
+  inline static std::function<void(LogLevel log_level, const char* fmt, va_list args)> _log_function = [](LogLevel, const char*, va_list) {};
+};
 
 class NonCopyable {
 protected:
@@ -29,32 +59,33 @@ public:
   NonCopyableAndNonMovable& operator=(NonCopyableAndNonMovable&&) = delete;
 };
 
-enum DlmsDataType : uint8_t {
-  DLMS_DATA_TYPE_NONE = 0,
-  DLMS_DATA_TYPE_ARRAY = 1,
-  DLMS_DATA_TYPE_STRUCTURE = 2,
-  DLMS_DATA_TYPE_BOOLEAN = 3,
-  DLMS_DATA_TYPE_BIT_STRING = 4,
-  DLMS_DATA_TYPE_INT32 = 5,
-  DLMS_DATA_TYPE_UINT32 = 6,
-  DLMS_DATA_TYPE_OCTET_STRING = 9,
-  DLMS_DATA_TYPE_STRING = 10,
-  DLMS_DATA_TYPE_STRING_UTF8 = 12,
-  DLMS_DATA_TYPE_BINARY_CODED_DECIMAL = 13,
-  DLMS_DATA_TYPE_INT8 = 15,
-  DLMS_DATA_TYPE_INT16 = 16,
-  DLMS_DATA_TYPE_UINT8 = 17,
-  DLMS_DATA_TYPE_UINT16 = 18,
-  DLMS_DATA_TYPE_COMPACT_ARRAY = 19,
-  DLMS_DATA_TYPE_INT64 = 20,
-  DLMS_DATA_TYPE_UINT64 = 21,
-  DLMS_DATA_TYPE_ENUM = 22,
-  DLMS_DATA_TYPE_FLOAT32 = 23,
-  DLMS_DATA_TYPE_FLOAT64 = 24,
-  DLMS_DATA_TYPE_DATETIME = 25,
-  DLMS_DATA_TYPE_DATE = 26,
-  DLMS_DATA_TYPE_TIME = 27
+enum class DlmsDataType : uint8_t {
+  NONE = 0,
+  ARRAY = 1,
+  STRUCTURE = 2,
+  BOOLEAN = 3,
+  BIT_STRING = 4,
+  INT32 = 5,
+  UINT32 = 6,
+  OCTET_STRING = 9,
+  STRING = 10,
+  STRING_UTF8 = 12,
+  BINARY_CODED_DECIMAL = 13,
+  INT8 = 15,
+  INT16 = 16,
+  UINT8 = 17,
+  UINT16 = 18,
+  COMPACT_ARRAY = 19,
+  INT64 = 20,
+  UINT64 = 21,
+  ENUM = 22,
+  FLOAT32 = 23,
+  FLOAT64 = 24,
+  DATETIME = 25,
+  DATE = 26,
+  TIME = 27
 };
+const char* to_string(DlmsDataType vt);
 
 inline uint16_t be16(const uint8_t* p) { return static_cast<uint16_t>(static_cast<unsigned>(p[0]) << 8 | p[1]); }
 inline uint32_t be32(const uint8_t* p) {
@@ -68,12 +99,8 @@ inline uint64_t be64(const uint8_t* p) {
          static_cast<uint64_t>(p[6]) << 8  | static_cast<uint64_t>(p[7]);
 }
 
-float data_as_float(DlmsDataType value_type, std::span<const uint8_t> data);
 bool test_if_date_time_12b(std::span<const uint8_t> p);
 void datetime_to_string(std::span<const uint8_t> data, std::span<char> buffer);
-void data_to_string(DlmsDataType value_type, std::span<const uint8_t> data, std::span<char> buffer);
-void obis_to_string(std::span<const uint8_t> obis, std::span<char> buffer);
-const char* dlms_data_type_to_string(DlmsDataType vt);
 
 // Read a BER-encoded length from buf[pos]. Advances pos past the length bytes.
 // Returns the decoded length, or 0 if the buffer is too short.
@@ -81,7 +108,5 @@ uint32_t read_ber_length(std::span<const uint8_t> buf, size_t& pos);
 
 int get_data_type_size(DlmsDataType type);
 bool is_value_data_type(DlmsDataType type);
-
-void format_hex_pretty_to(std::span<char> out, std::span<const uint8_t> data);
 
 }

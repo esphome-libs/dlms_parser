@@ -2,6 +2,8 @@
 #include <vector>
 #include <cstdint>
 
+#include "test_util.h"
+
 #include "dlms_parser/hdlc_decoder.h"
 #include "expected/hdlc_iskra550.h"
 
@@ -30,7 +32,7 @@ static const std::vector<uint8_t> BASE_FRAME = {
     0x7E
 };
 
-TEST_CASE("HDLC Decoder - Payload Decoding (decode)") {
+TEST_CASE_FIXTURE(LogFixture, "HDLC Decoder - Payload Decoding (decode)") {
 
   SUBCASE("Single Frame with LLC Stripping (E6 E6 00)") {
     auto frame = BASE_FRAME;
@@ -157,7 +159,7 @@ TEST_CASE("HDLC Decoder - Payload Decoding (decode)") {
   }
 }
 
-TEST_CASE("HDLC Decoder - Address Length Decoding") {
+TEST_CASE_FIXTURE(LogFixture, "HDLC Decoder - Address Length Decoding") {
 
   SUBCASE("2-Byte Address Parsing") {
     std::vector<uint8_t> frame = {
@@ -221,7 +223,7 @@ TEST_CASE("HDLC Decoder - Address Length Decoding") {
   }
 }
 
-TEST_CASE("HDLC Decoder - Malformed Frame Handling") {
+TEST_CASE_FIXTURE(LogFixture, "HDLC Decoder - Malformed Frame Handling") {
 
   SUBCASE("Length field mismatch vs buffer boundaries") {
     auto frame = BASE_FRAME;

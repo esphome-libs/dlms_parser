@@ -6,38 +6,33 @@
 
 namespace dlms_parser {
 
-float data_as_float(const DlmsDataType value_type, const std::span<const uint8_t> data) {
-  if (data.empty()) return 0.0f;
-  const uint8_t* ptr = data.data();
-  const auto len = data.size();
-
-  switch (value_type) {
-  case DLMS_DATA_TYPE_BOOLEAN:
-  case DLMS_DATA_TYPE_ENUM:
-  case DLMS_DATA_TYPE_UINT8: return ptr[0];
-  case DLMS_DATA_TYPE_INT8: return static_cast<int8_t>(ptr[0]);
-  case DLMS_DATA_TYPE_BIT_STRING: return ptr[0];
-  case DLMS_DATA_TYPE_UINT16: return len >= 2 ? static_cast<float>(be16(ptr)) : 0.0f;
-  case DLMS_DATA_TYPE_INT16: return len >= 2 ? static_cast<float>(static_cast<int16_t>(be16(ptr))) : 0.0f;
-  case DLMS_DATA_TYPE_UINT32: return len >= 4 ? static_cast<float>(be32(ptr)) : 0.0f;
-  case DLMS_DATA_TYPE_INT32: return len >= 4 ? static_cast<float>(static_cast<int32_t>(be32(ptr))) : 0.0f;
-  case DLMS_DATA_TYPE_UINT64: return len >= 8 ? static_cast<float>(be64(ptr)) : 0.0f;
-  case DLMS_DATA_TYPE_INT64: return len >= 8 ? static_cast<float>(static_cast<int64_t>(be64(ptr))) : 0.0f;
-  case DLMS_DATA_TYPE_FLOAT32: {
-    if (len < 4) return 0.0f;
-    const uint32_t i32 = be32(ptr);
-    float f;
-    std::memcpy(&f, &i32, sizeof(float));
-    return f;
-  }
-  case DLMS_DATA_TYPE_FLOAT64: {
-    if (len < 8) return 0.0f;
-    const uint64_t i64 = be64(ptr);
-    double d;
-    std::memcpy(&d, &i64, sizeof(double));
-    return static_cast<float>(d);
-  }
-  default: return 0.0f;
+const char* to_string(const DlmsDataType vt) {
+  switch (vt) {
+  case DlmsDataType::NONE: return "NONE";
+  case DlmsDataType::ARRAY: return "ARRAY";
+  case DlmsDataType::STRUCTURE: return "STRUCTURE";
+  case DlmsDataType::BOOLEAN: return "BOOLEAN";
+  case DlmsDataType::BIT_STRING: return "BIT_STRING";
+  case DlmsDataType::INT32: return "INT32";
+  case DlmsDataType::UINT32: return "UINT32";
+  case DlmsDataType::OCTET_STRING: return "OCTET_STRING";
+  case DlmsDataType::STRING: return "STRING";
+  case DlmsDataType::STRING_UTF8: return "STRING_UTF8";
+  case DlmsDataType::BINARY_CODED_DECIMAL: return "BINARY_CODED_DECIMAL";
+  case DlmsDataType::INT8: return "INT8";
+  case DlmsDataType::INT16: return "INT16";
+  case DlmsDataType::UINT8: return "UINT8";
+  case DlmsDataType::UINT16: return "UINT16";
+  case DlmsDataType::COMPACT_ARRAY: return "COMPACT_ARRAY";
+  case DlmsDataType::INT64: return "INT64";
+  case DlmsDataType::UINT64: return "UINT64";
+  case DlmsDataType::ENUM: return "ENUM";
+  case DlmsDataType::FLOAT32: return "FLOAT32";
+  case DlmsDataType::FLOAT64: return "FLOAT64";
+  case DlmsDataType::DATETIME: return "DATETIME";
+  case DlmsDataType::DATE: return "DATE";
+  case DlmsDataType::TIME: return "TIME";
+  default: return "UNKNOWN";
   }
 }
 
@@ -129,74 +124,6 @@ void datetime_to_string(const std::span<const uint8_t> data, const std::span<cha
   }
 }
 
-void data_to_string(const DlmsDataType value_type, const std::span<const uint8_t> data, const std::span<char> buffer) {
-  if (!buffer.empty()) buffer[0] = '\0';
-  if (data.empty() || buffer.empty()) return;
-
-  auto hex_of = [](const std::span<const uint8_t> input, const std::span<char> output) {
-    if (output.empty()) return;
-    output[0] = '\0';
-    size_t pos = 0;
-    for (size_t i = 0; i < input.size() && pos + 2 < output.size(); i++) {
-      const int written = snprintf(output.data() + pos, output.size() - pos, "%02x", input[i]);
-      if (written > 0) pos += static_cast<size_t>(written);
-    }
-  };
-
-  switch (value_type) {
-  case DLMS_DATA_TYPE_OCTET_STRING:
-  case DLMS_DATA_TYPE_STRING:
-  case DLMS_DATA_TYPE_STRING_UTF8: {
-    const size_t copy_len = std::min(data.size(), buffer.size() - 1);
-    std::memcpy(buffer.data(), data.data(), copy_len);
-    buffer[copy_len] = '\0';
-    break;
-  }
-  case DLMS_DATA_TYPE_DATETIME:
-    datetime_to_string(data, buffer);
-    break;
-  case DLMS_DATA_TYPE_BIT_STRING:
-  case DLMS_DATA_TYPE_BINARY_CODED_DECIMAL:
-  case DLMS_DATA_TYPE_DATE:
-  case DLMS_DATA_TYPE_TIME:
-    hex_of(data, buffer);
-    break;
-  case DLMS_DATA_TYPE_BOOLEAN:
-  case DLMS_DATA_TYPE_ENUM:
-  case DLMS_DATA_TYPE_UINT8:
-    snprintf(buffer.data(), buffer.size(), "%u", static_cast<unsigned>(data[0]));
-    break;
-  case DLMS_DATA_TYPE_INT8:
-    snprintf(buffer.data(), buffer.size(), "%d", static_cast<int>(static_cast<int8_t>(data[0])));
-    break;
-  case DLMS_DATA_TYPE_UINT16:
-    if (data.size() >= 2) snprintf(buffer.data(), buffer.size(), "%u", be16(data.data()));
-    break;
-  case DLMS_DATA_TYPE_INT16:
-    if (data.size() >= 2) snprintf(buffer.data(), buffer.size(), "%d", static_cast<int16_t>(be16(data.data())));
-    break;
-  case DLMS_DATA_TYPE_UINT32:
-    if (data.size() >= 4) snprintf(buffer.data(), buffer.size(), "%" PRIu32, be32(data.data()));
-    break;
-  case DLMS_DATA_TYPE_INT32:
-    if (data.size() >= 4) snprintf(buffer.data(), buffer.size(), "%" PRId32, static_cast<int32_t>(be32(data.data())));
-    break;
-  case DLMS_DATA_TYPE_UINT64:
-    if (data.size() >= 8) snprintf(buffer.data(), buffer.size(), "%" PRIu64, be64(data.data()));
-    break;
-  case DLMS_DATA_TYPE_INT64:
-    if (data.size() >= 8) snprintf(buffer.data(), buffer.size(), "%" PRId64, static_cast<int64_t>(be64(data.data())));
-    break;
-  case DLMS_DATA_TYPE_FLOAT32:
-  case DLMS_DATA_TYPE_FLOAT64: {
-    snprintf(buffer.data(), buffer.size(), "%f", static_cast<double>(data_as_float(value_type, data)));
-    break;
-  }
-  default:
-    break;
-  }
-}
-
 uint32_t read_ber_length(const std::span<const uint8_t> buf, size_t& pos) {
   if (pos >= buf.size()) return 0;
   const uint8_t first = buf[pos++];
@@ -211,106 +138,59 @@ uint32_t read_ber_length(const std::span<const uint8_t> buf, size_t& pos) {
   return length;
 }
 
-void obis_to_string(const std::span<const uint8_t> obis, const std::span<char> buffer) {
-  if (!buffer.empty()) buffer[0] = '\0';
-  if (obis.size() < 6 || buffer.empty()) return;
-  snprintf(buffer.data(), buffer.size(), "%u.%u.%u.%u.%u.%u", obis[0], obis[1], obis[2], obis[3], obis[4], obis[5]);
-}
-
-const char* dlms_data_type_to_string(const DlmsDataType vt) {
-  switch (vt) {
-  case DLMS_DATA_TYPE_NONE: return "NONE";
-  case DLMS_DATA_TYPE_ARRAY: return "ARRAY";
-  case DLMS_DATA_TYPE_STRUCTURE: return "STRUCTURE";
-  case DLMS_DATA_TYPE_BOOLEAN: return "BOOLEAN";
-  case DLMS_DATA_TYPE_BIT_STRING: return "BIT_STRING";
-  case DLMS_DATA_TYPE_INT32: return "INT32";
-  case DLMS_DATA_TYPE_UINT32: return "UINT32";
-  case DLMS_DATA_TYPE_OCTET_STRING: return "OCTET_STRING";
-  case DLMS_DATA_TYPE_STRING: return "STRING";
-  case DLMS_DATA_TYPE_STRING_UTF8: return "STRING_UTF8";
-  case DLMS_DATA_TYPE_BINARY_CODED_DECIMAL: return "BINARY_CODED_DECIMAL";
-  case DLMS_DATA_TYPE_INT8: return "INT8";
-  case DLMS_DATA_TYPE_INT16: return "INT16";
-  case DLMS_DATA_TYPE_UINT8: return "UINT8";
-  case DLMS_DATA_TYPE_UINT16: return "UINT16";
-  case DLMS_DATA_TYPE_COMPACT_ARRAY: return "COMPACT_ARRAY";
-  case DLMS_DATA_TYPE_INT64: return "INT64";
-  case DLMS_DATA_TYPE_UINT64: return "UINT64";
-  case DLMS_DATA_TYPE_ENUM: return "ENUM";
-  case DLMS_DATA_TYPE_FLOAT32: return "FLOAT32";
-  case DLMS_DATA_TYPE_FLOAT64: return "FLOAT64";
-  case DLMS_DATA_TYPE_DATETIME: return "DATETIME";
-  case DLMS_DATA_TYPE_DATE: return "DATE";
-  case DLMS_DATA_TYPE_TIME: return "TIME";
-  default: return "UNKNOWN";
-  }
-}
-
 int get_data_type_size(const DlmsDataType type) {
   switch (type) {
-  case DLMS_DATA_TYPE_NONE: return 0;
-  case DLMS_DATA_TYPE_BOOLEAN:
-  case DLMS_DATA_TYPE_INT8:
-  case DLMS_DATA_TYPE_UINT8:
-  case DLMS_DATA_TYPE_ENUM: return 1;
-  case DLMS_DATA_TYPE_INT16:
-  case DLMS_DATA_TYPE_UINT16: return 2;
-  case DLMS_DATA_TYPE_INT32:
-  case DLMS_DATA_TYPE_UINT32:
-  case DLMS_DATA_TYPE_FLOAT32: return 4;
-  case DLMS_DATA_TYPE_INT64:
-  case DLMS_DATA_TYPE_UINT64:
-  case DLMS_DATA_TYPE_FLOAT64: return 8;
-  case DLMS_DATA_TYPE_DATETIME: return 12;
-  case DLMS_DATA_TYPE_DATE: return 5;
-  case DLMS_DATA_TYPE_TIME: return 4;
+  case DlmsDataType::NONE: return 0;
+  case DlmsDataType::BOOLEAN:
+  case DlmsDataType::INT8:
+  case DlmsDataType::UINT8:
+  case DlmsDataType::ENUM: return 1;
+  case DlmsDataType::INT16:
+  case DlmsDataType::UINT16: return 2;
+  case DlmsDataType::INT32:
+  case DlmsDataType::UINT32:
+  case DlmsDataType::FLOAT32: return 4;
+  case DlmsDataType::INT64:
+  case DlmsDataType::UINT64:
+  case DlmsDataType::FLOAT64: return 8;
+  case DlmsDataType::DATETIME: return 12;
+  case DlmsDataType::DATE: return 5;
+  case DlmsDataType::TIME: return 4;
   default: return -1; // Variable or complex
   }
 }
 
 bool is_value_data_type(const DlmsDataType type) {
   switch (type) {
-  case DLMS_DATA_TYPE_ARRAY:
-  case DLMS_DATA_TYPE_STRUCTURE:
-  case DLMS_DATA_TYPE_COMPACT_ARRAY:
+  case DlmsDataType::ARRAY:
+  case DlmsDataType::STRUCTURE:
+  case DlmsDataType:: COMPACT_ARRAY:
     return false;
-  case DLMS_DATA_TYPE_NONE:
-  case DLMS_DATA_TYPE_BOOLEAN:
-  case DLMS_DATA_TYPE_BIT_STRING:
-  case DLMS_DATA_TYPE_INT32:
-  case DLMS_DATA_TYPE_UINT32:
-  case DLMS_DATA_TYPE_OCTET_STRING:
-  case DLMS_DATA_TYPE_STRING:
-  case DLMS_DATA_TYPE_BINARY_CODED_DECIMAL:
-  case DLMS_DATA_TYPE_STRING_UTF8:
-  case DLMS_DATA_TYPE_INT8:
-  case DLMS_DATA_TYPE_INT16:
-  case DLMS_DATA_TYPE_UINT8:
-  case DLMS_DATA_TYPE_UINT16:
-  case DLMS_DATA_TYPE_INT64:
-  case DLMS_DATA_TYPE_UINT64:
-  case DLMS_DATA_TYPE_ENUM:
-  case DLMS_DATA_TYPE_FLOAT32:
-  case DLMS_DATA_TYPE_FLOAT64:
-  case DLMS_DATA_TYPE_DATETIME:
-  case DLMS_DATA_TYPE_DATE:
-  case DLMS_DATA_TYPE_TIME:
+  case DlmsDataType::NONE:
+  case DlmsDataType::BOOLEAN:
+  case DlmsDataType::BIT_STRING:
+  case DlmsDataType::INT32:
+  case DlmsDataType::UINT32:
+  case DlmsDataType::OCTET_STRING:
+  case DlmsDataType::STRING:
+  case DlmsDataType::BINARY_CODED_DECIMAL:
+  case DlmsDataType::STRING_UTF8:
+  case DlmsDataType::INT8:
+  case DlmsDataType::INT16:
+  case DlmsDataType::UINT8:
+  case DlmsDataType::UINT16:
+  case DlmsDataType::INT64:
+  case DlmsDataType::UINT64:
+  case DlmsDataType::ENUM:
+  case DlmsDataType::FLOAT32:
+  case DlmsDataType::FLOAT64:
+  case DlmsDataType::DATETIME:
+  case DlmsDataType::DATE:
+  case DlmsDataType::TIME:
     return true;
   default:
     return false;
   }
-}
-
-void format_hex_pretty_to(const std::span<char> out, const std::span<const uint8_t> data) {
-  if (out.empty()) return;
-  out[0] = '\0';
-  size_t pos = 0;
-  for (size_t i = 0; i < data.size() && pos + 3 < out.size(); i++) {
-    const int written = snprintf(out.data() + pos, out.size() - pos, "%02X.", data[i]);
-    if (written > 0) pos += static_cast<size_t>(written);
-  }
-  if (pos > 0 && out[pos - 1] == '.') out[pos - 1] = '\0';
 }
 
 }

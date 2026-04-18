@@ -3,7 +3,6 @@
 #include <psa/crypto.h>
 #include "aes_128_gcm_decryptor.h"
 #include "../utils.h"
-#include "../log.h"
 
 namespace dlms_parser {
 

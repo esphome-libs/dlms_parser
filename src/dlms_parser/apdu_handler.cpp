@@ -1,5 +1,4 @@
 #include "apdu_handler.h"
-#include "log.h"
 #include "utils.h"
 #include <algorithm>
 #include <array>
@@ -28,8 +27,8 @@ static bool is_known_tag(const uint8_t b) {
   case DLMS_APDU_DATA_NOTIFICATION:
   case DLMS_APDU_GENERAL_GLO_CIPHERING:
   case DLMS_APDU_GENERAL_DED_CIPHERING:
-  case DLMS_DATA_TYPE_ARRAY:
-  case DLMS_DATA_TYPE_STRUCTURE:
+  case static_cast<uint8_t>(DlmsDataType::ARRAY):
+  case static_cast<uint8_t>(DlmsDataType::STRUCTURE):
     return true;
   default:
     return false;
@@ -51,9 +50,9 @@ std::span<uint8_t> parse_apdu_in_place(std::span<uint8_t> buf, Aes128GcmDecrypto
     const uint8_t tag = buf[0];
 
     // --- Raw AXDR (0x01/0x02): done
-    if (tag == DLMS_DATA_TYPE_ARRAY || tag == DLMS_DATA_TYPE_STRUCTURE) {
+    if (tag == static_cast<uint8_t>(DlmsDataType::ARRAY) || tag == static_cast<uint8_t>(DlmsDataType::STRUCTURE)) {
       Logger::log(LogLevel::VERBOSE, "Found raw AXDR %s (0x%02X) - no APDU wrapper",
-                  tag == DLMS_DATA_TYPE_ARRAY ? "ARRAY" : "STRUCTURE", tag);
+                  tag == static_cast<uint8_t>(DlmsDataType::ARRAY) ? "ARRAY" : "STRUCTURE", tag);
       return buf;
     }
 
