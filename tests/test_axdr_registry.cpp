@@ -3,12 +3,13 @@
 #include <cstring>
 #include <ostream>
 
+#include "test_util.h"
 #include "dlms_parser/axdr_parser.h"
 
 using namespace dlms_parser;
 
-TEST_CASE("AxdrParser Pattern Registry - Tokenization and Parsing") {
-  AxdrParser parser;
+TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Tokenization and Parsing") {
+  AxdrParser parser([](const auto&) {});
 
   SUBCASE("Basic Tokens") {
     parser.register_pattern("test", "F,C,L", 10);
@@ -75,8 +76,8 @@ TEST_CASE("AxdrParser Pattern Registry - Tokenization and Parsing") {
   }
 }
 
-TEST_CASE("AxdrParser Pattern Registry - Comprehensive Token Mapping") {
-  AxdrParser parser;
+TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Comprehensive Token Mapping") {
+  AxdrParser parser([](const auto&) {});
 
   // Test all primary token aliases
   parser.register_pattern("all_tokens", "TC,O,TO,TOW,A,TA,TS,TU,V,TV,TDTM,TSTR,DN,UP,TSU", 10);
@@ -86,7 +87,7 @@ TEST_CASE("AxdrParser Pattern Registry - Comprehensive Token Mapping") {
   size_t i = 0;
   // TC
   CHECK(pat.steps[i].type == AxdrTokenType::EXPECT_TYPE_EXACT);
-  CHECK(pat.steps[i++].param_u8_a == DLMS_DATA_TYPE_UINT16);
+  CHECK(pat.steps[i++].param_u8_a == static_cast<uint8_t>(DlmsDataType::UINT16));
   CHECK(pat.steps[i++].type == AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED);
   // O
   CHECK(pat.steps[i++].type == AxdrTokenType::EXPECT_OBIS6_UNTAGGED);
@@ -126,8 +127,8 @@ TEST_CASE("AxdrParser Pattern Registry - Comprehensive Token Mapping") {
   CHECK(pat.steps[i].type == AxdrTokenType::END_OF_PATTERN);
 }
 
-TEST_CASE("AxdrParser Pattern Registry - Structure Expansion S(...)") {
-  AxdrParser parser;
+TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Structure Expansion S(...)") {
+  AxdrParser parser([](const auto&) {});
 
   SUBCASE("Simple structure") {
     parser.register_pattern("struct", "S(TO,TV)", 10);
@@ -190,8 +191,8 @@ TEST_CASE("AxdrParser Pattern Registry - Structure Expansion S(...)") {
   }
 }
 
-TEST_CASE("AxdrParser Pattern Registry - Priority and Array Management") {
-  AxdrParser parser;
+TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Priority and Array Management") {
+  AxdrParser parser([](const auto&) {});
 
   SUBCASE("Priority Sorting") {
     parser.register_pattern("low", "F", 50);
@@ -249,8 +250,8 @@ TEST_CASE("AxdrParser Pattern Registry - Priority and Array Management") {
   }
 }
 
-TEST_CASE("AxdrParser Pattern Registry - Limits and Edge Cases") {
-  AxdrParser parser;
+TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Limits and Edge Cases") {
+  AxdrParser parser([](const auto&) {});
 
   SUBCASE("Max Patterns Limit (32)") {
     for (int i = 0; i < 40; i++) {

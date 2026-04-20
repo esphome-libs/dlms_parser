@@ -1,5 +1,5 @@
 #include "hdlc_decoder.h"
-#include "log.h"
+#include "utils.h"
 #include <algorithm>
 
 namespace dlms_parser {

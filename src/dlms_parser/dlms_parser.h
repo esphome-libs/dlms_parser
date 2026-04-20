@@ -11,7 +11,7 @@ namespace dlms_parser {
 // Facade — composes frame decoder, APDU handler, decryptor, and AXDR parser.
 class DlmsParser final : NonCopyableAndNonMovable {
  public:
-  explicit DlmsParser(Aes128GcmDecryptor* decryptor = nullptr);
+  explicit DlmsParser(DlmsDataCallback dlmsDataCallback, Aes128GcmDecryptor* decryptor = nullptr);
 
   void set_skip_crc_check(bool skip);
   void set_decryption_key(const Aes128GcmDecryptionKey& key) const;
@@ -29,7 +29,7 @@ class DlmsParser final : NonCopyableAndNonMovable {
   // Parse a full frame (in-place). buf is modified during parsing.
   // Fires cooked_cb for each matched COSEM object.
   // Optionally fires raw_cb with unmodified captures before conversion.
-  ParseResult parse(std::span<uint8_t> buf, const DlmsDataCallback& cooked_cb);
+  ParseResult parse(std::span<uint8_t> buf);
 
  private:
   Aes128GcmDecryptor* decryptor_;

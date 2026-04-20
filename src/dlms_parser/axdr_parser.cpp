@@ -1,14 +1,168 @@
 #include "axdr_parser.h"
-#include "log.h"
 #include "utils.h"
+#include <cinttypes>
+#include <cstdio>
+#include <cstring>
 #include <algorithm>
 #include <utility>
 
 namespace dlms_parser {
 
+std::string_view AxdrCapture::obis_as_string(std::span<char, 32> buffer) const {
+  const auto len = snprintf(buffer.data(), buffer.size(), "%u.%u.%u.%u.%u.%u", obis[0], obis[1], obis[2], obis[3], obis[4], obis[5]);
+  return { buffer.data(), len > 0 ? static_cast<size_t>(len) : 0 };
+}
+
+bool AxdrCapture::is_numeric() const {
+  switch (value_type) {
+    case DlmsDataType::OCTET_STRING:
+    case DlmsDataType::STRING:
+    case DlmsDataType::STRING_UTF8:
+    case DlmsDataType::DATETIME:
+      return false;
+    default:
+      return true;
+  }
+}
+
+std::string_view AxdrCapture::value_as_string(std::span<char, 128> buffer) const {
+  if (value.empty()) return {};
+
+  auto hex_of = [](const std::span<const uint8_t> input, const std::span<char> output) {
+    if (output.empty()) return;
+    output[0] = '\0';
+    size_t pos = 0;
+    for (size_t i = 0; i < input.size() && pos + 2 < output.size(); i++) {
+      const int written = snprintf(output.data() + pos, output.size() - pos, "%02x", input[i]);
+      if (written > 0) pos += static_cast<size_t>(written);
+    }
+  };
+
+  switch (value_type) {
+  case DlmsDataType::OCTET_STRING:
+  case DlmsDataType::STRING:
+  case DlmsDataType::STRING_UTF8: {
+    const size_t copy_len = std::min(value.size(), buffer.size() - 1);
+    std::memcpy(buffer.data(), value.data(), copy_len);
+    buffer[copy_len] = '\0';
+    break;
+  }
+  case DlmsDataType::DATETIME:
+    datetime_to_string(value, buffer);
+    break;
+  case DlmsDataType::BIT_STRING:
+  case DlmsDataType::BINARY_CODED_DECIMAL:
+  case DlmsDataType::DATE:
+  case DlmsDataType::TIME:
+    hex_of(value, buffer);
+    break;
+  case DlmsDataType::BOOLEAN:
+  case DlmsDataType::ENUM:
+  case DlmsDataType::UINT8:
+    snprintf(buffer.data(), buffer.size(), "%u", static_cast<unsigned>(value[0]));
+    break;
+  case DlmsDataType::INT8:
+    snprintf(buffer.data(), buffer.size(), "%d", static_cast<int>(static_cast<int8_t>(value[0])));
+    break;
+  case DlmsDataType::UINT16:
+    if (value.size() >= 2) snprintf(buffer.data(), buffer.size(), "%u", be16(value.data()));
+    break;
+  case DlmsDataType::INT16:
+    if (value.size() >= 2) snprintf(buffer.data(), buffer.size(), "%d", static_cast<int16_t>(be16(value.data())));
+    break;
+  case DlmsDataType::UINT32:
+    if (value.size() >= 4) snprintf(buffer.data(), buffer.size(), "%" PRIu32, be32(value.data()));
+    break;
+  case DlmsDataType::INT32:
+    if (value.size() >= 4) snprintf(buffer.data(), buffer.size(), "%" PRId32, static_cast<int32_t>(be32(value.data())));
+    break;
+  case DlmsDataType::UINT64:
+    if (value.size() >= 8) snprintf(buffer.data(), buffer.size(), "%" PRIu64, be64(value.data()));
+    break;
+  case DlmsDataType::INT64:
+    if (value.size() >= 8) snprintf(buffer.data(), buffer.size(), "%" PRId64, static_cast<int64_t>(be64(value.data())));
+    break;
+  case DlmsDataType::FLOAT32:
+  case DlmsDataType::FLOAT64: {
+    snprintf(buffer.data(), buffer.size(), "%f", static_cast<double>(value_as_float_with_scaler_applied()));
+    break;
+  }
+  default:
+    break;
+  }
+
+  return { buffer.data(), std::strlen(buffer.data()) };
+}
+
+float AxdrCapture::value_as_float_with_scaler_applied() const {
+  return apply_scaler(value_as_float(), scaler);
+}
+
+float AxdrCapture::value_as_float() const
+{
+  if (value.empty()) return 0.0f;
+  const uint8_t* ptr = value.data();
+  const auto len = value.size();
+
+  switch (value_type) {
+  case DlmsDataType::BOOLEAN:
+  case DlmsDataType::ENUM:
+  case DlmsDataType::UINT8: return ptr[0];
+  case DlmsDataType::INT8: return static_cast<int8_t>(ptr[0]);
+  case DlmsDataType::BIT_STRING: return ptr[0];
+  case DlmsDataType::UINT16: return len >= 2 ? static_cast<float>(be16(ptr)) : 0.0f;
+  case DlmsDataType::INT16: return len >= 2 ? static_cast<float>(static_cast<int16_t>(be16(ptr))) : 0.0f;
+  case DlmsDataType::UINT32: return len >= 4 ? static_cast<float>(be32(ptr)) : 0.0f;
+  case DlmsDataType::INT32: return len >= 4 ? static_cast<float>(static_cast<int32_t>(be32(ptr))) : 0.0f;
+  case DlmsDataType::UINT64: return len >= 8 ? static_cast<float>(be64(ptr)) : 0.0f;
+  case DlmsDataType::INT64: return len >= 8 ? static_cast<float>(static_cast<int64_t>(be64(ptr))) : 0.0f;
+  case DlmsDataType::FLOAT32: {
+    if (len < 4) return 0.0f;
+    const uint32_t i32 = be32(ptr);
+    float f;
+    std::memcpy(&f, &i32, sizeof(float));
+    return f;
+  }
+  case DlmsDataType::FLOAT64: {
+    if (len < 8) return 0.0f;
+    const uint64_t i64 = be64(ptr);
+    double d;
+    std::memcpy(&d, &i64, sizeof(double));
+    return static_cast<float>(d);
+  }
+  default: return 0.0f;
+  }
+}
+
+float AxdrCapture::apply_scaler(const float value, const int8_t scaler) {
+  if (scaler == 0) return value;
+
+  // Lookup table for 10^0 through 10^9
+  static constexpr float pow10_lut[] = {
+    1e0f, 1e1f, 1e2f, 1e3f, 1e4f, 1e5f, 1e6f, 1e7f, 1e8f, 1e9f
+  };
+
+  // Fast path: use LUT for typical DLMS bounds (-9 to +9)
+  if (scaler > 0 && scaler <= 9) { return value * pow10_lut[scaler]; }
+  if (scaler < 0 && scaler >= -9) { return value / pow10_lut[-scaler]; }
+
+  // Fallback path: loop for unusually large scalers
+  float multiplier = 1.0f;
+  if (scaler > 0) {
+    for (int i = 0; i < scaler; ++i) multiplier *= 10.0f;
+    return value * multiplier;
+  }
+
+  for (int i = 0; i < -scaler; ++i) multiplier *= 10.0f;
+  return value / multiplier;
+}
+
 // ---------------------------------------------------------------------------
 // Construction / pattern registry
 // ---------------------------------------------------------------------------
+
+AxdrParser::AxdrParser(DlmsDataCallback dlmsDataCallback) : dlmsDataCallback_(std::move(dlmsDataCallback))
+{}
 
 void AxdrParser::register_pattern(const char* name, const char* dsl, const int priority) {
   this->register_pattern_dsl_(name, dsl, priority);
@@ -28,20 +182,19 @@ void AxdrParser::clear_patterns() {
 // Public parse entry point
 // ---------------------------------------------------------------------------
 
-ParseResult AxdrParser::parse(const std::span<const uint8_t> axdr, DlmsDataCallback cooked_cb) {
+ParseResult AxdrParser::parse(const std::span<const uint8_t> axdr) {
   if (axdr.empty()) return {};
 
   buffer_ = axdr;
   pos_ = 0;
-  cooked_cb_ = std::move(cooked_cb);
   objects_found_ = 0;
   last_pattern_elements_consumed_ = 0;
 
   Logger::log(LogLevel::DEBUG, "AxdrParser: parsing %zu bytes", axdr.size());
 
   while (this->pos_ < this->buffer_.size()) {
-    const uint8_t type = this->read_byte_();
-    if (type != DLMS_DATA_TYPE_STRUCTURE && type != DLMS_DATA_TYPE_ARRAY) {
+    const auto type = static_cast<DlmsDataType>(this->read_byte_());
+    if (type != DlmsDataType::STRUCTURE && type != DlmsDataType::ARRAY) {
       Logger::log(LogLevel::VERBOSE, "Non-container type 0x%02X at pos %zu - stopping", type, this->pos_ - 1);
       this->pos_--;  // put it back — not consumed
       break;
@@ -84,7 +237,7 @@ uint32_t AxdrParser::read_u32_() {
 // Traversal
 // ---------------------------------------------------------------------------
 
-bool AxdrParser::skip_data_(uint8_t type) {
+bool AxdrParser::skip_data_(DlmsDataType type) {
   const int data_size = get_data_type_size(static_cast<DlmsDataType>(type));
 
   if (data_size == 0) return true;
@@ -108,26 +261,26 @@ bool AxdrParser::skip_data_(uint8_t type) {
     }
 
     uint32_t skip_bytes = length;
-    if (type == DLMS_DATA_TYPE_BIT_STRING) {
+    if (type == DlmsDataType::BIT_STRING) {
       skip_bytes = (length + 7) / 8;
     }
 
     if (this->pos_ + skip_bytes > this->buffer_.size()) return false;
 
-    Logger::log(LogLevel::VERY_VERBOSE, "Skipping %s (%u bytes) at pos %zu", dlms_data_type_to_string(static_cast<DlmsDataType>(type)), skip_bytes, this->pos_);
+    Logger::log(LogLevel::VERY_VERBOSE, "Skipping %s (%u bytes) at pos %zu", to_string(type), skip_bytes, this->pos_);
     this->pos_ += skip_bytes;
   }
   return true;
 }
 
-bool AxdrParser::parse_element_(const uint8_t type, const uint8_t depth) {
-  if (type == DLMS_DATA_TYPE_STRUCTURE || type == DLMS_DATA_TYPE_ARRAY) {
+bool AxdrParser::parse_element_(const DlmsDataType type, const uint8_t depth) {
+  if (type == DlmsDataType::STRUCTURE || type == DlmsDataType::ARRAY) {
     return this->parse_sequence_(type, depth);
   }
   return this->skip_data_(type);
 }
 
-bool AxdrParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
+bool AxdrParser::parse_sequence_(const DlmsDataType type, const uint8_t depth) {
   const uint8_t elements_count = this->read_byte_();
   if (elements_count == 0xFF) {
     Logger::log(LogLevel::VERY_VERBOSE, "Invalid sequence length at pos %zu", this->pos_ - 1);
@@ -135,7 +288,7 @@ bool AxdrParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
   }
 
   Logger::log(LogLevel::VERBOSE, "Parsing %s with %d elements at pos %zu (depth %d)",
-              type == DLMS_DATA_TYPE_STRUCTURE ? "STRUCTURE" : "ARRAY",
+              type == DlmsDataType::STRUCTURE ? "STRUCTURE" : "ARRAY",
               elements_count, this->pos_ - 1, depth);
 
   uint8_t elements_consumed = 0;
@@ -151,11 +304,11 @@ bool AxdrParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
 
     if (this->pos_ >= this->buffer_.size()) {
       Logger::log(LogLevel::WARNING, "Unexpected end while reading element %d of %s",
-                  elements_consumed + 1, type == DLMS_DATA_TYPE_STRUCTURE ? "STRUCTURE" : "ARRAY");
+                  elements_consumed + 1, type == DlmsDataType::STRUCTURE ? "STRUCTURE" : "ARRAY");
       return false;
     }
 
-    const uint8_t elem_type = this->read_byte_();
+    const auto elem_type = static_cast<DlmsDataType>(this->read_byte_());
     if (!this->parse_element_(elem_type, depth + 1)) return false;
     elements_consumed++;
 
@@ -179,11 +332,11 @@ bool AxdrParser::test_if_date_time_12b_(const std::span<const uint8_t> buf) cons
   return test_if_date_time_12b(this->buffer_.subspan(this->pos_, 12));
 }
 
-bool AxdrParser::capture_generic_value_(AxdrCaptures& c) {
-  uint8_t vt = this->read_byte_();
-  if (!is_value_data_type(static_cast<DlmsDataType>(vt))) return false;
+bool AxdrParser::capture_generic_value_(AxdrCapture& c) {
+  DlmsDataType vt = static_cast<DlmsDataType>(this->read_byte_());
+  if (!is_value_data_type(vt)) return false;
 
-  const int ds = get_data_type_size(static_cast<DlmsDataType>(vt));
+  const auto ds = get_data_type_size(vt);
   if (ds > 0) {
     if (this->pos_ + static_cast<size_t>(ds) > this->buffer_.size()) return false;
     c.value = this->buffer_.subspan(this->pos_, static_cast<size_t>(ds));
@@ -206,7 +359,7 @@ bool AxdrParser::capture_generic_value_(AxdrCaptures& c) {
     }
 
     uint32_t data_bytes = length;
-    if (vt == DLMS_DATA_TYPE_BIT_STRING) {
+    if (vt == DlmsDataType::BIT_STRING) {
       data_bytes = (length + 7) / 8;
     }
 
@@ -216,12 +369,12 @@ bool AxdrParser::capture_generic_value_(AxdrCaptures& c) {
   }
 
   // Auto-detect 12-byte OCTET_STRING as DATETIME
-  if (vt == DLMS_DATA_TYPE_OCTET_STRING && c.value.size() == 12 &&
+  if (vt == DlmsDataType::OCTET_STRING && c.value.size() == 12 &&
       this->test_if_date_time_12b_(c.value)) {
-    vt = DLMS_DATA_TYPE_DATETIME;
+    vt = DlmsDataType::DATETIME;
   }
 
-  c.value_type = static_cast<DlmsDataType>(vt);
+  c.value_type = vt;
   return true;
 }
 
@@ -240,7 +393,7 @@ bool AxdrParser::try_match_patterns_(const uint8_t elem_idx, const uint8_t elem_
 
 bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count, const AxdrDescriptorPattern& pat,
                                 uint8_t& consumed) {
-  AxdrCaptures cap{};
+  AxdrCapture cap{};
   consumed = 0;
   uint8_t level = 0;
   auto consume_one = [&] { if (level == 0) consumed++; };
@@ -259,8 +412,8 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
         consume_one();
         break;
       case AxdrTokenType::EXPECT_TYPE_U_I_8: {
-        const uint8_t t = this->read_byte_();
-        if (t != DLMS_DATA_TYPE_INT8 && t != DLMS_DATA_TYPE_UINT8) return false;
+        const auto t = static_cast<DlmsDataType>(this->read_byte_());
+        if (t != DlmsDataType::INT8 && t != DlmsDataType::UINT8) return false;
         consume_one();
         break;
       }
@@ -271,7 +424,7 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
         break;
       }
       case AxdrTokenType::EXPECT_OBIS6_TAGGED:
-        if (this->read_byte_() != DLMS_DATA_TYPE_OCTET_STRING) return false;
+        if (this->read_byte_() != static_cast<uint8_t>(DlmsDataType::OCTET_STRING)) return false;
         if (this->read_byte_() != 6) return false;
         if (this->pos_ + 6 > this->buffer_.size()) return false;
         cap.obis = this->buffer_.subspan(this->pos_, 6);
@@ -281,7 +434,7 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
       case AxdrTokenType::EXPECT_OBIS6_TAGGED_WRONG:
         // Landis+Gyr firmware bug: sends 06 09 <obis> instead of 09 06 <obis>
         if (this->read_byte_() != 6) return false;
-        if (this->read_byte_() != DLMS_DATA_TYPE_OCTET_STRING) return false;
+        if (this->read_byte_() != static_cast<uint8_t>(DlmsDataType::OCTET_STRING)) return false;
         if (this->pos_ + 6 > this->buffer_.size()) return false;
         cap.obis = this->buffer_.subspan(this->pos_, 6);
         this->pos_ += 6;
@@ -301,46 +454,46 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
         break;
       case AxdrTokenType::EXPECT_VALUE_DATE_TIME: {
         // Accepts both: 0x19 (DATETIME tag) + 12 bytes, or 0x09 (OCTET_STRING) + 0x0C + 12 bytes
-        const uint8_t tag = this->read_byte_();
-        if (tag == DLMS_DATA_TYPE_DATETIME) {
+        const auto tag = static_cast<DlmsDataType>(this->read_byte_());
+        if (tag == DlmsDataType::DATETIME) {
           // Native DATETIME tag (0x19): fixed 12-byte payload, no length byte
-        } else if (tag == DLMS_DATA_TYPE_OCTET_STRING) {
+        } else if (tag == DlmsDataType::OCTET_STRING) {
           if (this->read_byte_() != 12) return false;
         } else {
           return false;
         }
         if (this->pos_ + 12 > this->buffer_.size()) return false;
         cap.value = this->buffer_.subspan(this->pos_, 12);
-        cap.value_type = DLMS_DATA_TYPE_DATETIME;
+        cap.value_type = DlmsDataType::DATETIME;
         this->pos_ += 12;
         consume_one();
         break;
       }
       case AxdrTokenType::EXPECT_VALUE_OCTET_STRING: {
-        const uint8_t vt = this->read_byte_();
-        if (vt != DLMS_DATA_TYPE_OCTET_STRING && vt != DLMS_DATA_TYPE_STRING &&
-            vt != DLMS_DATA_TYPE_STRING_UTF8) return false;
+        const auto vt = static_cast<DlmsDataType>(this->read_byte_());
+        if (vt != DlmsDataType::OCTET_STRING && vt != DlmsDataType::STRING &&
+            vt != DlmsDataType::STRING_UTF8) return false;
         const uint8_t slen = this->read_byte_();
         if (slen == 0xFF || this->pos_ + slen > this->buffer_.size()) return false;
-        cap.value_type = static_cast<DlmsDataType>(vt);
+        cap.value_type = vt;
         cap.value = this->buffer_.subspan(this->pos_, slen);
         this->pos_ += slen;
         consume_one();
         break;
       }
       case AxdrTokenType::EXPECT_STRUCTURE_N:
-        if (this->read_byte_() != DLMS_DATA_TYPE_STRUCTURE) return false;
+        if (this->read_byte_() != static_cast<uint8_t>(DlmsDataType::STRUCTURE)) return false;
         if (this->read_byte_() != param_u8_a) return false;
         consume_one();
         break;
       case AxdrTokenType::EXPECT_SCALER_TAGGED:
-        if (this->read_byte_() != DLMS_DATA_TYPE_INT8) return false;
+        if (this->read_byte_() != static_cast<uint8_t>(DlmsDataType::INT8)) return false;
         cap.scaler = static_cast<int8_t>(this->read_byte_());
         cap.has_scaler_unit = true;
         consume_one();
         break;
       case AxdrTokenType::EXPECT_UNIT_ENUM_TAGGED:
-        if (this->read_byte_() != DLMS_DATA_TYPE_ENUM) return false;
+        if (this->read_byte_() != static_cast<uint8_t>(DlmsDataType::ENUM)) return false;
         cap.unit_enum = this->read_byte_();
         cap.has_scaler_unit = true;
         consume_one();
@@ -352,88 +505,23 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
   }
 
   if (consumed == 0) consumed = 1;
+
   cap.elem_idx = initial_position;
-  this->emit_object_(pat, cap);
-  return true;
-}
-
-static constexpr std::array<uint8_t, 6> ZERO_OBIS = {0, 0, 0, 0, 0, 0};
-
-float AxdrParser::apply_scaler(const float value, const int8_t scaler) {
-  if (scaler == 0) return value;
-
-  // Lookup table for 10^0 through 10^9
-  static constexpr float pow10_lut[] = {
-    1e0f, 1e1f, 1e2f, 1e3f, 1e4f, 1e5f, 1e6f, 1e7f, 1e8f, 1e9f
-  };
-
-  // Fast path: use LUT for typical DLMS bounds (-9 to +9)
-  if (scaler > 0 && scaler <= 9) {return value * pow10_lut[scaler];}
-  if (scaler < 0 && scaler >= -9) {return value / pow10_lut[-scaler];}
-
-  // Fallback path: loop for unusually large scalers
-  float multiplier = 1.0f;
-  if (scaler > 0) {
-    for (int i = 0; i < scaler; ++i) multiplier *= 10.0f;
-    return value * multiplier;
-  }
-
-  for (int i = 0; i < -scaler; ++i) multiplier *= 10.0f;
-  return value / multiplier;
-}
-
-void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptures& c) {
-  // If no OBIS was captured by the pattern, use 0.0.0.0.0.0 as a placeholder.
-  // If no OBIS captured, use pattern's default_obis if set, otherwise zero placeholder.
-  auto [elem_idx, class_id, obis, value_type, value, has_scaler_unit, scaler, unit_enum] = c;
-  if (obis.empty()) {
-    obis = pat.has_default_obis ? std::span<const uint8_t>(pat.default_obis) : std::span<const uint8_t>(ZERO_OBIS);
-  }
-
   objects_found_++;
 
-  if (!this->cooked_cb_) return;
-
-  char obis_str_buf[32];
-  obis_to_string(obis, obis_str_buf);
-
-  const float raw_val_f = data_as_float(value_type, value);
-  float val_f = raw_val_f;
-
-  char val_s_buf[128];
-  data_to_string(value_type, value, val_s_buf);
-
-  const bool is_numeric = value_type != DLMS_DATA_TYPE_OCTET_STRING && value_type != DLMS_DATA_TYPE_STRING &&
-                          value_type != DLMS_DATA_TYPE_STRING_UTF8  && value_type != DLMS_DATA_TYPE_DATETIME;
-
-  if (has_scaler_unit && is_numeric) {
-    val_f = apply_scaler(raw_val_f, scaler);
+  if (cap.obis.empty()) {
+    // If no OBIS was captured by the pattern, use 0.0.0.0.0.0 as a placeholder.
+    // If no OBIS captured, use pattern's default_obis if set, otherwise zero placeholder.
+    static constexpr std::array<uint8_t, 6> ZERO_OBIS = { 0, 0, 0, 0, 0, 0 };
+    cap.obis = pat.has_default_obis ? std::span<const uint8_t>(pat.default_obis) : ZERO_OBIS;
   }
 
-  const uint16_t cid = class_id ? class_id : pat.default_class_id;
-  Logger::log(LogLevel::VERBOSE, "Pattern '%s' matched at pos %u - class_id=%d obis=%s",
-              pat.name ? pat.name : "UNKNOWN", elem_idx, cid, obis_str_buf);
+  Logger::log(LogLevel::VERBOSE, "Pattern '%s' matched at pos %u - class_id=%d", pat.name ? pat.name : "UNKNOWN", cap.elem_idx, cap.class_id ? cap.class_id : pat.default_class_id);
+  Logger::log(LogLevel::VERBOSE, "  type=%s len=%zu scaler=%d unit=%d", to_string(cap.value_type), cap.value.size(), cap.scaler, cap.unit_enum);
 
-  if (has_scaler_unit) {
-    Logger::log(LogLevel::VERBOSE, "  type=%s len=%zu scaler=%d unit=%d",
-                dlms_data_type_to_string(value_type), value.size(), scaler, unit_enum);
-  } else {
-    Logger::log(LogLevel::VERBOSE, "  type=%s len=%zu",
-                dlms_data_type_to_string(value_type), value.size());
-  }
+  dlmsDataCallback_(cap);
 
-  if (!value.empty()) {
-    char hex_buf[512];
-    format_hex_pretty_to(hex_buf, value);
-    Logger::log(LogLevel::VERBOSE, "  hex  : %s", hex_buf);
-  }
-  Logger::log(LogLevel::VERBOSE, "  str  : '%s'", val_s_buf);
-  Logger::log(LogLevel::VERBOSE, "  float: %f", static_cast<double>(raw_val_f));
-  if (has_scaler_unit && is_numeric) {
-    Logger::log(LogLevel::VERBOSE, "  scaled: %f", static_cast<double>(val_f));
-  }
-
-  this->cooked_cb_(obis_str_buf, val_f, val_s_buf, is_numeric);
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -487,7 +575,7 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
     else if (tok == "L")  add_step(AxdrTokenType::EXPECT_TO_BE_LAST);
     else if (tok == "C")  add_step(AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED);
     else if (tok == "TC") {
-      add_step(AxdrTokenType::EXPECT_TYPE_EXACT, DLMS_DATA_TYPE_UINT16);
+      add_step(AxdrTokenType::EXPECT_TYPE_EXACT, static_cast<uint8_t>(DlmsDataType::UINT16));
       add_step(AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED);
     }
     else if (tok == "O")   add_step(AxdrTokenType::EXPECT_OBIS6_UNTAGGED);

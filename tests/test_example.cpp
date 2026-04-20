@@ -36,7 +36,26 @@ long last_read_timestamp = 0; // Timestamp of the last byte received. Needed to 
 
 Uart uart; // UART connected to the smart meter.
 
-dlms_parser::DlmsParser parser(&decryptor); // DLMS parser instance.
+// Define a callback that will be called by the DlmsParser for every parsed value.
+void on_dlms_data(const dlms_parser::AxdrCapture& capture) {
+  std::array<char, 32> obis_buf;
+  const std::string_view obis_str = capture.obis_as_string(obis_buf);
+ 
+  if (capture.is_numeric()) {
+    printf("%.*s = %.3f\n", static_cast<int>(obis_str.size()), obis_str.data(),
+                            static_cast<double>(capture.value_as_float_with_scaler_applied()));
+  }
+  else {
+    std::array<char, 128> str_val_buf;
+    const std::string_view str_val = capture.value_as_string(str_val_buf);
+
+    printf("%.*s = '%.*s'\n", static_cast<int>(obis_str.size()), obis_str.data(),
+                              static_cast<int>(str_val.size()), str_val.data());
+  }
+}
+
+// Create DLMS parser instance. Pass the callback and the decryptor (optional).
+dlms_parser::DlmsParser parser(on_dlms_data, &decryptor);
 
 // Before you can use the parser, you need to configure it.
 inline void configure_parser() {
@@ -81,17 +100,7 @@ inline void loop() {
     const size_t frame_len = dlms_packet_buffer_position; // Save length before resetting.
     dlms_packet_buffer_position = 0; // Reset for the next packet.
 
-    // Define a callback that will be called by the DlmsParser for every parsed value.
-    auto on_value = [](const char* obis_code, float float_val, const char* str_val, bool is_numeric) {
-      if (is_numeric) {
-        printf("%s = %.3f\n", obis_code, static_cast<double>(float_val));
-      }
-      else {
-        printf("%s = '%s'\n", obis_code, str_val);
-      }
-    };
-
-    auto [objects_found, bytes_consumed] = parser.parse({dlms_packet_buffer.data(), frame_len}, on_value);
+    auto [objects_found, bytes_consumed] = parser.parse({dlms_packet_buffer.data(), frame_len});
     printf("%zu objects found\n", objects_found);
   }
 }

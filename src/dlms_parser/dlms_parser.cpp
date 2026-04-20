@@ -1,7 +1,6 @@
 #include "dlms_parser.h"
 #include "apdu_handler.h"
 #include "hdlc_decoder.h"
-#include "log.h"
 #include "mbus_decoder.h"
 
 namespace dlms_parser {
@@ -22,7 +21,7 @@ static void log_span_as_hex(const LogLevel level, const std::span<const uint8_t>
   }
 }
 
-DlmsParser::DlmsParser(Aes128GcmDecryptor* decryptor) : decryptor_(decryptor) {}
+DlmsParser::DlmsParser(DlmsDataCallback dlmsDataCallback, Aes128GcmDecryptor* decryptor) : decryptor_(decryptor), axdr_parser_(dlmsDataCallback) {}
 
 void DlmsParser::set_skip_crc_check(const bool skip) {
   skip_crc_check_ = skip;
@@ -55,7 +54,7 @@ void DlmsParser::register_pattern(const char* name, const char* dsl, const int p
   axdr_parser_.register_pattern(name, dsl, priority, default_obis);
 }
 
-ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& cooked_cb) {
+ParseResult DlmsParser::parse(std::span<uint8_t> buf) {
   if (buf.empty()) {
     Logger::log(LogLevel::ERROR, "Empty buffer passed to parse()");
     return {};
@@ -86,11 +85,15 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& co
   const auto axdr = parse_apdu_in_place(decoded, decryptor_);
   if (axdr.empty()) return {};
 
+  Logger::log(LogLevel::VERY_VERBOSE, "Unencrypted AXDR payload:");
+  log_span_as_hex(LogLevel::VERY_VERBOSE, axdr);
+  Logger::log(LogLevel::VERY_VERBOSE, "============");
+
   // Step 3: AXDR parse — loop over successive top-level containers
   ParseResult result;
   size_t offset = 0;
   while (offset < axdr.size()) {
-    auto [count, bytes_consumed] = axdr_parser_.parse(axdr.subspan(offset), cooked_cb);
+    auto [count, bytes_consumed] = axdr_parser_.parse(axdr.subspan(offset));
     if (bytes_consumed == 0) break;
     result.count += count;
     result.bytes_consumed += bytes_consumed;
@@ -100,10 +103,6 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& co
   if(result.count == 0) {
     Logger::log(LogLevel::ERROR, "No COSEM objects found in AXDR payload");
   }
-
-  Logger::log(LogLevel::VERY_VERBOSE, "Unencrypted AXDR payload:");
-  log_span_as_hex(LogLevel::VERY_VERBOSE, axdr);
-  Logger::log(LogLevel::VERY_VERBOSE, "============");
 
   return result;
 }
