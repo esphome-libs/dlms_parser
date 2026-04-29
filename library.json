@@ -1,6 +1,6 @@
 {
   "name": "dlms_parser",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A C++20 library for parsing DLMS/COSEM push telegrams from electricity meters. It is designed for embedded and integration-heavy environments such as ESPHome",
   "keywords": [
     "dlms",
