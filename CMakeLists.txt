@@ -1,5 +1,6 @@
 if(ESP_PLATFORM)
-   idf_component_register(SRC_DIRS src INCLUDE_DIRS src)
+   file(GLOB_RECURSE dlms_parser_src_files "src/*.h" "src/*.cpp")
+   idf_component_register(SRCS ${dlms_parser_src_files} INCLUDE_DIRS src)
    return()
 endif()
 
