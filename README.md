@@ -151,8 +151,8 @@ int main() {
         printf("Matched OBIS: %s | String: %s | Float: %f\n", obis, s_val, f_val);
     };
 
-    // 7. Parse the telegram (vector implicitly converts to std::span<uint8_t>)
-    ParseResult result = parser.parse(my_telegram, callback);
+    // 7. Parse the telegram by explicitly constructing a std::span<uint8_t>
+    ParseResult result = parser.parse(std::span<uint8_t>(my_telegram.data(), my_telegram.size()), callback);
     
     printf("Successfully parsed %zu COSEM objects!\n", result.count);
     return 0;
