@@ -96,14 +96,14 @@ parser.register_pattern("TOW, TV, TSU");          // Landis+Gyr swapped OBIS
 
 ### `DlmsParser` Core Methods
 
-| Method                                               | Description                                                                     |
-|------------------------------------------------------|---------------------------------------------------------------------------------|
-| `DlmsParser(Aes128GcmDecryptor* = nullptr)`          | Constructor accepting an optional pointer to an AES-128-GCM decryptor backend.  |
-| `set_skip_crc_check(bool)`                           | Skip CRC/checksum validation for HDLC and M-Bus.                                |
-| `set_decryption_key(Aes128GcmDecryptionKey)`         | Set AES-128-GCM decryption key (GUEK).                                          |
-| `set_authentication_key(Aes128GcmAuthenticationKey)` | Set AES-128-GCM authentication key (GAK) for GCM tag verification.              |
-| `load_default_patterns()`                            | Register all built-in patterns (T1, T2, T3, DateTime, etc.).                    |
-| `parse(std::span<uint8_t> buf, DlmsDataCallback)`    | Parse a complete frame; modifies the buffer in-place and triggers the callback. |
+| Method                                                                  | Description                                                                     |
+|-------------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| `DlmsParser(Aes128GcmDecryptor* = nullptr)`                             | Constructor accepting an optional pointer to an AES-128-GCM decryptor backend.  |
+| `set_skip_crc_check(bool)`                                              | Skip CRC/checksum validation for HDLC and M-Bus.                                |
+| `set_decryption_key(const Aes128GcmDecryptionKey&)`                     | Set AES-128-GCM decryption key (GUEK).                                          |
+| `set_authentication_key(const Aes128GcmAuthenticationKey&)`             | Set AES-128-GCM authentication key (GAK) for GCM tag verification.              |
+| `load_default_patterns()`                                               | Register all built-in patterns (T1, T2, T3, DateTime, etc.).                    |
+| `ParseResult parse(std::span<uint8_t> buf, const DlmsDataCallback&)`    | Parse a complete frame; modifies the buffer in-place and triggers the callback. |
 
 ### Supported APDU Tags
 
