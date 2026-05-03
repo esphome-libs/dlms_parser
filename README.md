@@ -26,12 +26,17 @@ parser.load_default_patterns();
 
 Built-in patterns
 
-| Name  | Priority | Typical use                               |
-|-------|---------:|-------------------------------------------|
-| `T1`  |       10 | class ID, tagged OBIS, scaler, value      |
-| `T2`  |       20 | tagged OBIS, value, scaler-unit structure |
-| `T3`  |       30 | value first, class ID, scaler-unit, OBIS  |
-| `ADV` |       40 | untagged ZPA/Aidon-style layouts          |
+| Name                                     | Pattern          | Priority | Typical use                               |
+|------------------------------------------|------------------|---------:|-------------------------------------------|
+| `classId-taggedObis-scaler-value`        | `TC,TO,TS,TV`    |       10 | class ID, tagged OBIS, scaler, value      |
+| `taggedObis-value-scalerUnit`            | `TO,TV,TSU`      |       20 | tagged OBIS, value, scaler-unit structure |
+| `value-classId-scalerUnit-taggedObis`    | `TV,TC,TSU,TO`   |       30 | value first, class ID, scaler-unit, OBIS  |
+| `zpaAidon-untaggedLayout`                | `ADV`            |       40 | untagged ZPA/Aidon-style layouts          |
+| `structuredObis-value-scalerUnit`        | `S(TO, TV, TSU)` |       50 | OBIS, value, scaler-unit structure        |
+| `structuredObis-value`                   | `S(TO, TV)`      |       60 | OBIS and value structure                  |
+| `flatObis-valuePair`                     | `TO, TV`         |       70 | flat OBIS + value pairs                   |
+| `firstElement-dateTime`                  | `F, S(TO, TDTM)` |       80 | first-element date-time structure         |
+| `swappedTagObis-value-scalerUnit`        | `TOW, TV, TSU`   |       90 | swapped-tag OBIS, value, scaler-unit      |
 
 Register a custom pattern when your meter emits a different structure
 

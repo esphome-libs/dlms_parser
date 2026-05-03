@@ -46,10 +46,12 @@ const auto hdlc_lgz_e450_2_key = dlms_parser::Aes128GcmDecryptionKey::from_bytes
     0xE1, 0xC0, 0xBA, 0x04, 0x8F, 0xA9, 0xA0, 0x23,
 }).value();
 
-// 16 flat TO,TV pairs
-constexpr size_t hdlc_lgz_e450_2_expected_count = 16;
+// 16 flat TO,TV pairs and 1 datetime
+constexpr size_t hdlc_lgz_e450_2_expected_count = 17;
 
-const std::map<std::string, std::string> hdlc_lgz_e450_2_expected_strings = {};
+const std::map<std::string, std::string> hdlc_lgz_e450_2_expected_strings = {
+    {"0.0.0.0.0.0", "2023-11-10 10:58:50"}, // DateTime
+};
 
 const std::map<std::string, float> hdlc_lgz_e450_2_expected_floats = {
     {"1.0.1.8.0.255",  12048950.0f},  // Active energy+ total

@@ -159,11 +159,7 @@ TEST_CASE("Integration: RAW APDU") {
       dlms::test_data::raw_salzburg_netz_frame,
       dlms::test_data::raw_salzburg_netz_expected_count,
       dlms::test_data::raw_salzburg_netz_expected_strings,
-      dlms::test_data::raw_salzburg_netz_expected_floats,
-      [](dlms_parser::DlmsParser& p) {
-        p.register_pattern("TO, TDTM");
-        p.register_pattern("S(TO, TV)");
-      }
+      dlms::test_data::raw_salzburg_netz_expected_floats
     );
   }
 
@@ -188,8 +184,7 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::iskra550_raw_frame,
       dlms::test_data::iskra550_expected_count,
       dlms::test_data::iskra550_expected_strings,
-      dlms::test_data::iskra550_expected_floats,
-      [](dlms_parser::DlmsParser& p) { p.register_pattern("S(TO, TV)"); }
+      dlms::test_data::iskra550_expected_floats
     );
   }
 
@@ -200,8 +195,7 @@ TEST_CASE("Integration: HDLC") {
       duplicated_frame,
       dlms::test_data::iskra550_expected_count,
       dlms::test_data::iskra550_expected_strings,
-      dlms::test_data::iskra550_expected_floats,
-      [](dlms_parser::DlmsParser& p) { p.register_pattern("S(TO, TV)"); }
+      dlms::test_data::iskra550_expected_floats
     );
   }
 
@@ -220,11 +214,7 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::norway_han_1phase_raw_frame,
       dlms::test_data::norway_han_1phase_expected_count,
       dlms::test_data::norway_han_1phase_expected_strings,
-      dlms::test_data::norway_han_1phase_expected_floats,
-      [](dlms_parser::DlmsParser& p) {
-        p.register_pattern("S(TO, TV, TSU)");
-        p.register_pattern("S(TO, TV)"); 
-      }
+      dlms::test_data::norway_han_1phase_expected_floats
     );
   }
 
@@ -233,11 +223,7 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::norway_han_3phase_raw_frame,
       dlms::test_data::norway_han_3phase_expected_count,
       dlms::test_data::norway_han_3phase_expected_strings,
-      dlms::test_data::norway_han_3phase_expected_floats,
-      [](dlms_parser::DlmsParser& p) {
-        p.register_pattern("DateTime", "F, S(TO, TDTM)");
-        p.register_pattern("Obis-Value-Scaler-Unit", "S(TO, TV, TSU)"); 
-      }
+      dlms::test_data::norway_han_3phase_expected_floats
     );
   }
 
@@ -249,9 +235,6 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_landis_gyr_zmf100_expected_floats,
       [](dlms_parser::DlmsParser& p) {
         p.set_skip_crc_check(true);
-        p.register_pattern("S(TO, TDTM)");
-        p.register_pattern("S(TO, TV)");
-        p.register_pattern("TOW, TV, TSU");
       }
     );
   }
@@ -274,7 +257,6 @@ TEST_CASE("Integration: HDLC") {
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_landis_gyr_e450_key);
         p.register_pattern("DateTime", "F, TDTM");
-        p.register_pattern("Obis-Value Pair","TO, TV");
       }
     );
   }
@@ -288,7 +270,6 @@ TEST_CASE("Integration: HDLC") {
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_landis_gyr_e450_key);
         p.register_pattern("DateTime", "F, TDTM");
-        p.register_pattern("Obis-Value Pair", "TO, TV");
       }
     );
   }
@@ -302,7 +283,6 @@ TEST_CASE("Integration: HDLC") {
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_landis_gyr_e450_key);
         p.register_pattern("DateTime", "F, TDTM");
-        p.register_pattern("Obis-Value Pair", "TO, TV");
       }
     );
   }
@@ -315,7 +295,7 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_lgz_e450_2_expected_floats,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_lgz_e450_2_key);
-        p.register_pattern("TO, TV");
+        p.register_pattern("DateTime", "F, TDTM");
       }
     );
   }
@@ -329,7 +309,6 @@ TEST_CASE("Integration: HDLC") {
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
         p.register_pattern("Obis List Ver", "F, TSTR");
-        p.register_pattern("Code-Value Pair", "TO, TV");
       }
     );
   }
@@ -344,7 +323,6 @@ TEST_CASE("Integration: HDLC") {
         p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
         p.set_authentication_key(dlms::test_data::hdlc_kamstrup_omnipower_auth_key);
         p.register_pattern("Obis List Ver", "F, TSTR");
-        p.register_pattern("Code-Value Pair", "TO, TV");
       }
     );
   }
@@ -359,7 +337,6 @@ TEST_CASE("Integration: HDLC") {
         p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
         p.set_authentication_key(dlms::test_data::hdlc_kamstrup_omnipower_auth_key);
         p.register_pattern("Obis List Ver", "F, TSTR");
-        p.register_pattern("Code-Value Pair", "TO, TV");
       }
     );
   }
@@ -374,7 +351,6 @@ TEST_CASE("Integration: HDLC") {
         p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
         p.set_authentication_key(dlms::test_data::hdlc_kamstrup_omnipower_auth_key);
         p.register_pattern("Obis List Ver", "F, TSTR");
-        p.register_pattern("Code-Value Pair", "TO, TV");
       }
     );
   }
@@ -418,7 +394,7 @@ TEST_CASE("Integration: MBus") {
         p.set_decryption_key(dlms::test_data::mbus_netz_noe_p1_key);
         const uint8_t meter_obis[] = {0, 0, 96, 1, 0, 255};  // 0.0.96.1.0.255
         p.register_pattern("MeterID", "L, TSTR", 0, meter_obis);
-        p.register_pattern("Obis-Value-Scaler-Unit", "S(TO, TV, TSU)");
+        p.register_pattern("DateTime", "F, TDTM");
       }
     );
   }
@@ -435,7 +411,7 @@ TEST_CASE("Integration: MBus") {
         p.set_decryption_key(dlms::test_data::mbus_netz_noe_p1_key);
         const uint8_t meter_obis[] = { 0, 0, 96, 1, 0, 255 };  // 0.0.96.1.0.255
         p.register_pattern("MeterID", "L, TSTR", 0, meter_obis);
-        p.register_pattern("Obis-Value-Scaler-Unit", "S(TO, TV, TSU)");
+        p.register_pattern("DateTime", "F, TDTM");
       }
     );
   }

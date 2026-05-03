@@ -42,9 +42,10 @@ const auto mbus_netz_noe_p1_key = dlms_parser::Aes128GcmDecryptionKey::from_byte
 }).value();
 
 // 11 T2 objects + 1 meter number (L, TSTR) = 12 total
-constexpr size_t mbus_netz_noe_p1_expected_count = 12;
+constexpr size_t mbus_netz_noe_p1_expected_count = 13;
 
 const std::map<std::string, std::string> mbus_netz_noe_p1_expected_strings = {
+    {"0.0.0.0.0.0", "2021-09-27 09:47:15.00 -02:00"}, // DateTime
     {"0.0.96.1.0.255", "181220000009"},   // Meter number (last element, default OBIS from pattern)
 };
 
