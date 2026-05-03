@@ -96,15 +96,16 @@ parser.register_pattern("TOW, TV, TSU");          // Landis+Gyr swapped OBIS
 
 ### `DlmsParser` Core Methods
 
-| Method                                                                  | Description                                                                     |
-|-------------------------------------------------------------------------|---------------------------------------------------------------------------------|
-| `DlmsParser(Aes128GcmDecryptor* = nullptr)`                             | Constructor accepting an optional pointer to an AES-128-GCM decryptor backend.  |
-| `set_skip_crc_check(bool)`                                              | Skip CRC/checksum validation for HDLC and M-Bus.                                |
-| `set_decryption_key(const Aes128GcmDecryptionKey&)`                     | Set AES-128-GCM decryption key (GUEK).                                          |
-| `set_authentication_key(const Aes128GcmAuthenticationKey&)`             | Set AES-128-GCM authentication key (GAK) for GCM tag verification.              |
-| `load_default_patterns()`                                               | Register all built-in patterns (T1, T2, T3, DateTime, etc.).                    |
-| `ParseResult parse(std::span<uint8_t> buf, const DlmsDataCallback&)`    | Parse a complete frame; modifies the buffer in-place and triggers the callback. |
+> **⚠️ Warning:** If you intend to use encryption, you **must** provide a concrete `Aes128GcmDecryptor` backend to the constructor before calling `set_decryption_key` or `set_authentication_key`. Calling these methods on a parser initialized with the default `nullptr` decryptor will cause a null pointer dereference.
 
+| Method                                                               | Description                                                                                           |
+|----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| `DlmsParser(Aes128GcmDecryptor* = nullptr)`                          | Constructor accepting an optional pointer to an AES-128-GCM decryptor backend.                        |
+| `set_skip_crc_check(bool)`                                           | Skip CRC/checksum validation for HDLC and M-Bus.                                                      |
+| `set_decryption_key(const Aes128GcmDecryptionKey&)`                  | Set AES-128-GCM decryption key (GUEK). **Requires a non-null decryptor.**                             |
+| `set_authentication_key(const Aes128GcmAuthenticationKey&)`          | Set AES-128-GCM authentication key (GAK) for GCM tag verification. **Requires a non-null decryptor.** |
+| `load_default_patterns()`                                            | Register all built-in patterns (T1, T2, T3, DateTime, etc.).                                          |
+| `ParseResult parse(std::span<uint8_t> buf, const DlmsDataCallback&)` | Parse a complete frame; modifies the buffer in-place and triggers the callback.                       |
 ### Supported APDU Tags
 
 Common APDU tags accepted by the parser:
