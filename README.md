@@ -5,10 +5,11 @@ It is designed for embedded and integration-heavy environments such as ESPHome, 
 
 ## Features
 
-- **Transport decoding**: `RAW`, `HDLC`, `M-Bus`. Including multi-frame segmentation and General Block Transfer
+- **Transport decoding**: `RAW`, `HDLC`, `M-Bus`. Auto-detects the frame format based on the leading byte. Includes multi-frame segmentation and General Block Transfer
 - **Encryption**: AES-128-GCM decryption and optional authentication tag verification for `General-GLO-Ciphering` and `General-DED-Ciphering` APDUs
+- **Crypto Backends**: Pluggable decryption backends with built-in support for `mbedTLS`, `BearSSL`, and `TF-PSA`
 - **Pattern matching**: DSL-based AXDR descriptor patterns with built-in presets and custom registration
-- **Callback API**: cooked callback delivers OBIS code + scaled value; raw callback gives full capture details
+- **Callback API**: cooked callback delivers OBIS code + scaled value
 - **Embedded-friendly**: no heap allocation during parsing
 - **Portable**: builds on ESP32 (IDF/Arduino), ESP8266, Linux, macOS, Windows
 
@@ -16,15 +17,14 @@ It is designed for embedded and integration-heavy environments such as ESPHome, 
 
 Complete example with the explanation: [test_example.cpp](https://github.com/esphome-libs/dlms_parser/blob/main/tests/test_example.cpp)
 
-## How to creating custom patterns to match your meter's telegram structure
+### Creating custom patterns to match your meter's telegram structure
 
 The parser starts with no registered AXDR patterns. Load the built-ins first unless you want full control:
-
-```cpp
+```c++
 parser.load_default_patterns();
 ```
 
-Built-in patterns
+**Built-in patterns (available after calling `parser.load_default_patterns()`):**
 
 | Name                                     | Pattern          | Priority | Typical use                               |
 |------------------------------------------|------------------|---------:|-------------------------------------------|
@@ -38,10 +38,11 @@ Built-in patterns
 | `firstElement-dateTime`                  | `F, S(TO, TDTM)` |       80 | first-element date-time structure         |
 | `swappedTagObis-value-scalerUnit`        | `TOW, TV, TSU`   |       90 | swapped-tag OBIS, value, scaler-unit      |
 
-Register a custom pattern when your meter emits a different structure
+**Registering Custom Patterns:**
 
-```cpp
-// Simple — name="CUSTOM", priority=0 (tried before built-ins)
+If your meter emits a layout not covered by the built-ins, you can register custom patterns. Lower priority numbers are evaluated first.
+```c++
+// Simple — priority 0 (tried before built-ins)
 parser.register_pattern("TC, TO, TDTM");
 
 // Named with explicit priority
@@ -91,16 +92,100 @@ parser.register_pattern("TOW, TV, TSU");          // Landis+Gyr swapped OBIS
 | `DN`           | descend into nested structure              | control token                   |
 | `UP`           | return from nested structure               | control token                   |
 
+## API Reference
+
+### `DlmsParser` Core Methods
+
+> **⚠️ Warning:** If you intend to use encryption, you **must** provide a concrete `Aes128GcmDecryptor` backend to the constructor before calling `set_decryption_key` or `set_authentication_key`. Calling these methods on a parser initialized with the default `nullptr` decryptor will cause a null pointer dereference.
+
+| Method                                                               | Description                                                                                           |
+|----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| `DlmsParser(Aes128GcmDecryptor* = nullptr)`                          | Constructor accepting an optional pointer to an AES-128-GCM decryptor backend.                        |
+| `set_skip_crc_check(bool)`                                           | Skip CRC/checksum validation for HDLC and M-Bus.                                                      |
+| `set_decryption_key(const Aes128GcmDecryptionKey&)`                  | Set AES-128-GCM decryption key (GUEK). **Requires a non-null decryptor.**                             |
+| `set_authentication_key(const Aes128GcmAuthenticationKey&)`          | Set AES-128-GCM authentication key (GAK) for GCM tag verification. **Requires a non-null decryptor.** |
+| `load_default_patterns()`                                            | Register all built-in patterns (T1, T2, T3, DateTime, etc.).                                          |
+| `ParseResult parse(std::span<uint8_t> buf, const DlmsDataCallback&)` | Parse a complete frame; modifies the buffer in-place and triggers the callback.                       |
+### Supported APDU Tags
+
+Common APDU tags accepted by the parser:
+
+| Byte   | Meaning                                                                             |
+|--------|-------------------------------------------------------------------------------------|
+| `0x0F` | `DATA-NOTIFICATION`                                                                 |
+| `0xE0` | `General-Block-Transfer` — reassembles numbered blocks, then re-enters APDU parsing |
+| `0xDB` | `General-GLO-Ciphering` — encrypted, needs decryption key                           |
+| `0xDF` | `General-DED-Ciphering` — encrypted, needs decryption key                           |
+| `0x01` | raw AXDR array                                                                      |
+| `0x02` | raw AXDR structure                                                                  |
+
+### Basic Example
+```c++
+#include <vector>
+#include "dlms_parser.h"
+#include "decryption/aes_128_gcm_decryptor_mbedtls.h"
+
+using namespace dlms_parser;
+
+int main() {
+    // 1. Initialize a crypto backend (e.g., mbedTLS)
+    Aes128GcmDecryptorMbedTls decryptor;
+    
+    // 2. Initialize the parser with a pointer to the decryptor
+    DlmsParser parser(&decryptor);
+    
+    // 3. Set keys using the robust hex loader
+    auto dec_key = Aes128GcmDecryptionKey::from_hex("00112233445566778899AABBCCDDEEFF");
+    auto auth_key = Aes128GcmAuthenticationKey::from_hex("FFEEDDCCBBAA99887766554433221100");
+    
+    if (dec_key) parser.set_decryption_key(*dec_key);
+    if (auth_key) parser.set_authentication_key(*auth_key);
+
+    // 4. Load common built-in meter layout patterns
+    parser.load_default_patterns();
+
+    // 5. Provide your data (will be modified in-place during parsing)
+    std::vector<uint8_t> my_telegram = { /* ... byte data ... */ };
+    
+    // 6. Define your callback
+    auto callback = [](const char* obis, float f_val, const char* s_val, bool is_numeric) {
+        printf("Matched OBIS: %s | String: %s | Float: %f\n", obis, s_val, f_val);
+    };
+
+    // 7. Parse the telegram by explicitly constructing a std::span<uint8_t>
+    ParseResult result = parser.parse(std::span<uint8_t>(my_telegram.data(), my_telegram.size()), callback);
+    
+    printf("Successfully parsed %zu COSEM objects!\n", result.count);
+    return 0;
+}
+```
+
+## Logging
+
+`dlms_parser` includes a built-in logging system that is useful for debugging frame parsing and pattern matching. You can hook into it by providing a custom log function:
+```c++
+#include "log.h"
+#include <cstdarg>
+#include <cstdio>
+
+// ... inside your setup code ...
+dlms_parser::Logger::set_log_function([](dlms_parser::LogLevel level, const char* fmt, va_list args) {
+    // Implement your platform-specific print here
+    vprintf(fmt, args);
+    printf("\n");
+});
+```
+
 ## How to add the library to your project
 
 ### PlatformIO package
-TODO: add link
+[https://registry.platformio.org/libraries/esphome/dlms_parser](https://registry.platformio.org/libraries/esphome/dlms_parser)
 
 ### ESP-IDF component
-TODO: add link
+[https://components.espressif.com/components/esphome/dlms_parser](https://components.espressif.com/components/esphome/dlms_parser)
 
 ### CMake
-```
+```cmake
 FetchContent_Declare(
   dlms_parser
   GIT_REPOSITORY https://github.com/esphome-libs/dlms_parser
@@ -111,8 +196,11 @@ add_executable(your_project_name main.cpp)
 target_link_libraries(your_project_name PRIVATE dlms_parser)
 ```
 
-## How to work with the codebase
-You can open the repository using any IDE that supports CMake.
+### Acknowledgements
+
+This library builds on foundational work and protocol insights from:
+- [esphome-dlms-cosem](https://github.com/latonita/esphome-dlms-cosem) - original ESPHome DLMS/COSEM component and AXDR parser by **latonita**.
+- [xt211](https://github.com/Tomer27cz/xt211) - Sagemcom XT211 parser by **Tomer27cz**, instrumental in de-Guruxing the protocol handling.
 
 ## References
 - [DLMS/COSEM Architecture and Protocols. Green Book Edition 11](https://github.com/zhuyangfei/DLMS-green-book/blob/main/Green-Book-Ed-11-V1-0.pdf)
