@@ -24,7 +24,7 @@ The parser starts with no registered AXDR patterns. Load the built-ins first unl
 parser.load_default_patterns();
 ```
 
-**Built-in patterns (Loaded by default):**
+**Built-in patterns (available after calling `parser.load_default_patterns()`):**
 
 | Name                                     | Pattern          | Priority | Typical use                               |
 |------------------------------------------|------------------|---------:|-------------------------------------------|
