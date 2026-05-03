@@ -31,8 +31,8 @@ const uint8_t raw_energomera_frame[] = {
     0x00, 0x03,
 };
 
-// 7 objects matched by T1 pattern inside ARRAY(7) of STRUCTURE(6) elements
-constexpr size_t raw_energomera_expected_count = 7;
+// 7 objects matched by T1 pattern inside ARRAY(7) of STRUCTURE(6) elements and 1 object matched by "Obis-Value"
+constexpr size_t raw_energomera_expected_count = 8;
 
 const std::map<std::string, std::string> raw_energomera_expected_strings = {};
 
@@ -44,6 +44,7 @@ const std::map<std::string, float> raw_energomera_expected_floats = {
     {"0.0.97.98.0.255",   0.0f},   // class=1, scaler=2
     {"0.0.97.98.10.255",  0.0f},   // class=1, scaler=2
     {"0.0.96.5.135.255",  0.0f},   // class=1, scaler=2
+    {"0.0.99.98.4.255",   3.0f}
 };
 
 }  // namespace dlms::test_data

@@ -37,10 +37,16 @@ void DlmsParser::set_authentication_key(const Aes128GcmAuthenticationKey& key) c
 }
 
 void DlmsParser::load_default_patterns() {
+  axdr_parser_.clear_patterns();
   axdr_parser_.register_pattern("T1", "TC,TO,TS,TV", 10);
   axdr_parser_.register_pattern("T2", "TO,TV,TSU", 20);
   axdr_parser_.register_pattern("T3", "TV,TC,TSU,TO", 30);
   axdr_parser_.register_pattern("ADV", "ADV", 40);
+  axdr_parser_.register_pattern("Obis-Value-Scaler-Unit", "S(TO, TV, TSU)", 50);
+  axdr_parser_.register_pattern("Obis-Value", "S(TO, TV)", 60);
+  axdr_parser_.register_pattern("Obis-Value Pair", "TO, TV", 70);
+  axdr_parser_.register_pattern("DateTime", "F, S(TO, TDTM)", 80);
+  axdr_parser_.register_pattern("ReverseObis-Value-Scaler-Unit", "TOW, TV, TSU", 90);
 }
 
 void DlmsParser::register_pattern(const char* dsl) {
