@@ -47,7 +47,7 @@ const auto mbus_kaifa_ma309m_key = dlms_parser::Aes128GcmDecryptionKey::from_byt
 }).value();
 
 // 1 datetime, 2 strings (Meter ID, Logical Name), 7 numeric values (V1, V2, V3, I1, I2, I3, P+)
-constexpr size_t mbus_kaifa_ma309m_expected_count = 11;
+constexpr size_t mbus_kaifa_ma309m_expected_count = 10;
 
 const std::map<std::string, std::string> mbus_kaifa_ma309m_expected_strings = {
     {"0.0.96.1.0.255", "1KFM0000000001"},
