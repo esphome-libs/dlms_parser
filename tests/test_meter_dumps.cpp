@@ -26,6 +26,7 @@
 #include "tests/expected/hdlc_kaifa_ma304h3e.h"
 #include "tests/expected/hdlc_kamstrup_omnipower.h"
 #include "tests/expected/mbus_netz_noe_p1.h"
+#include "tests/expected/mbus_kaifa_ma309m.h"
 
 class LogCapturer : dlms_parser::NonCopyableAndNonMovable {
 public:
@@ -424,5 +425,17 @@ TEST_CASE("Integration: MBus") {
     dlms_parser::DlmsParser parser(&decryptor);
     auto [n, consumed] = parser.parse(duplicated_frame, [](auto, auto, auto, auto) {});
     CHECK(n == 0);
+  }
+
+  SUBCASE("Kaifa MA309M (EWR, Austria)") {
+    run_meter_test(
+        dlms::test_data::mbus_kaifa_ma309m_raw_frame,
+        dlms::test_data::mbus_kaifa_ma309m_expected_count,
+        dlms::test_data::mbus_kaifa_ma309m_expected_strings,
+        dlms::test_data::mbus_kaifa_ma309m_expected_floats,
+        [&](dlms_parser::DlmsParser& parser) {
+            parser.set_decryption_key(dlms::test_data::mbus_kaifa_ma309m_key);
+        }
+    );
   }
 }
