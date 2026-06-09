@@ -39,6 +39,11 @@ ParseResult AxdrParser::parse(const std::span<const uint8_t> axdr, DlmsDataCallb
 
   Logger::log(LogLevel::DEBUG, "AxdrParser: parsing %zu bytes", axdr.size());
 
+  if (this->parse_self_describing_push_()) {
+    Logger::log(LogLevel::DEBUG, "AxdrParser: matched Self-Describing Push");
+    return {objects_found_, pos_};
+  }
+
   while (this->pos_ < this->buffer_.size()) {
     const uint8_t type = this->read_byte_();
     if (type != DLMS_DATA_TYPE_STRUCTURE && type != DLMS_DATA_TYPE_ARRAY) {
@@ -236,6 +241,73 @@ bool AxdrParser::try_match_patterns_(const uint8_t elem_idx, const uint8_t elem_
     this->pos_ = saved_position;
   }
   return false;
+}
+
+bool AxdrParser::parse_self_describing_push_() {
+  const size_t initial_pos = this->pos_;
+
+  // Check outer STRUCTURE
+  if (this->read_byte_() != DLMS_DATA_TYPE_STRUCTURE) { this->pos_ = initial_pos; return false; }
+  const uint8_t total_elements = this->read_byte_();
+
+  // Check inner ARRAY (the capture objects definition)
+  if (this->read_byte_() != DLMS_DATA_TYPE_ARRAY) { this->pos_ = initial_pos; return false; }
+  const uint8_t array_elements = this->read_byte_();
+
+  if (array_elements != total_elements || array_elements > 64) {
+    this->pos_ = initial_pos;
+    return false;
+  }
+
+  std::array<std::array<uint8_t, 6>, 64> obis_list{};
+  std::array<uint16_t, 64> class_id_list{};
+
+  for (int i = 0; i < array_elements; i++) {
+    if (this->read_byte_() != DLMS_DATA_TYPE_STRUCTURE || this->read_byte_() != 4) {
+      this->pos_ = initial_pos; return false;
+    }
+
+    // Class ID
+    if (this->read_byte_() != DLMS_DATA_TYPE_UINT16) { this->pos_ = initial_pos; return false; }
+    class_id_list[i] = this->read_u16_();
+
+    // OBIS code
+    if (this->read_byte_() != DLMS_DATA_TYPE_OCTET_STRING || this->read_byte_() != 6) {
+      this->pos_ = initial_pos; return false;
+    }
+    for (int j = 0; j < 6; j++) {
+      obis_list[i][j] = this->read_byte_();
+    }
+
+    // Attribute ID
+    const uint8_t attr_type = this->read_byte_();
+    if (attr_type != DLMS_DATA_TYPE_INT8 && attr_type != DLMS_DATA_TYPE_UINT8) { this->pos_ = initial_pos; return false; }
+    this->read_byte_();
+
+    // Data Index
+    if (this->read_byte_() != DLMS_DATA_TYPE_UINT16) { this->pos_ = initial_pos; return false; }
+    this->read_u16_();
+  }
+
+  // Zip values with the OBIS definitions
+  // Values start at index 1 because index 0 was the definition array itself.
+  for (int i = 1; i < total_elements; i++) {
+    AxdrCaptures cap{};
+    cap.elem_idx = static_cast<uint32_t>(this->pos_);
+    cap.class_id = class_id_list[i];
+    cap.obis = std::span<const uint8_t>(obis_list[i]);
+
+    if (!this->capture_generic_value_(cap)) {
+      this->pos_ = initial_pos;
+      return false;
+    }
+
+    AxdrDescriptorPattern pat{};
+    pat.name = "SelfDescribingPush";
+    this->emit_object_(pat, cap);
+  }
+
+  return true;
 }
 
 bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count, const AxdrDescriptorPattern& pat,
