@@ -263,6 +263,8 @@ bool AxdrParser::parse_self_describing_push_() {
   std::array<uint16_t, 64> class_id_list{};
 
   for (size_t i = 0; i < array_elements; i++) {
+    if (this->pos_ + 18 > this->buffer_.size()) { this->pos_ = initial_pos; return false; }
+
     if (this->read_byte_() != DLMS_DATA_TYPE_STRUCTURE || this->read_byte_() != 4) {
       this->pos_ = initial_pos; return false;
     }
@@ -289,22 +291,23 @@ bool AxdrParser::parse_self_describing_push_() {
     this->read_u16_();
   }
 
-  // Zip values with the OBIS definitions
-  // Values start at index 1 because index 0 was the definition array itself.
-  for (size_t i = 1; i < total_elements; i++) {
-    AxdrCaptures cap{};
-    cap.elem_idx = static_cast<uint32_t>(this->pos_);
-    cap.class_id = class_id_list[i];
-    cap.obis = std::span<const uint8_t>(obis_list[i]);
+  std::array<AxdrCaptures, 64> temp_captures{};
 
-    if (!this->capture_generic_value_(cap)) {
+  for (size_t i = 1; i < total_elements; i++) {
+    temp_captures[i].elem_idx = static_cast<uint32_t>(this->pos_);
+    temp_captures[i].class_id = class_id_list[i];
+    temp_captures[i].obis = std::span<const uint8_t>(obis_list[i]);
+
+    if (!this->capture_generic_value_(temp_captures[i])) {
       this->pos_ = initial_pos;
       return false;
     }
+  }
 
-    AxdrDescriptorPattern pat{};
-    pat.name = "SelfDescribingPush";
-    this->emit_object_(pat, cap);
+  AxdrDescriptorPattern pat{};
+  pat.name = "SelfDescribingPush";
+  for (size_t i = 1; i < total_elements; i++) {
+    this->emit_object_(pat, temp_captures[i]);
   }
 
   return true;
