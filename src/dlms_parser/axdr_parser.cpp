@@ -262,7 +262,7 @@ bool AxdrParser::parse_self_describing_push_() {
   std::array<std::array<uint8_t, 6>, 64> obis_list{};
   std::array<uint16_t, 64> class_id_list{};
 
-  for (int i = 0; i < array_elements; i++) {
+  for (size_t i = 0; i < array_elements; i++) {
     if (this->read_byte_() != DLMS_DATA_TYPE_STRUCTURE || this->read_byte_() != 4) {
       this->pos_ = initial_pos; return false;
     }
@@ -275,7 +275,7 @@ bool AxdrParser::parse_self_describing_push_() {
     if (this->read_byte_() != DLMS_DATA_TYPE_OCTET_STRING || this->read_byte_() != 6) {
       this->pos_ = initial_pos; return false;
     }
-    for (int j = 0; j < 6; j++) {
+    for (size_t j = 0; j < 6; j++) {
       obis_list[i][j] = this->read_byte_();
     }
 
@@ -291,7 +291,7 @@ bool AxdrParser::parse_self_describing_push_() {
 
   // Zip values with the OBIS definitions
   // Values start at index 1 because index 0 was the definition array itself.
-  for (int i = 1; i < total_elements; i++) {
+  for (size_t i = 1; i < total_elements; i++) {
     AxdrCaptures cap{};
     cap.elem_idx = static_cast<uint32_t>(this->pos_);
     cap.class_id = class_id_list[i];
