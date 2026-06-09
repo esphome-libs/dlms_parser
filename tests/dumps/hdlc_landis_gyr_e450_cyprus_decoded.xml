@@ -1,0 +1,154 @@
+<?xml version='1.0' encoding='utf-8'?>
+<DataNotification LongInvokeId="0008B66E">
+  <DateTime Value="2026-06-08 18:46:02" />
+  <STRUCTURE Qty="21">
+    <ARRAY Qty="21">
+      <STRUCTURE Qty="4">
+        <UINT16 Value="40" />
+        <OCTETSTRING Value="0.8.25.9.0.255" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="8" />
+        <OCTETSTRING Value="0.0.1.0.0.255" Name="Clock / datetime" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.21.7.0.255" Name="Active power+ L1 (W)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.41.7.0.255" Name="Active power+ L2 (W)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.61.7.0.255" Name="Active power+ L3 (W)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.22.7.0.255" Name="Active power- L1 (W)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.42.7.0.255" Name="Active power- L2 (W)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.62.7.0.255" Name="Active power- L3 (W)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.1.7.0.255" Name="Active power+ (W)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.2.7.0.255" Name="Active power- (W)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.3.7.0.255" Name="Reactive power+ (var)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.4.7.0.255" Name="Reactive power- (var)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.13.7.0.255" Name="Power factor" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.31.7.0.255" Name="Current L1 (A)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.51.7.0.255" Name="Current L2 (A)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.71.7.0.255" Name="Current L3 (A)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.32.7.0.255" Name="Voltage L1 (V)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.52.7.0.255" Name="Voltage L2 (V)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.72.7.0.255" Name="Voltage L3 (V)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.14.7.0.255" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="1" />
+        <OCTETSTRING Value="0.0.96.3.0.255" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+    </ARRAY>
+    <OCTETSTRING Value="2026-06-08 18:46:04" />
+    <UINT32 Value="73" />
+    <UINT32 Value="34" />
+    <UINT32 Value="80" />
+    <UINT32 Value="0" />
+    <UINT32 Value="0" />
+    <UINT32 Value="0" />
+    <UINT32 Value="187" />
+    <UINT32 Value="0" />
+    <UINT32 Value="0" />
+    <UINT32 Value="622" />
+    <UINT16 Value="286" />
+    <UINT16 Value="130" />
+    <UINT16 Value="74" />
+    <UINT16 Value="89" />
+    <UINT16 Value="238" />
+    <UINT16 Value="239" />
+    <UINT16 Value="238" />
+    <UINT16 Value="50" />
+    <UINT32 Value="11" />
+  </STRUCTURE>
+</DataNotification>
