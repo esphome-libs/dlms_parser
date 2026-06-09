@@ -250,14 +250,23 @@ bool AxdrParser::parse_self_describing_push_() {
   if (this->read_byte_() != DLMS_DATA_TYPE_STRUCTURE) { this->pos_ = initial_pos; return false; }
   const uint8_t total_elements = this->read_byte_();
 
+  // If there are no values, it's not a valid push structure
+  if (total_elements == 0) { this->pos_ = initial_pos; return false; }
+
   // Check inner ARRAY (the capture objects definition)
   if (this->read_byte_() != DLMS_DATA_TYPE_ARRAY) { this->pos_ = initial_pos; return false; }
   const uint8_t array_elements = this->read_byte_();
 
-  if (array_elements != total_elements || array_elements > 64) {
+  // Total elements = 1 (the array itself) + N (the actual values)
+  const size_t num_values = total_elements - 1;
+
+  // We cannot have more values than definitions, and we limit to 64 to avoid overflow
+  if (num_values > array_elements || array_elements > 64) {
     this->pos_ = initial_pos;
     return false;
   }
+
+  const size_t offset = array_elements - num_values;
 
   std::array<std::array<uint8_t, 6>, 64> obis_list{};
   std::array<uint16_t, 64> class_id_list{};
@@ -293,10 +302,12 @@ bool AxdrParser::parse_self_describing_push_() {
 
   std::array<AxdrCaptures, 64> temp_captures{};
 
-  for (size_t i = 1; i < total_elements; i++) {
+  for (size_t i = 0; i < num_values; i++) {
+    size_t definition_idx = i + offset;
+
     temp_captures[i].elem_idx = static_cast<uint32_t>(this->pos_);
-    temp_captures[i].class_id = class_id_list[i];
-    temp_captures[i].obis = std::span<const uint8_t>(obis_list[i]);
+    temp_captures[i].class_id = class_id_list[definition_idx];
+    temp_captures[i].obis = std::span<const uint8_t>(obis_list[definition_idx]);
 
     if (!this->capture_generic_value_(temp_captures[i])) {
       this->pos_ = initial_pos;
@@ -306,7 +317,7 @@ bool AxdrParser::parse_self_describing_push_() {
 
   AxdrDescriptorPattern pat{};
   pat.name = "SelfDescribingPush";
-  for (size_t i = 1; i < total_elements; i++) {
+  for (size_t i = 0; i < num_values; i++) {
     this->emit_object_(pat, temp_captures[i]);
   }
 
