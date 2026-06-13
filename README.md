@@ -28,16 +28,16 @@ parser.load_default_patterns();
 
 | Name                                     | Pattern          | Priority |
 |------------------------------------------|------------------|---------:|
-| `SelfDescribing`                         | `SelfDesc`       |       10 |
-| `classId-taggedObis-scaler-value`        | `TC,TO,TS,TV`    |       20 |
-| `taggedObis-value-scalerUnit`            | `TO,TV,TSU`      |       30 |
-| `value-classId-scalerUnit-taggedObis`    | `TV,TC,TSU,TO`   |       40 |
-| `zpaAidon-untaggedLayout`                | `ADV`            |       50 |
-| `structuredObis-value-scalerUnit`        | `S(TO, TV, TSU)` |       60 |
-| `structuredObis-value`                   | `S(TO, TV)`      |       70 |
-| `flatObis-valuePair`                     | `TO, TV`         |       80 |
-| `firstElement-dateTime`                  | `F, S(TO, TDTM)` |       90 |
-| `swappedTagObis-value-scalerUnit`        | `TOW, TV, TSU`   |      100 |
+| `classId-taggedObis-scaler-value`        | `TC,TO,TS,TV`    |       10 |
+| `taggedObis-value-scalerUnit`            | `TO,TV,TSU`      |       20 |
+| `value-classId-scalerUnit-taggedObis`    | `TV,TC,TSU,TO`   |       30 |
+| `zpaAidon-untaggedLayout`                | `ADV`            |       40 |
+| `structuredObis-value-scalerUnit`        | `S(TO, TV, TSU)` |       50 |
+| `structuredObis-value`                   | `S(TO, TV)`      |       60 |
+| `flatObis-valuePair`                     | `TO, TV`         |       70 |
+| `firstElement-dateTime`                  | `F, S(TO, TDTM)` |       80 |
+| `swappedTagObis-value-scalerUnit`        | `TOW, TV, TSU`   |       90 |
+| `SelfDescribing`                         | `SelfDesc`       |      100 |
 
 **Registering Custom Patterns:**
 
@@ -74,7 +74,6 @@ parser.register_pattern("TOW, TV, TSU");          // Landis+Gyr swapped OBIS
 ### Token reference
 | Token          | Meaning                                        | Hex example                     |
 |----------------|------------------------------------------------|---------------------------------|
-| `SelfDesc`     | array of value descriptions followed by values | definitions array + values      |
 | `F`            | first element guard                            | position check only             |
 | `L`            | last element guard                             | position check only             |
 | `C`            | class ID, 2-byte uint16 without tag            | `00 03`                         |
@@ -93,6 +92,7 @@ parser.register_pattern("TOW, TV, TSU");          // Landis+Gyr swapped OBIS
 | `S(x, y, ...)` | inline sub-structure                           | `02 03`                         |
 | `DN`           | descend into nested structure                  | control token                   |
 | `UP`           | return from nested structure                   | control token                   |
+| `SelfDesc`     | array of value descriptions followed by values | definitions array + values      |
 
 ## API Reference
 
