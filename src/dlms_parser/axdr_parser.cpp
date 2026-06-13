@@ -39,11 +39,6 @@ ParseResult AxdrParser::parse(const std::span<const uint8_t> axdr, DlmsDataCallb
 
   Logger::log(LogLevel::DEBUG, "AxdrParser: parsing %zu bytes", axdr.size());
 
-  if (this->parse_self_describing_push_()) {
-    Logger::log(LogLevel::DEBUG, "AxdrParser: matched Self-Describing Push");
-    return {objects_found_, pos_};
-  }
-
   while (this->pos_ < this->buffer_.size()) {
     const uint8_t type = this->read_byte_();
     if (type != DLMS_DATA_TYPE_STRUCTURE && type != DLMS_DATA_TYPE_ARRAY) {
@@ -147,7 +142,7 @@ bool AxdrParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
   while (elements_consumed < elements_count) {
     const size_t original_position = this->pos_;
 
-    if (this->try_match_patterns_(elements_consumed, elements_count)) {
+    if (this->try_match_patterns_(type, elements_consumed, elements_count)) {
       elements_consumed = static_cast<uint8_t>(
           elements_consumed + (this->last_pattern_elements_consumed_ ? this->last_pattern_elements_consumed_ : 1));
       this->last_pattern_elements_consumed_ = 0;
@@ -230,11 +225,12 @@ bool AxdrParser::capture_generic_value_(AxdrCaptures& c) {
   return true;
 }
 
-bool AxdrParser::try_match_patterns_(const uint8_t elem_idx, const uint8_t elem_count) {
+bool AxdrParser::try_match_patterns_(const uint8_t container_type, const uint8_t elem_idx,
+                                     const uint8_t elem_count) {
   for (size_t i = 0; i < this->patterns_count_; ++i) {
     const auto& p = this->patterns_[i];
     const size_t saved_position = this->pos_;
-    if (uint8_t consumed = 0; this->match_pattern_(elem_idx, elem_count, p, consumed)) {
+    if (uint8_t consumed = 0; this->match_pattern_(container_type, elem_idx, elem_count, p, consumed)) {
       this->last_pattern_elements_consumed_ = consumed;
       return true;
     }
@@ -243,89 +239,61 @@ bool AxdrParser::try_match_patterns_(const uint8_t elem_idx, const uint8_t elem_
   return false;
 }
 
-bool AxdrParser::parse_self_describing_push_() {
-  const size_t initial_pos = this->pos_;
+bool AxdrParser::parse_self_describing_(const uint8_t container_type, const uint8_t elem_idx,
+                                             const uint8_t elem_count, const AxdrDescriptorPattern& pat,
+                                             uint8_t& consumed) {
+  if (container_type != DLMS_DATA_TYPE_STRUCTURE || elem_idx != 0 || elem_count == 0) return false;
+  if (this->read_byte_() != DLMS_DATA_TYPE_ARRAY) return false;
+  const size_t array_elements = this->read_byte_();
 
-  // Check outer STRUCTURE
-  if (this->read_byte_() != DLMS_DATA_TYPE_STRUCTURE) { this->pos_ = initial_pos; return false; }
-  const uint8_t total_elements = this->read_byte_();
-
-  // If there are no values, it's not a valid push structure
-  if (total_elements == 0) { this->pos_ = initial_pos; return false; }
-
-  // Check inner ARRAY (the capture objects definition)
-  if (this->read_byte_() != DLMS_DATA_TYPE_ARRAY) { this->pos_ = initial_pos; return false; }
-  const uint8_t array_elements = this->read_byte_();
-
-  // Total elements = 1 (the array itself) + N (the actual values)
-  const size_t num_values = total_elements - 1;
-
-  // We cannot have more values than definitions, and we limit to 64 to avoid overflow
-  if (num_values > array_elements || array_elements > 64) {
-    this->pos_ = initial_pos;
-    return false;
-  }
-
+  // The first outer element is the definitions array. All remaining elements are values.
+  const size_t num_values = elem_count - 1;
+  if (num_values > array_elements || array_elements > 64) return false;
   const size_t offset = array_elements - num_values;
 
   std::array<std::array<uint8_t, 6>, 64> obis_list{};
   std::array<uint16_t, 64> class_id_list{};
 
   for (size_t i = 0; i < array_elements; i++) {
-    if (this->pos_ + 18 > this->buffer_.size()) { this->pos_ = initial_pos; return false; }
+    if (this->pos_ + 18 > this->buffer_.size()) return false;
+    if (this->read_byte_() != DLMS_DATA_TYPE_STRUCTURE || this->read_byte_() != 4) return false;
 
-    if (this->read_byte_() != DLMS_DATA_TYPE_STRUCTURE || this->read_byte_() != 4) {
-      this->pos_ = initial_pos; return false;
-    }
-
-    // Class ID
-    if (this->read_byte_() != DLMS_DATA_TYPE_UINT16) { this->pos_ = initial_pos; return false; }
+    if (this->read_byte_() != DLMS_DATA_TYPE_UINT16) return false;
     class_id_list[i] = this->read_u16_();
 
-    // OBIS code
-    if (this->read_byte_() != DLMS_DATA_TYPE_OCTET_STRING || this->read_byte_() != 6) {
-      this->pos_ = initial_pos; return false;
-    }
+    if (this->read_byte_() != DLMS_DATA_TYPE_OCTET_STRING || this->read_byte_() != 6) return false;
     for (size_t j = 0; j < 6; j++) {
       obis_list[i][j] = this->read_byte_();
     }
 
-    // Attribute ID
-    const uint8_t attr_type = this->read_byte_();
-    if (attr_type != DLMS_DATA_TYPE_INT8 && attr_type != DLMS_DATA_TYPE_UINT8) { this->pos_ = initial_pos; return false; }
+    const auto attr_type = this->read_byte_();
+    if (attr_type != DLMS_DATA_TYPE_INT8 && attr_type != DLMS_DATA_TYPE_UINT8) return false;
     this->read_byte_();
 
-    // Data Index
-    if (this->read_byte_() != DLMS_DATA_TYPE_UINT16) { this->pos_ = initial_pos; return false; }
+    if (this->read_byte_() != DLMS_DATA_TYPE_UINT16) return false;
     this->read_u16_();
   }
 
   std::array<AxdrCaptures, 64> temp_captures{};
-
   for (size_t i = 0; i < num_values; i++) {
-    size_t definition_idx = i + offset;
-
+    const size_t definition_idx = i + offset;
     temp_captures[i].elem_idx = static_cast<uint32_t>(this->pos_);
     temp_captures[i].class_id = class_id_list[definition_idx];
     temp_captures[i].obis = std::span<const uint8_t>(obis_list[definition_idx]);
 
-    if (!this->capture_generic_value_(temp_captures[i])) {
-      this->pos_ = initial_pos;
-      return false;
-    }
+    if (!this->capture_generic_value_(temp_captures[i])) return false;
   }
 
-  AxdrDescriptorPattern pat{};
-  pat.name = "SelfDescribingPush";
   for (size_t i = 0; i < num_values; i++) {
     this->emit_object_(pat, temp_captures[i]);
   }
 
+  consumed = elem_count;
   return true;
 }
 
-bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count, const AxdrDescriptorPattern& pat,
-                                uint8_t& consumed) {
+bool AxdrParser::match_pattern_(const uint8_t container_type, const uint8_t elem_idx, const uint8_t elem_count,
+                                const AxdrDescriptorPattern& pat, uint8_t& consumed) {
   AxdrCaptures cap{};
   consumed = 0;
   uint8_t level = 0;
@@ -431,6 +399,9 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
         cap.has_scaler_unit = true;
         consume_one();
         break;
+      case AxdrTokenType::SELF_DESC: {
+        return this->parse_self_describing_(container_type, elem_idx, elem_count, pat, consumed);
+      }
       case AxdrTokenType::GOING_DOWN: level++; break;
       case AxdrTokenType::GOING_UP:   level--; break;
       case AxdrTokenType::END_OF_PATTERN: break;
@@ -569,7 +540,8 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
   };
 
   auto process_simple_token = [&](const std::string_view tok) {
-    if      (tok == "F")  add_step(AxdrTokenType::EXPECT_TO_BE_FIRST);
+    if      (tok == "SelfDesc") add_step(AxdrTokenType::SELF_DESC);
+    else if (tok == "F")  add_step(AxdrTokenType::EXPECT_TO_BE_FIRST);
     else if (tok == "L")  add_step(AxdrTokenType::EXPECT_TO_BE_LAST);
     else if (tok == "C")  add_step(AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED);
     else if (tok == "TC") {
