@@ -142,7 +142,7 @@ bool AxdrParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
   while (elements_consumed < elements_count) {
     const size_t original_position = this->pos_;
 
-    if (this->try_match_patterns_(elements_consumed, elements_count)) {
+    if (this->try_match_patterns_(type, elements_consumed, elements_count)) {
       elements_consumed = static_cast<uint8_t>(
           elements_consumed + (this->last_pattern_elements_consumed_ ? this->last_pattern_elements_consumed_ : 1));
       this->last_pattern_elements_consumed_ = 0;
@@ -225,11 +225,12 @@ bool AxdrParser::capture_generic_value_(AxdrCaptures& c) {
   return true;
 }
 
-bool AxdrParser::try_match_patterns_(const uint8_t elem_idx, const uint8_t elem_count) {
+bool AxdrParser::try_match_patterns_(const uint8_t container_type, const uint8_t elem_idx,
+                                     const uint8_t elem_count) {
   for (size_t i = 0; i < this->patterns_count_; ++i) {
     const auto& p = this->patterns_[i];
     const size_t saved_position = this->pos_;
-    if (uint8_t consumed = 0; this->match_pattern_(elem_idx, elem_count, p, consumed)) {
+    if (uint8_t consumed = 0; this->match_pattern_(container_type, elem_idx, elem_count, p, consumed)) {
       this->last_pattern_elements_consumed_ = consumed;
       return true;
     }
@@ -238,8 +239,84 @@ bool AxdrParser::try_match_patterns_(const uint8_t elem_idx, const uint8_t elem_
   return false;
 }
 
-bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count, const AxdrDescriptorPattern& pat,
-                                uint8_t& consumed) {
+bool AxdrParser::parse_self_describing_(const uint8_t container_type, const uint8_t elem_idx,
+                                             const uint8_t elem_count, const AxdrDescriptorPattern& pat,
+                                             uint8_t& consumed) {
+  // SelfDesc is a whole-container matcher; mixing it with other tokens would ignore them.
+  if (pat.steps[0].type != AxdrTokenType::SELF_DESC || pat.steps[1].type != AxdrTokenType::END_OF_PATTERN) return false;
+  if (container_type != DLMS_DATA_TYPE_STRUCTURE || elem_idx != 0 || elem_count == 0) return false;
+  if (this->read_byte_() != DLMS_DATA_TYPE_ARRAY) return false;
+  // Short-form length only (<=127 descriptors); BER long-form not handled - capped below anyway.
+  const size_t array_elements = this->read_byte_();
+  if (array_elements == 0xFF) return false;
+
+  // The first outer element is the definitions array. All remaining elements are values.
+  // MAX_SELF_DESC_OBJECTS bounds both the guard and the descriptor buffers - keep them tied.
+  constexpr size_t MAX_SELF_DESC_OBJECTS = 64;
+  const size_t num_values = elem_count - 1;
+  if (num_values > array_elements) return false;
+  if (array_elements > MAX_SELF_DESC_OBJECTS) {
+    Logger::log(LogLevel::WARNING, "SelfDesc: %zu descriptors exceeds limit %zu - skipping",
+                array_elements, MAX_SELF_DESC_OBJECTS);
+    return false;
+  }
+  const size_t offset = array_elements - num_values;
+
+  std::array<std::array<uint8_t, 6>, MAX_SELF_DESC_OBJECTS> obis_list{};
+  std::array<uint16_t, MAX_SELF_DESC_OBJECTS> class_id_list{};
+
+  for (size_t i = 0; i < array_elements; i++) {
+    if (this->pos_ + 18 > this->buffer_.size()) return false;
+    if (this->read_byte_() != DLMS_DATA_TYPE_STRUCTURE || this->read_byte_() != 4) return false;
+
+    if (this->read_byte_() != DLMS_DATA_TYPE_UINT16) return false;
+    class_id_list[i] = this->read_u16_();
+
+    if (this->read_byte_() != DLMS_DATA_TYPE_OCTET_STRING || this->read_byte_() != 6) return false;
+    for (size_t j = 0; j < 6; j++) {
+      obis_list[i][j] = this->read_byte_();
+    }
+
+    const auto attr_type = this->read_byte_();
+    if (attr_type != DLMS_DATA_TYPE_INT8 && attr_type != DLMS_DATA_TYPE_UINT8) return false;
+    const uint8_t attr = this->read_byte_();
+    if (attr == 0) return false;
+
+    if (this->read_byte_() != DLMS_DATA_TYPE_UINT16) return false;
+    this->read_u16_();
+  }
+
+  // The push_object_list starts with the Push-setup object (IC 40), which has no value -
+  // hence more descriptors than values. Verify the surplus leading descriptors are really
+  // Push-setup objects; otherwise bail rather than mis-align every OBIS with the wrong value.
+  constexpr uint16_t IC_PUSH_SETUP = 40;
+  for (size_t i = 0; i < offset; i++) {
+    if (class_id_list[i] != IC_PUSH_SETUP) {
+      Logger::log(LogLevel::WARNING,
+                  "SelfDesc: %zu surplus descriptor(s), but def[%zu] is class %u (not Push-setup 40) - skipping",
+                  offset, i, class_id_list[i]);
+      return false;
+    }
+  }
+
+  AxdrCaptures cap{};
+  for (size_t i = 0; i < num_values; i++) {
+    const size_t definition_idx = i + offset;
+    cap = {};
+    cap.elem_idx = static_cast<uint32_t>(this->pos_);
+    cap.class_id = class_id_list[definition_idx];
+    cap.obis = std::span<const uint8_t>(obis_list[definition_idx]);
+
+    if (!this->capture_generic_value_(cap)) return false;
+    this->emit_object_(pat, cap);
+  }
+
+  consumed = elem_count;
+  return true;
+}
+
+bool AxdrParser::match_pattern_(const uint8_t container_type, const uint8_t elem_idx, const uint8_t elem_count,
+                                const AxdrDescriptorPattern& pat, uint8_t& consumed) {
   AxdrCaptures cap{};
   consumed = 0;
   uint8_t level = 0;
@@ -345,6 +422,9 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
         cap.has_scaler_unit = true;
         consume_one();
         break;
+      case AxdrTokenType::SELF_DESC: {
+        return this->parse_self_describing_(container_type, elem_idx, elem_count, pat, consumed);
+      }
       case AxdrTokenType::GOING_DOWN: level++; break;
       case AxdrTokenType::GOING_UP:   level--; break;
       case AxdrTokenType::END_OF_PATTERN: break;
@@ -483,7 +563,8 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
   };
 
   auto process_simple_token = [&](const std::string_view tok) {
-    if      (tok == "F")  add_step(AxdrTokenType::EXPECT_TO_BE_FIRST);
+    if      (tok == "SelfDesc") add_step(AxdrTokenType::SELF_DESC);
+    else if (tok == "F")  add_step(AxdrTokenType::EXPECT_TO_BE_FIRST);
     else if (tok == "L")  add_step(AxdrTokenType::EXPECT_TO_BE_LAST);
     else if (tok == "C")  add_step(AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED);
     else if (tok == "TC") {

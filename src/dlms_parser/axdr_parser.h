@@ -25,6 +25,7 @@ enum class AxdrTokenType : uint8_t {
   EXPECT_STRUCTURE_N,
   EXPECT_SCALER_TAGGED,
   EXPECT_UNIT_ENUM_TAGGED,
+  SELF_DESC,
   GOING_DOWN,
   GOING_UP,
   END_OF_PATTERN = 0xFF
@@ -111,8 +112,11 @@ private:
   // Pattern matching
   bool test_if_date_time_12b_(std::span<const uint8_t> buf = {}) const;
   bool capture_generic_value_(AxdrCaptures& c);
-  bool try_match_patterns_(uint8_t elem_idx, uint8_t elem_count);
-  bool match_pattern_(uint8_t elem_idx, uint8_t elem_count, const AxdrDescriptorPattern& pat, uint8_t& consumed);
+  bool try_match_patterns_(uint8_t container_type, uint8_t elem_idx, uint8_t elem_count);
+  bool parse_self_describing_(uint8_t container_type, uint8_t elem_idx, uint8_t elem_count,
+                                   const AxdrDescriptorPattern& pat, uint8_t& consumed);
+  bool match_pattern_(uint8_t container_type, uint8_t elem_idx, uint8_t elem_count,
+                      const AxdrDescriptorPattern& pat, uint8_t& consumed);
   static float apply_scaler(float value, int8_t scaler);
   void emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptures& c);
 };

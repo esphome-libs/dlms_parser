@@ -26,17 +26,18 @@ parser.load_default_patterns();
 
 **Built-in patterns (available after calling `parser.load_default_patterns()`):**
 
-| Name                                     | Pattern          | Priority | Typical use                               |
-|------------------------------------------|------------------|---------:|-------------------------------------------|
-| `classId-taggedObis-scaler-value`        | `TC,TO,TS,TV`    |       10 | class ID, tagged OBIS, scaler, value      |
-| `taggedObis-value-scalerUnit`            | `TO,TV,TSU`      |       20 | tagged OBIS, value, scaler-unit structure |
-| `value-classId-scalerUnit-taggedObis`    | `TV,TC,TSU,TO`   |       30 | value first, class ID, scaler-unit, OBIS  |
-| `zpaAidon-untaggedLayout`                | `ADV`            |       40 | untagged ZPA/Aidon-style layouts          |
-| `structuredObis-value-scalerUnit`        | `S(TO, TV, TSU)` |       50 | OBIS, value, scaler-unit structure        |
-| `structuredObis-value`                   | `S(TO, TV)`      |       60 | OBIS and value structure                  |
-| `flatObis-valuePair`                     | `TO, TV`         |       70 | flat OBIS + value pairs                   |
-| `firstElement-dateTime`                  | `F, S(TO, TDTM)` |       80 | first-element date-time structure         |
-| `swappedTagObis-value-scalerUnit`        | `TOW, TV, TSU`   |       90 | swapped-tag OBIS, value, scaler-unit      |
+| Name                                     | Pattern          | Priority |
+|------------------------------------------|------------------|---------:|
+| `SelfDescribing`                         | `SelfDesc`       |       10 |
+| `classId-taggedObis-scaler-value`        | `TC,TO,TS,TV`    |       20 |
+| `taggedObis-value-scalerUnit`            | `TO,TV,TSU`      |       30 |
+| `value-classId-scalerUnit-taggedObis`    | `TV,TC,TSU,TO`   |       40 |
+| `zpaAidon-untaggedLayout`                | `ADV`            |       50 |
+| `structuredObis-value-scalerUnit`        | `S(TO, TV, TSU)` |       60 |
+| `structuredObis-value`                   | `S(TO, TV)`      |       70 |
+| `flatObis-valuePair`                     | `TO, TV`         |       80 |
+| `firstElement-dateTime`                  | `F, S(TO, TDTM)` |       90 |
+| `swappedTagObis-value-scalerUnit`        | `TOW, TV, TSU`   |      100 |
 
 **Registering Custom Patterns:**
 
@@ -71,26 +72,27 @@ parser.register_pattern("TOW, TV, TSU");          // Landis+Gyr swapped OBIS
 ```
 
 ### Token reference
-| Token          | Meaning                                    | Hex example                     |
-|----------------|--------------------------------------------|---------------------------------|
-| `F`            | first element guard                        | position check only             |
-| `L`            | last element guard                         | position check only             |
-| `C`            | class ID, 2-byte uint16 without tag        | `00 03`                         |
-| `TC`           | tagged class ID                            | `12 00 03`                      |
-| `O`            | OBIS code, 6-byte octet string without tag | `01 00 01 08 00 FF`             |
-| `TO`           | tagged OBIS code                           | `09 06 01 00 01 08 00 FF`       |
-| `TOW`          | tagged OBIS with swapped tag bytes         | `06 09 01 00 1F 07 00 FF`       |
-| `A`            | attribute index, 1-byte uint8 without tag  | `02`                            |
-| `TA`           | tagged attribute                           | `11 02` or `0F 02`              |
-| `V` / `TV`     | generic value                              | `06 00 00 07 A4`                |
-| `TSTR`         | tagged string-like value                   | `09 08 38 34 38 39 35 31 32 36` |
-| `TDTM`         | tagged 12-byte date-time value             | `19 ...` or `09 0C ...`         |
-| `TS`           | tagged scaler                              | `0F FF`                         |
-| `TU`           | tagged unit enum                           | `16 23`                         |
-| `TSU`          | tagged scaler-unit pair                    | `02 02 0F FF 16 23`             |
-| `S(x, y, ...)` | inline sub-structure                       | `02 03`                         |
-| `DN`           | descend into nested structure              | control token                   |
-| `UP`           | return from nested structure               | control token                   |
+| Token          | Meaning                                        | Hex example                     |
+|----------------|------------------------------------------------|---------------------------------|
+| `SelfDesc`     | array of value descriptions followed by values | definitions array + values      |
+| `F`            | first element guard                            | position check only             |
+| `L`            | last element guard                             | position check only             |
+| `C`            | class ID, 2-byte uint16 without tag            | `00 03`                         |
+| `TC`           | tagged class ID                                | `12 00 03`                      |
+| `O`            | OBIS code, 6-byte octet string without tag     | `01 00 01 08 00 FF`             |
+| `TO`           | tagged OBIS code                               | `09 06 01 00 01 08 00 FF`       |
+| `TOW`          | tagged OBIS with swapped tag bytes             | `06 09 01 00 1F 07 00 FF`       |
+| `A`            | attribute index, 1-byte uint8 without tag      | `02`                            |
+| `TA`           | tagged attribute                               | `11 02` or `0F 02`              |
+| `V` / `TV`     | generic value                                  | `06 00 00 07 A4`                |
+| `TSTR`         | tagged string-like value                       | `09 08 38 34 38 39 35 31 32 36` |
+| `TDTM`         | tagged 12-byte date-time value                 | `19 ...` or `09 0C ...`         |
+| `TS`           | tagged scaler                                  | `0F FF`                         |
+| `TU`           | tagged unit enum                               | `16 23`                         |
+| `TSU`          | tagged scaler-unit pair                        | `02 02 0F FF 16 23`             |
+| `S(x, y, ...)` | inline sub-structure                           | `02 03`                         |
+| `DN`           | descend into nested structure                  | control token                   |
+| `UP`           | return from nested structure                   | control token                   |
 
 ## API Reference
 

@@ -79,11 +79,12 @@ TEST_CASE("AxdrParser Pattern Registry - Comprehensive Token Mapping") {
   AxdrParser parser;
 
   // Test all primary token aliases
-  parser.register_pattern("all_tokens", "TC,O,TO,TOW,A,TA,TS,TU,V,TV,TDTM,TSTR,DN,UP,TSU", 10);
+  parser.register_pattern("all_tokens", "SelfDesc,TC,O,TO,TOW,A,TA,TS,TU,V,TV,TDTM,TSTR,DN,UP,TSU", 10);
   REQUIRE(parser.patterns_size() == 1);
   const auto& pat = parser.patterns()[0];
 
   size_t i = 0;
+  CHECK(pat.steps[i++].type == AxdrTokenType::SELF_DESC);
   // TC
   CHECK(pat.steps[i].type == AxdrTokenType::EXPECT_TYPE_EXACT);
   CHECK(pat.steps[i++].param_u8_a == DLMS_DATA_TYPE_UINT16);
