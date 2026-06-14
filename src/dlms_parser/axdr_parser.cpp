@@ -559,7 +559,8 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
   };
 
   auto process_simple_token = [&](const std::string_view tok) {
-    if      (tok == "F")  add_step(AxdrTokenType::EXPECT_TO_BE_FIRST);
+    if      (tok == "SelfDesc") add_step(AxdrTokenType::SELF_DESC);
+    else if (tok == "F")  add_step(AxdrTokenType::EXPECT_TO_BE_FIRST);
     else if (tok == "L")  add_step(AxdrTokenType::EXPECT_TO_BE_LAST);
     else if (tok == "C")  add_step(AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED);
     else if (tok == "TC") {
@@ -595,7 +596,6 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
     }
     else if (tok == "DN") add_step(AxdrTokenType::GOING_DOWN);
     else if (tok == "UP") add_step(AxdrTokenType::GOING_UP);
-    else if (tok == "SelfDesc") add_step(AxdrTokenType::SELF_DESC);
   };
 
   for (size_t i = 0; i < tokens_count; i++) {

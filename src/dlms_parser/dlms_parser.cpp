@@ -38,16 +38,16 @@ void DlmsParser::set_authentication_key(const Aes128GcmAuthenticationKey& key) c
 
 void DlmsParser::load_default_patterns() {
   axdr_parser_.clear_patterns();
-  axdr_parser_.register_pattern("classId-taggedObis-scaler-value", "TC,TO,TS,TV", 10);
-  axdr_parser_.register_pattern("taggedObis-value-scalerUnit", "TO,TV,TSU", 20);
-  axdr_parser_.register_pattern("value-classId-scalerUnit-taggedObis", "TV,TC,TSU,TO", 30);
-  axdr_parser_.register_pattern("zpaAidon-untaggedLayout", "ADV", 40);
-  axdr_parser_.register_pattern("structuredObis-value-scalerUnit", "S(TO, TV, TSU)", 50);
-  axdr_parser_.register_pattern("structuredObis-value", "S(TO, TV)", 60);
-  axdr_parser_.register_pattern("flatObis-valuePair", "TO, TV", 70);
-  axdr_parser_.register_pattern("firstElement-dateTime", "F, S(TO, TDTM)", 80);
-  axdr_parser_.register_pattern("swappedTagObis-value-scalerUnit", "TOW, TV, TSU", 90);
-  axdr_parser_.register_pattern("SelfDescribing", "SelfDesc", 100);
+  axdr_parser_.register_pattern("SelfDescribing", "SelfDesc", 10);
+  axdr_parser_.register_pattern("classId-taggedObis-scaler-value", "TC,TO,TS,TV", 20);
+  axdr_parser_.register_pattern("taggedObis-value-scalerUnit", "TO,TV,TSU", 30);
+  axdr_parser_.register_pattern("value-classId-scalerUnit-taggedObis", "TV,TC,TSU,TO", 40);
+  axdr_parser_.register_pattern("zpaAidon-untaggedLayout", "ADV", 50);
+  axdr_parser_.register_pattern("structuredObis-value-scalerUnit", "S(TO, TV, TSU)", 60);
+  axdr_parser_.register_pattern("structuredObis-value", "S(TO, TV)", 70);
+  axdr_parser_.register_pattern("flatObis-valuePair", "TO, TV", 80);
+  axdr_parser_.register_pattern("firstElement-dateTime", "F, S(TO, TDTM)", 90);
+  axdr_parser_.register_pattern("swappedTagObis-value-scalerUnit", "TOW, TV, TSU", 100);
 }
 
 void DlmsParser::register_pattern(const char* dsl) {
