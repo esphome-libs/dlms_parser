@@ -282,18 +282,29 @@ bool AxdrParser::parse_self_describing_(const uint8_t container_type, const uint
     this->read_u16_();
   }
 
-  std::array<AxdrCaptures, 64> temp_captures{};
-  for (size_t i = 0; i < num_values; i++) {
-    const size_t definition_idx = i + offset;
-    temp_captures[i].elem_idx = static_cast<uint32_t>(this->pos_);
-    temp_captures[i].class_id = class_id_list[definition_idx];
-    temp_captures[i].obis = std::span<const uint8_t>(obis_list[definition_idx]);
-
-    if (!this->capture_generic_value_(temp_captures[i])) return false;
+  // The push_object_list starts with the Push-setup object (IC 40), which has no value -
+  // hence more descriptors than values. Verify the surplus leading descriptors are really
+  // Push-setup objects; otherwise bail rather than mis-align every OBIS with the wrong value.
+  constexpr uint16_t IC_PUSH_SETUP = 40;
+  for (size_t i = 0; i < offset; i++) {
+    if (class_id_list[i] != IC_PUSH_SETUP) {
+      Logger::log(LogLevel::WARNING,
+                  "SelfDesc: %zu surplus descriptor(s), but def[%zu] is class %u (not Push-setup 40) - skipping",
+                  offset, i, class_id_list[i]);
+      return false;
+    }
   }
 
+  AxdrCaptures cap{};
   for (size_t i = 0; i < num_values; i++) {
-    this->emit_object_(pat, temp_captures[i]);
+    const size_t definition_idx = i + offset;
+    cap = {};
+    cap.elem_idx = static_cast<uint32_t>(this->pos_);
+    cap.class_id = class_id_list[definition_idx];
+    cap.obis = std::span<const uint8_t>(obis_list[definition_idx]);
+
+    if (!this->capture_generic_value_(cap)) return false;
+    this->emit_object_(pat, cap);
   }
 
   consumed = elem_count;
