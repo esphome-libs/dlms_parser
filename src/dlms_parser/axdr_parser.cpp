@@ -244,15 +244,23 @@ bool AxdrParser::parse_self_describing_(const uint8_t container_type, const uint
                                              uint8_t& consumed) {
   if (container_type != DLMS_DATA_TYPE_STRUCTURE || elem_idx != 0 || elem_count == 0) return false;
   if (this->read_byte_() != DLMS_DATA_TYPE_ARRAY) return false;
+  // Short-form length only (<=127 descriptors); BER long-form not handled - capped below anyway.
   const size_t array_elements = this->read_byte_();
 
   // The first outer element is the definitions array. All remaining elements are values.
+  // MAX_SELF_DESC_OBJECTS bounds both the guard and the descriptor buffers - keep them tied.
+  constexpr size_t MAX_SELF_DESC_OBJECTS = 64;
   const size_t num_values = elem_count - 1;
-  if (num_values > array_elements || array_elements > 64) return false;
+  if (num_values > array_elements) return false;
+  if (array_elements > MAX_SELF_DESC_OBJECTS) {
+    Logger::log(LogLevel::WARNING, "SelfDesc: %zu descriptors exceeds limit %zu - skipping",
+                array_elements, MAX_SELF_DESC_OBJECTS);
+    return false;
+  }
   const size_t offset = array_elements - num_values;
 
-  std::array<std::array<uint8_t, 6>, 64> obis_list{};
-  std::array<uint16_t, 64> class_id_list{};
+  std::array<std::array<uint8_t, 6>, MAX_SELF_DESC_OBJECTS> obis_list{};
+  std::array<uint16_t, MAX_SELF_DESC_OBJECTS> class_id_list{};
 
   for (size_t i = 0; i < array_elements; i++) {
     if (this->pos_ + 18 > this->buffer_.size()) return false;
