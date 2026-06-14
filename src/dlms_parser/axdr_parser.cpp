@@ -279,7 +279,8 @@ bool AxdrParser::parse_self_describing_(const uint8_t container_type, const uint
 
     const auto attr_type = this->read_byte_();
     if (attr_type != DLMS_DATA_TYPE_INT8 && attr_type != DLMS_DATA_TYPE_UINT8) return false;
-    this->read_byte_();
+    const uint8_t attr = this->read_byte_();
+    if (attr == 0) return false;
 
     if (this->read_byte_() != DLMS_DATA_TYPE_UINT16) return false;
     this->read_u16_();
