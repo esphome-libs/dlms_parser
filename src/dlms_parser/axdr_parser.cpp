@@ -242,10 +242,13 @@ bool AxdrParser::try_match_patterns_(const uint8_t container_type, const uint8_t
 bool AxdrParser::parse_self_describing_(const uint8_t container_type, const uint8_t elem_idx,
                                              const uint8_t elem_count, const AxdrDescriptorPattern& pat,
                                              uint8_t& consumed) {
+  // SelfDesc is a whole-container matcher; mixing it with other tokens would ignore them.
+  if (pat.steps[0].type != AxdrTokenType::SELF_DESC || pat.steps[1].type != AxdrTokenType::END_OF_PATTERN) return false;
   if (container_type != DLMS_DATA_TYPE_STRUCTURE || elem_idx != 0 || elem_count == 0) return false;
   if (this->read_byte_() != DLMS_DATA_TYPE_ARRAY) return false;
   // Short-form length only (<=127 descriptors); BER long-form not handled - capped below anyway.
   const size_t array_elements = this->read_byte_();
+  if (array_elements == 0xFF) return false;
 
   // The first outer element is the definitions array. All remaining elements are values.
   // MAX_SELF_DESC_OBJECTS bounds both the guard and the descriptor buffers - keep them tied.
