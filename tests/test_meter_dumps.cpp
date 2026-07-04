@@ -23,6 +23,7 @@
 #include "tests/expected/hdlc_landis_gyr_zmf100.h"
 #include "tests/expected/hdlc_landis_gyr_e450.h"
 #include "tests/expected/hdlc_landis_gyr_e450_cyprus.h"
+#include "tests/expected/hdlc_landis_gyr_e450_cyprus_2.h"
 #include "tests/expected/hdlc_lgz_e450_2.h"
 #include "tests/expected/hdlc_kaifa_ma304h3e.h"
 #include "tests/expected/hdlc_kamstrup_omnipower.h"
@@ -308,6 +309,15 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_landis_gyr_e450_cyprus_expected_count,
       dlms::test_data::hdlc_landis_gyr_e450_cyprus_expected_strings,
       dlms::test_data::hdlc_landis_gyr_e450_cyprus_expected_floats
+    );
+  }
+
+  SUBCASE("Landis+Gyr E450 Cyprus long packet") {
+    run_meter_test(
+      dlms::test_data::hdlc_landis_gyr_e450_cyprus_2_raw_frame,
+      dlms::test_data::hdlc_landis_gyr_e450_cyprus_2_expected_count,
+      dlms::test_data::hdlc_landis_gyr_e450_cyprus_2_expected_strings,
+      dlms::test_data::hdlc_landis_gyr_e450_cyprus_2_expected_floats
     );
   }
 
