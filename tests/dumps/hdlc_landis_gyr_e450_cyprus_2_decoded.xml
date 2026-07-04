@@ -1,0 +1,98 @@
+<?xml version='1.0' encoding='utf-8'?>
+<DataNotification LongInvokeId="0008B67A">
+  <DateTime Value="2026-06-08 18:47:00" />
+  <STRUCTURE Qty="13">
+    <ARRAY Qty="13">
+      <STRUCTURE Qty="4">
+        <UINT16 Value="40" />
+        <OCTETSTRING Value="0.9.25.9.0.255" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="1" />
+        <OCTETSTRING Value="0.0.42.0.0.255" Name="Logical device name" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="1" />
+        <OCTETSTRING Value="0.0.96.1.1.255" Name="Meter ID" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="1" />
+        <OCTETSTRING Value="0.0.96.14.0.255" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.1.8.1.255" Name="Active energy+ T1 (Wh)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.1.8.2.255" Name="Active energy+ T2 (Wh)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.2.8.1.255" Name="Active energy- T1 (Wh)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.2.8.2.255" Name="Active energy- T2 (Wh)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.1.8.0.255" Name="Active energy+ total (Wh)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.2.8.0.255" Name="Active energy- total (Wh)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.3.8.0.255" Name="Reactive energy+ total (varh)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="3" />
+        <OCTETSTRING Value="1.0.4.8.0.255" Name="Reactive energy- total (varh)" />
+        <INT8 Value="2" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+      <STRUCTURE Qty="4">
+        <UINT16 Value="70" />
+        <OCTETSTRING Value="0.0.96.3.10.255" />
+        <INT8 Value="3" />
+        <UINT16 Value="0" />
+      </STRUCTURE>
+    </ARRAY>
+    <OCTETSTRING Value="LGZ1030790258946" />
+    <OCTETSTRING Value="1538088" />
+    <OCTETSTRING Value="RATE2" />
+    <UINT32 Value="50119" />
+    <UINT32 Value="82454" />
+    <UINT32 Value="2993" />
+    <UINT32 Value="23" />
+    <UINT32 Value="132573" />
+    <UINT32 Value="3016" />
+    <UINT32 Value="2691" />
+    <UINT32 Value="307393" />
+    <ENUM Value="1" Unit="a" />
+  </STRUCTURE>
+</DataNotification>

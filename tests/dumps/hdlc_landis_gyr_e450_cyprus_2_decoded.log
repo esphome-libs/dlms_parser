@@ -1,0 +1,229 @@
+=== HDLC frame 1 (134 bytes) ===
+7E                                     <-- opening flag
+A0 84                                  <-- format, length=132
+CE FF                                    <-- dst addr (2B)
+03                                       <-- src addr (1B)
+13                                     <-- control byte
+12 8B                                  <-- HCS (OK)
+... FCS: 42 2A (OK)
+E6 E7 00                               <-- LLC header
+Payload: 119 bytes
+7E                                     <-- closing flag
+
+=== HDLC frame 2 (127 bytes) ===
+7E                                     <-- opening flag
+A0 7D                                  <-- format, length=125
+CE FF                                    <-- dst addr (2B)
+03                                       <-- src addr (1B)
+13                                     <-- control byte
+D0 45                                  <-- HCS (OK)
+... FCS: B3 4E (OK)
+Payload: 115 bytes
+7E                                     <-- closing flag
+
+=== HDLC frame 3 (134 bytes) ===
+7E                                     <-- opening flag
+A0 84                                  <-- format, length=132
+CE FF                                    <-- dst addr (2B)
+03                                       <-- src addr (1B)
+13                                     <-- control byte
+12 8B                                  <-- HCS (OK)
+... FCS: 6B CC (OK)
+Payload: 122 bytes
+7E                                     <-- closing flag
+
+=== APDU: General Block Transfer (0xE0) ===
+  Block 1: 112 bytes (ctrl=0x40)
+  Block 2: 108 bytes (ctrl=0x40)
+  Block 3: 115 bytes (ctrl=0xC0) [last]
+  Reassembled: 335 bytes
+
+=== APDU: DATA-NOTIFICATION ===
+0F                                     <-- DATA-NOTIFICATION tag
+00 08 B6 7A                              <-- Long-Invoke-ID
+0C                                     <-- DateTime: 12 raw bytes
+  07 EA 06 08 01 12 2F 00 FF 80 00 00
+  = 2026-06-08 18:47:00
+
+=== AXDR payload (317 bytes) ===
+02                                     <-- STRUCTURE
+  0D                                   <-- 13 elements
+  --- element [1/13] ---
+  01                                     <-- ARRAY
+    0D                                   <-- 13 elements
+    --- element [1/13] ---
+    02                                     <-- STRUCTURE
+      04                                   <-- 4 elements
+      --- element [1/4] ---
+      12 00 28                                   <-- UINT16 = 40
+      --- element [2/4] ---
+      09 06 00 09 19 09 00 FF                    <-- OBIS 0.9.25.9.0.255
+      --- element [3/4] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/4] ---
+      12 00 00                                   <-- UINT16 = 0
+    --- element [2/13] ---
+    02                                     <-- STRUCTURE
+      04                                   <-- 4 elements
+      --- element [1/4] ---
+      12 00 01                                   <-- UINT16 = 1
+      --- element [2/4] ---
+      09 06 00 00 2A 00 00 FF                    <-- OBIS 0.0.42.0.0.255, Logical device name
+      --- element [3/4] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/4] ---
+      12 00 00                                   <-- UINT16 = 0
+    --- element [3/13] ---
+    02                                     <-- STRUCTURE
+      04                                   <-- 4 elements
+      --- element [1/4] ---
+      12 00 01                                   <-- UINT16 = 1
+      --- element [2/4] ---
+      09 06 00 00 60 01 01 FF                    <-- OBIS 0.0.96.1.1.255, Meter ID
+      --- element [3/4] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/4] ---
+      12 00 00                                   <-- UINT16 = 0
+    --- element [4/13] ---
+    02                                     <-- STRUCTURE
+      04                                   <-- 4 elements
+      --- element [1/4] ---
+      12 00 01                                   <-- UINT16 = 1
+      --- element [2/4] ---
+      09 06 00 00 60 0E 00 FF                    <-- OBIS 0.0.96.14.0.255
+      --- element [3/4] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/4] ---
+      12 00 00                                   <-- UINT16 = 0
+    --- element [5/13] ---
+    02                                     <-- STRUCTURE
+      04                                   <-- 4 elements
+      --- element [1/4] ---
+      12 00 03                                   <-- UINT16 = 3
+      --- element [2/4] ---
+      09 06 01 00 01 08 01 FF                    <-- OBIS 1.0.1.8.1.255, Active energy+ T1 (Wh)
+      --- element [3/4] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/4] ---
+      12 00 00                                   <-- UINT16 = 0
+    --- element [6/13] ---
+    02                                     <-- STRUCTURE
+      04                                   <-- 4 elements
+      --- element [1/4] ---
+      12 00 03                                   <-- UINT16 = 3
+      --- element [2/4] ---
+      09 06 01 00 01 08 02 FF                    <-- OBIS 1.0.1.8.2.255, Active energy+ T2 (Wh)
+      --- element [3/4] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/4] ---
+      12 00 00                                   <-- UINT16 = 0
+    --- element [7/13] ---
+    02                                     <-- STRUCTURE
+      04                                   <-- 4 elements
+      --- element [1/4] ---
+      12 00 03                                   <-- UINT16 = 3
+      --- element [2/4] ---
+      09 06 01 00 02 08 01 FF                    <-- OBIS 1.0.2.8.1.255, Active energy- T1 (Wh)
+      --- element [3/4] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/4] ---
+      12 00 00                                   <-- UINT16 = 0
+    --- element [8/13] ---
+    02                                     <-- STRUCTURE
+      04                                   <-- 4 elements
+      --- element [1/4] ---
+      12 00 03                                   <-- UINT16 = 3
+      --- element [2/4] ---
+      09 06 01 00 02 08 02 FF                    <-- OBIS 1.0.2.8.2.255, Active energy- T2 (Wh)
+      --- element [3/4] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/4] ---
+      12 00 00                                   <-- UINT16 = 0
+    --- element [9/13] ---
+    02                                     <-- STRUCTURE
+      04                                   <-- 4 elements
+      --- element [1/4] ---
+      12 00 03                                   <-- UINT16 = 3
+      --- element [2/4] ---
+      09 06 01 00 01 08 00 FF                    <-- OBIS 1.0.1.8.0.255, Active energy+ total (Wh)
+      --- element [3/4] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/4] ---
+      12 00 00                                   <-- UINT16 = 0
+    --- element [10/13] ---
+    02                                     <-- STRUCTURE
+      04                                   <-- 4 elements
+      --- element [1/4] ---
+      12 00 03                                   <-- UINT16 = 3
+      --- element [2/4] ---
+      09 06 01 00 02 08 00 FF                    <-- OBIS 1.0.2.8.0.255, Active energy- total (Wh)
+      --- element [3/4] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/4] ---
+      12 00 00                                   <-- UINT16 = 0
+    --- element [11/13] ---
+    02                                     <-- STRUCTURE
+      04                                   <-- 4 elements
+      --- element [1/4] ---
+      12 00 03                                   <-- UINT16 = 3
+      --- element [2/4] ---
+      09 06 01 00 03 08 00 FF                    <-- OBIS 1.0.3.8.0.255, Reactive energy+ total (varh)
+      --- element [3/4] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/4] ---
+      12 00 00                                   <-- UINT16 = 0
+    --- element [12/13] ---
+    02                                     <-- STRUCTURE
+      04                                   <-- 4 elements
+      --- element [1/4] ---
+      12 00 03                                   <-- UINT16 = 3
+      --- element [2/4] ---
+      09 06 01 00 04 08 00 FF                    <-- OBIS 1.0.4.8.0.255, Reactive energy- total (varh)
+      --- element [3/4] ---
+      0F 02                                      <-- INT8 = 2
+      --- element [4/4] ---
+      12 00 00                                   <-- UINT16 = 0
+    --- element [13/13] ---
+    02                                     <-- STRUCTURE
+      04                                   <-- 4 elements
+      --- element [1/4] ---
+      12 00 46                                   <-- UINT16 = 70
+      --- element [2/4] ---
+      09 06 00 00 60 03 0A FF                    <-- OBIS 0.0.96.3.10.255
+      --- element [3/4] ---
+      0F 03                                      <-- INT8 = 3
+      --- element [4/4] ---
+      12 00 00                                   <-- UINT16 = 0
+  --- element [2/13] ---
+  09                                     <-- OCTET_STRING
+    10                                   <-- length = 16
+    4C 47 5A 31 30 33 30 37 39 30 32 35 38 39 34 36
+    = "LGZ1030790258946"
+  --- element [3/13] ---
+  09                                     <-- OCTET_STRING
+    07                                   <-- length = 7
+    31 35 33 38 30 38 38
+    = "1538088"
+  --- element [4/13] ---
+  09                                     <-- OCTET_STRING
+    08                                   <-- length = 8
+    52 41 54 45 32 00 00 00
+    = "RATE2"
+  --- element [5/13] ---
+  06 00 00 C3 C7                             <-- UINT32 = 50119 (0x0000C3C7)
+  --- element [6/13] ---
+  06 00 01 42 16                             <-- UINT32 = 82454 (0x00014216)
+  --- element [7/13] ---
+  06 00 00 0B B1                             <-- UINT32 = 2993 (0x00000BB1)
+  --- element [8/13] ---
+  06 00 00 00 17                             <-- UINT32 = 23 (0x00000017)
+  --- element [9/13] ---
+  06 00 02 05 DD                             <-- UINT32 = 132573 (0x000205DD)
+  --- element [10/13] ---
+  06 00 00 0B C8                             <-- UINT32 = 3016 (0x00000BC8)
+  --- element [11/13] ---
+  06 00 00 0A 83                             <-- UINT32 = 2691 (0x00000A83)
+  --- element [12/13] ---
+  06 00 04 B0 C1                             <-- UINT32 = 307393 (0x0004B0C1)
+  --- element [13/13] ---
+  16 01                                      <-- ENUM = 1 (a)
