@@ -22,6 +22,11 @@ static void log_span_as_hex(const LogLevel level, const std::span<const uint8_t>
   }
 }
 
+static bool is_mbus_short_frame(const std::span<const uint8_t> data) {
+  if (data.size() < 5 || data[0] != 0x10 || data[4] != 0x16) return false;
+  return static_cast<uint8_t>(data[1] + data[2]) == data[3];
+}
+
 DlmsParser::DlmsParser(Aes128GcmDecryptor* decryptor) : decryptor_(decryptor) {}
 
 void DlmsParser::set_skip_crc_check(const bool skip) {
@@ -71,6 +76,12 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& co
   Logger::log(LogLevel::VERY_VERBOSE, "Buffer content:");
   log_span_as_hex(LogLevel::VERY_VERBOSE, buf);
   Logger::log(LogLevel::VERY_VERBOSE, "============");
+
+  if (is_mbus_short_frame(buf)) {
+    Logger::log(LogLevel::VERBOSE, "Skipping M-Bus short frame prefix");
+    buf = buf.subspan(5);
+    if (buf.empty()) return {};
+  }
 
   std::span<uint8_t> decoded;
 
