@@ -1,4 +1,6 @@
 #include <doctest.h>
+#include <algorithm>
+#include <array>
 #include <format>
 #include <functional>
 #include <map>
@@ -7,8 +9,9 @@
 #include <span>
 #include <vector>
 
+#include "tests/log_fixture.h"
+
 #include "dlms_parser/dlms_parser.h"
-#include "dlms_parser/log.h"
 #include "dlms_parser/decryption/aes_128_gcm_decryptor_mbedtls.h"
 #include "dlms_parser/decryption/aes_128_gcm_decryptor_bearssl.h"
 #include "dlms_parser/decryption/aes_128_gcm_decryptor_tfpsa.h"
@@ -30,67 +33,35 @@
 #include "tests/expected/mbus_netz_noe_p1.h"
 #include "tests/expected/mbus_kaifa_ma309m.h"
 
-class LogCapturer : dlms_parser::NonCopyableAndNonMovable {
-public:
-  LogCapturer() {
-    dlms_parser::Logger::set_log_function([&](const dlms_parser::LogLevel log_level, const char* fmt, va_list args) {
-      std::array<char, 2000> buffer;
-      vsnprintf(buffer.data(), buffer.size(), fmt, args);
-
-      const char* level_str;
-      switch (log_level) {
-      case dlms_parser::LogLevel::DEBUG:        level_str = "[DBG] "; break;
-      case dlms_parser::LogLevel::VERY_VERBOSE: level_str = "[VV]  "; break;
-      case dlms_parser::LogLevel::VERBOSE:      level_str = "[VRB] "; break;
-      case dlms_parser::LogLevel::INFO:         level_str = "[INF] "; break;
-      case dlms_parser::LogLevel::WARNING:      level_str = "[WRN] "; break;
-      case dlms_parser::LogLevel::ERROR:        level_str = "[ERR] "; break;
-      }
-
-      log_messages += std::format("{}{}\n", level_str, buffer.data());
-      });
-  }
-
-  ~LogCapturer() {
-    dlms_parser::Logger::set_log_function([](auto, auto, auto) {});
-  }
-
-  std::string get_logs() const {
-    return log_messages;
-  }
-
-private:
-  std::string log_messages;
-};
-
 template<typename Aes128GcmDecryptor = dlms_parser::Aes128GcmDecryptorMbedTls>
 void run_meter_test(std::span<const uint8_t> payload,
                     size_t expected_count,
                     const std::map<std::string, std::string>& expected_strings,
                     const std::map<std::string, float>& expected_floats,
-                    std::function<void(dlms_parser::DlmsParser&)> setup_fn = [](auto&) {}) {
-  LogCapturer log_capturer;
-  
-  Aes128GcmDecryptor decryptor;
-  dlms_parser::DlmsParser parser(&decryptor);
-  parser.load_default_patterns();
-  setup_fn(parser);
-
+                    const std::function<void(dlms_parser::DlmsParser&)>& setup_fn = [](auto&) {}) {
   std::map<std::string, float> captured_floats;
   std::map<std::string, std::string> captured_strings;
 
-  auto callback = [&](const char* obis_code, const float float_val, const char* str_val, const bool is_numeric) {
-    if (is_numeric) {
-      captured_floats[std::string(obis_code)] = float_val;
-    } else {
-      captured_strings[std::string(obis_code)] = std::string(str_val);
+  auto callback = [&](const dlms_parser::AxdrCapture& capture) {
+    char obis_buf[32];
+    const std::string obis{capture.obis.to_string(obis_buf)};
+
+    if (capture.is_numeric()) {
+      captured_floats[obis] = capture.value_as_float_with_scaler_applied();
+    }
+    else {
+      std::array<char, 128> str_val_buf{};
+      captured_strings[obis] = std::string(capture.value_as_string(str_val_buf));
     }
   };
 
-  std::vector<uint8_t> mutable_payload(payload.begin(), payload.end());
-  auto [objects_found, bytes_consumed] = parser.parse(mutable_payload, callback);
+  Aes128GcmDecryptor decryptor;
+  dlms_parser::DlmsParser parser(callback, &decryptor);
+  parser.load_default_patterns();
+  setup_fn(parser);
 
-  INFO(log_capturer.get_logs());
+  std::vector<uint8_t> mutable_payload(payload.begin(), payload.end());
+  auto [objects_found, bytes_consumed] = parser.parse(mutable_payload);
 
   REQUIRE(objects_found == expected_count);
 
@@ -114,7 +85,7 @@ void run_meter_test(std::span<const uint8_t> payload,
 // ---------------------------------------------------------
 // RAW APDU tests (no frame transport)
 // ---------------------------------------------------------
-TEST_CASE("Integration: RAW APDU") {
+TEST_CASE_FIXTURE(LogFixture, "Integration: RAW APDU") {
 
   SUBCASE("Sagemcom XT211") {
     run_meter_test(
@@ -138,7 +109,7 @@ TEST_CASE("Integration: RAW APDU") {
 
   SUBCASE("Sagemcom XT211 and the half of the same data at the end") {
     std::vector<uint8_t> duplicated_frame(std::begin(dlms::test_data::sagemcom_xt211_raw_frame), std::end(dlms::test_data::sagemcom_xt211_raw_frame));
-    const auto half = std::size(dlms::test_data::sagemcom_xt211_raw_frame) / 2;
+    constexpr auto half = std::size(dlms::test_data::sagemcom_xt211_raw_frame) / 2;
     duplicated_frame.insert(duplicated_frame.end(), std::begin(dlms::test_data::sagemcom_xt211_raw_frame), std::begin(dlms::test_data::sagemcom_xt211_raw_frame) + half);
     run_meter_test(
       duplicated_frame,
@@ -180,7 +151,7 @@ TEST_CASE("Integration: RAW APDU") {
 // ---------------------------------------------------------
 // HDLC transport tests
 // ---------------------------------------------------------
-TEST_CASE("Integration: HDLC") {
+TEST_CASE_FIXTURE(LogFixture, "Integration: HDLC") {
 
   SUBCASE("Iskra 550 (3 segmented frames)") {
     run_meter_test(
@@ -218,8 +189,8 @@ TEST_CASE("Integration: HDLC") {
     const auto half = std::size(dlms::test_data::iskra550_raw_frame) / 2;
     duplicated_frame.insert(duplicated_frame.end(), std::begin(dlms::test_data::iskra550_raw_frame), std::begin(dlms::test_data::iskra550_raw_frame) + half);
     dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
-    dlms_parser::DlmsParser parser(&decryptor);
-    auto [n, consumed] = parser.parse(duplicated_frame, [](auto, auto, auto, auto) {});
+    dlms_parser::DlmsParser parser([](const auto&) {}, &decryptor);
+    auto [n, consumed] = parser.parse(duplicated_frame);
     CHECK(n == 0);
   }
 
@@ -255,10 +226,10 @@ TEST_CASE("Integration: HDLC") {
 
   SUBCASE("Landis+Gyr ZMF100 - CRC check rejects bad FCS") {
     dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
-    dlms_parser::DlmsParser parser(&decryptor);
+    dlms_parser::DlmsParser parser([](const auto&) {}, &decryptor);
     std::vector<uint8_t> frame(std::begin(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame),
                                 std::end(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame));
-    auto [n, consumed] = parser.parse(frame, [](auto, auto, auto, auto) {});
+    auto [n, consumed] = parser.parse(frame);
     CHECK(n == 0);
   }
 
@@ -270,7 +241,7 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_landis_gyr_e450_expected_floats,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_landis_gyr_e450_key);
-        p.register_pattern("DateTime", "F, TDTM");
+        p.register_pattern("DateTime", "F, TDTM", 0, {});
       }
     );
   }
@@ -283,7 +254,7 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_landis_gyr_e450_expected_floats,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_landis_gyr_e450_key);
-        p.register_pattern("DateTime", "F, TDTM");
+        p.register_pattern("DateTime", "F, TDTM", 0, {});
       }
     );
   }
@@ -296,7 +267,7 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_landis_gyr_e450_expected_floats,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_landis_gyr_e450_key);
-        p.register_pattern("DateTime", "F, TDTM");
+        p.register_pattern("DateTime", "F, TDTM", 0, {});
       }
     );
   }
@@ -309,7 +280,7 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_lgz_e450_2_expected_floats,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_lgz_e450_2_key);
-        p.register_pattern("DateTime", "F, TDTM");
+        p.register_pattern("DateTime", "F, TDTM", 0, {});
       }
     );
   }
@@ -340,7 +311,7 @@ TEST_CASE("Integration: HDLC") {
       dlms::test_data::hdlc_kamstrup_omnipower_expected_floats,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
-        p.register_pattern("Obis List Ver", "F, TSTR");
+        p.register_pattern("Obis List Ver", "F, TSTR", 0, {});
       }
     );
   }
@@ -354,7 +325,7 @@ TEST_CASE("Integration: HDLC") {
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
         p.set_authentication_key(dlms::test_data::hdlc_kamstrup_omnipower_auth_key);
-        p.register_pattern("Obis List Ver", "F, TSTR");
+        p.register_pattern("Obis List Ver", "F, TSTR", 0, {});
       }
     );
   }
@@ -368,7 +339,7 @@ TEST_CASE("Integration: HDLC") {
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
         p.set_authentication_key(dlms::test_data::hdlc_kamstrup_omnipower_auth_key);
-        p.register_pattern("Obis List Ver", "F, TSTR");
+        p.register_pattern("Obis List Ver", "F, TSTR", 0, {});
       }
     );
   }
@@ -382,7 +353,7 @@ TEST_CASE("Integration: HDLC") {
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
         p.set_authentication_key(dlms::test_data::hdlc_kamstrup_omnipower_auth_key);
-        p.register_pattern("Obis List Ver", "F, TSTR");
+        p.register_pattern("Obis List Ver", "F, TSTR", 0, {});
       }
     );
   }
@@ -399,13 +370,13 @@ TEST_CASE("Integration: HDLC") {
   SUBCASE("Kamstrup Omnipower - wrong auth key rejects frame") {
     const auto wrong_key = dlms_parser::Aes128GcmAuthenticationKey::from_bytes(std::array<uint8_t, 16>{0x00}).value();
     dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
-    dlms_parser::DlmsParser parser(&decryptor);
+    dlms_parser::DlmsParser parser([](const auto&) {}, &decryptor);
     parser.set_decryption_key(dlms::test_data::hdlc_kamstrup_omnipower_key);
     parser.set_authentication_key(wrong_key);
     parser.load_default_patterns();
     std::vector<uint8_t> frame(std::begin(dlms::test_data::hdlc_kamstrup_omnipower_raw_frame),
                                 std::end(dlms::test_data::hdlc_kamstrup_omnipower_raw_frame));
-    auto [n, consumed] = parser.parse(frame, [](auto, auto, auto, auto) {});
+    auto [n, consumed] = parser.parse(frame);
     CHECK(n == 0);
   }
 
@@ -414,7 +385,7 @@ TEST_CASE("Integration: HDLC") {
 // ---------------------------------------------------------
 // M-Bus transport tests
 // ---------------------------------------------------------
-TEST_CASE("Integration: MBus") {
+TEST_CASE_FIXTURE(LogFixture, "Integration: MBus") {
 
   SUBCASE("Netz NOE P1 (encrypted)") {
     run_meter_test(
@@ -424,9 +395,9 @@ TEST_CASE("Integration: MBus") {
       dlms::test_data::mbus_netz_noe_p1_expected_floats,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::mbus_netz_noe_p1_key);
-        const uint8_t meter_obis[] = {0, 0, 96, 1, 0, 255};  // 0.0.96.1.0.255
-        p.register_pattern("MeterID", "L, TSTR", 0, meter_obis);
-        p.register_pattern("DateTime", "F, TDTM");
+        const dlms_parser::ObisId default_obis(0, 0, 96, 1, 0, 255);
+        p.register_pattern("MeterID", "L, TSTR", 0, default_obis);
+        p.register_pattern("DateTime", "F, TDTM", 0, {});
       }
     );
   }
@@ -441,9 +412,9 @@ TEST_CASE("Integration: MBus") {
       dlms::test_data::mbus_netz_noe_p1_expected_floats,
       [](dlms_parser::DlmsParser& p) {
         p.set_decryption_key(dlms::test_data::mbus_netz_noe_p1_key);
-        const uint8_t meter_obis[] = { 0, 0, 96, 1, 0, 255 };  // 0.0.96.1.0.255
-        p.register_pattern("MeterID", "L, TSTR", 0, meter_obis);
-        p.register_pattern("DateTime", "F, TDTM");
+        const dlms_parser::ObisId default_obis(0, 0, 96, 1, 0, 255);
+        p.register_pattern("MeterID", "L, TSTR", 0, default_obis);
+        p.register_pattern("DateTime", "F, TDTM", 0, {});
       }
     );
   }
@@ -453,8 +424,8 @@ TEST_CASE("Integration: MBus") {
     const auto half = std::size(dlms::test_data::mbus_netz_noe_p1_raw_frame) / 2;
     duplicated_frame.insert(duplicated_frame.end(), std::begin(dlms::test_data::mbus_netz_noe_p1_raw_frame), std::begin(dlms::test_data::mbus_netz_noe_p1_raw_frame) + half);
     dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
-    dlms_parser::DlmsParser parser(&decryptor);
-    auto [n, consumed] = parser.parse(duplicated_frame, [](auto, auto, auto, auto) {});
+    dlms_parser::DlmsParser parser([](const auto&) {}, &decryptor);
+    auto [n, consumed] = parser.parse(duplicated_frame);
     CHECK(n == 0);
   }
 

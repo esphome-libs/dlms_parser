@@ -21,7 +21,7 @@ public:
   #if defined(__clang__) || defined(__GNUC__)
   __attribute__((format(printf, 2, 3)))
   #endif
-  static void log(LogLevel log_level, const char* fmt, ...) {
+  static void log(const LogLevel log_level, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     _log_function(log_level, fmt, args);

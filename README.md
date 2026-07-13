@@ -15,7 +15,8 @@ It is designed for embedded and integration-heavy environments such as ESPHome, 
 
 ## How to use
 
-Complete example with the explanation: [test_example.cpp](https://github.com/esphome-libs/dlms_parser/blob/main/tests/test_example.cpp)
+* Complete example with the explanation: [test_example.cpp](https://github.com/esphome-libs/dlms_parser/blob/main/tests/test_example.cpp)
+* Usage in ESPHome: [dlms_meter component](https://github.com/esphome/esphome/tree/dev/esphome/components/dlms_meter)
 
 ### Creating custom patterns to match your meter's telegram structure
 
@@ -43,14 +44,10 @@ parser.load_default_patterns();
 
 If your meter emits a layout not covered by the built-ins, you can register custom patterns. Lower priority numbers are evaluated first.
 ```c++
-// Simple — priority 0 (tried before built-ins)
-parser.register_pattern("TC, TO, TDTM");
-
-// Named with explicit priority
-parser.register_pattern("MyPattern", "TO, TV, S(TS, TU)", 5);
+parser.register_pattern("MyPattern", "TO, TV, S(TS, TU)", 5, {});
 
 // With default OBIS — used when the pattern captures no OBIS code
-const uint8_t meter_obis[] = {0, 0, 96, 1, 0, 255};  // 0.0.96.1.0.255
+dlms_parser::ObisId meter_obis(0, 0, 96, 1, 0, 255);  // 0.0.96.1.0.255
 parser.register_pattern("MeterID", "L, TSTR", 0, meter_obis);
 ```
 
@@ -93,90 +90,6 @@ parser.register_pattern("TOW, TV, TSU");          // Landis+Gyr swapped OBIS
 | `S(x, y, ...)` | inline sub-structure                           | `02 03`                         |
 | `DN`           | descend into nested structure                  | control token                   |
 | `UP`           | return from nested structure                   | control token                   |
-
-## API Reference
-
-### `DlmsParser` Core Methods
-
-> **⚠️ Warning:** If you intend to use encryption, you **must** provide a concrete `Aes128GcmDecryptor` backend to the constructor before calling `set_decryption_key` or `set_authentication_key`. Calling these methods on a parser initialized with the default `nullptr` decryptor will cause a null pointer dereference.
-
-| Method                                                               | Description                                                                                           |
-|----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
-| `DlmsParser(Aes128GcmDecryptor* = nullptr)`                          | Constructor accepting an optional pointer to an AES-128-GCM decryptor backend.                        |
-| `set_skip_crc_check(bool)`                                           | Skip CRC/checksum validation for HDLC and M-Bus.                                                      |
-| `set_decryption_key(const Aes128GcmDecryptionKey&)`                  | Set AES-128-GCM decryption key (GUEK). **Requires a non-null decryptor.**                             |
-| `set_authentication_key(const Aes128GcmAuthenticationKey&)`          | Set AES-128-GCM authentication key (GAK) for GCM tag verification. **Requires a non-null decryptor.** |
-| `load_default_patterns()`                                            | Register all built-in patterns (T1, T2, T3, DateTime, etc.).                                          |
-| `ParseResult parse(std::span<uint8_t> buf, const DlmsDataCallback&)` | Parse a complete frame; modifies the buffer in-place and triggers the callback.                       |
-### Supported APDU Tags
-
-Common APDU tags accepted by the parser:
-
-| Byte   | Meaning                                                                             |
-|--------|-------------------------------------------------------------------------------------|
-| `0x0F` | `DATA-NOTIFICATION`                                                                 |
-| `0xE0` | `General-Block-Transfer` — reassembles numbered blocks, then re-enters APDU parsing |
-| `0xDB` | `General-GLO-Ciphering` — encrypted, needs decryption key                           |
-| `0xDF` | `General-DED-Ciphering` — encrypted, needs decryption key                           |
-| `0x01` | raw AXDR array                                                                      |
-| `0x02` | raw AXDR structure                                                                  |
-
-### Basic Example
-```c++
-#include <vector>
-#include "dlms_parser.h"
-#include "decryption/aes_128_gcm_decryptor_mbedtls.h"
-
-using namespace dlms_parser;
-
-int main() {
-    // 1. Initialize a crypto backend (e.g., mbedTLS)
-    Aes128GcmDecryptorMbedTls decryptor;
-    
-    // 2. Initialize the parser with a pointer to the decryptor
-    DlmsParser parser(&decryptor);
-    
-    // 3. Set keys using the robust hex loader
-    auto dec_key = Aes128GcmDecryptionKey::from_hex("00112233445566778899AABBCCDDEEFF");
-    auto auth_key = Aes128GcmAuthenticationKey::from_hex("FFEEDDCCBBAA99887766554433221100");
-    
-    if (dec_key) parser.set_decryption_key(*dec_key);
-    if (auth_key) parser.set_authentication_key(*auth_key);
-
-    // 4. Load common built-in meter layout patterns
-    parser.load_default_patterns();
-
-    // 5. Provide your data (will be modified in-place during parsing)
-    std::vector<uint8_t> my_telegram = { /* ... byte data ... */ };
-    
-    // 6. Define your callback
-    auto callback = [](const char* obis, float f_val, const char* s_val, bool is_numeric) {
-        printf("Matched OBIS: %s | String: %s | Float: %f\n", obis, s_val, f_val);
-    };
-
-    // 7. Parse the telegram by explicitly constructing a std::span<uint8_t>
-    ParseResult result = parser.parse(std::span<uint8_t>(my_telegram.data(), my_telegram.size()), callback);
-    
-    printf("Successfully parsed %zu COSEM objects!\n", result.count);
-    return 0;
-}
-```
-
-## Logging
-
-`dlms_parser` includes a built-in logging system that is useful for debugging frame parsing and pattern matching. You can hook into it by providing a custom log function:
-```c++
-#include "log.h"
-#include <cstdarg>
-#include <cstdio>
-
-// ... inside your setup code ...
-dlms_parser::Logger::set_log_function([](dlms_parser::LogLevel level, const char* fmt, va_list args) {
-    // Implement your platform-specific print here
-    vprintf(fmt, args);
-    printf("\n");
-});
-```
 
 ## How to add the library to your project
 

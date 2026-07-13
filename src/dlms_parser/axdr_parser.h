@@ -1,11 +1,13 @@
 #pragma once
 
 #include "utils.h"
+#include "obis_id.h"
+#include <array>
+#include <cstdio>
 #include <cstdint>
 #include <functional>
 #include <span>
 #include <string_view>
-#include <array>
 
 namespace dlms_parser {
 
@@ -31,36 +33,41 @@ enum class AxdrTokenType : uint8_t {
   END_OF_PATTERN = 0xFF
 };
 
-struct AxdrPatternStep {
+struct AxdrPatternStep final {
   AxdrTokenType type{};
   uint8_t param_u8_a{ 0 };
 };
 
-struct AxdrDescriptorPattern {
+struct AxdrDescriptorPattern final {
   const char* name{ nullptr };
   int priority{ 0 };
   AxdrPatternStep steps[32]{};
   uint16_t default_class_id{ 0 };
-  bool has_default_obis{ false };
-  std::array<uint8_t, 6> default_obis{};
+  ObisId default_obis{};
 };
 
-struct AxdrCaptures {
+struct AxdrCapture final {
   uint32_t elem_idx{ 0 };
   uint16_t class_id{ 0 };
-  std::span<const uint8_t> obis{};
-  DlmsDataType value_type{ DLMS_DATA_TYPE_NONE };
+  ObisId obis{};
+  DlmsDataType value_type{ DlmsDataType::NONE };
   std::span<const uint8_t> value{};
-
   bool has_scaler_unit{ false };
   int8_t scaler{ 0 };
   uint8_t unit_enum{ 0 };
+
+  [[nodiscard]] bool is_numeric() const;
+  [[nodiscard]] float value_as_float_with_scaler_applied() const;
+  [[nodiscard]] std::string_view value_as_string(std::span<char, 128> buffer) const;
+
+private:
+  [[nodiscard]] float value_as_float() const;
+  static float apply_scaler(float value, int8_t scaler);
 };
 
-// Callback: OBIS code, numeric value, string value, is_numeric flag
-using DlmsDataCallback = std::function<void(const char* obis_code, float float_val, const char* str_val, bool is_numeric)>;
+using DlmsDataCallback = std::function<void(const AxdrCapture& axdrCapture)>;
 
-struct ParseResult {
+struct ParseResult final {
   size_t count{ 0 };          // number of matched COSEM objects
   size_t bytes_consumed{ 0 }; // how many bytes of the input buffer were processed
 };
@@ -70,19 +77,17 @@ struct ParseResult {
 // No knowledge of APDU framing or encryption.
 class AxdrParser final : NonCopyableAndNonMovable {
 public:
-  AxdrParser() = default;
+  explicit AxdrParser(DlmsDataCallback dlmsDataCallback);
 
   // Register a named pattern from the DSL string, e.g. "TC,TO,TS,TV".
-  void register_pattern(const char* name, const char* dsl, int priority = 10);
-  void register_pattern(const char* name, const char* dsl, int priority, std::span<const uint8_t, 6> default_obis);
+  void register_pattern(const char* name, const char* dsl, int priority, ObisId default_obis = {});
   void clear_patterns();
 
   // Parse AXDR bytes. Fires cooked_cb and/or raw_cb for each pattern match.
   // Either callback may be nullptr.
-  ParseResult parse(std::span<const uint8_t> axdr, DlmsDataCallback cooked_cb);
+  ParseResult parse(std::span<const uint8_t> axdr);
 
   [[nodiscard]] std::span<const AxdrDescriptorPattern> patterns() const { return { patterns_.data(), patterns_count_ }; }
-  [[nodiscard]] size_t patterns_size() const { return patterns_count_; }
 
 private:
   static constexpr size_t MAX_PATTERNS = 32;
@@ -95,7 +100,7 @@ private:
   // Parse-time state — reset at the start of each parse() call
   std::span<const uint8_t> buffer_{};
   size_t pos_{ 0 };
-  DlmsDataCallback cooked_cb_;
+  DlmsDataCallback dlmsDataCallback_;
   size_t objects_found_{ 0 };
   uint8_t last_pattern_elements_consumed_{ 0 };
 
@@ -105,20 +110,19 @@ private:
   uint32_t read_u32_();
 
   // Traversal
-  bool skip_data_(uint8_t type);
-  bool parse_element_(uint8_t type, uint8_t depth = 0);
-  bool parse_sequence_(uint8_t type, uint8_t depth = 0);
+  bool skip_data_(DlmsDataType type);
+  bool parse_element_(DlmsDataType type, uint8_t depth = 0);
+  bool parse_sequence_(DlmsDataType type, uint8_t depth = 0);
 
   // Pattern matching
   bool test_if_date_time_12b_(std::span<const uint8_t> buf = {}) const;
-  bool capture_generic_value_(AxdrCaptures& c);
-  bool try_match_patterns_(uint8_t container_type, uint8_t elem_idx, uint8_t elem_count);
-  bool parse_self_describing_(uint8_t container_type, uint8_t elem_idx, uint8_t elem_count,
-                                   const AxdrDescriptorPattern& pat, uint8_t& consumed);
-  bool match_pattern_(uint8_t container_type, uint8_t elem_idx, uint8_t elem_count,
+  bool capture_generic_value_(AxdrCapture& c);
+  bool try_match_patterns_(DlmsDataType container_type, uint8_t elem_idx, uint8_t elem_count);
+  bool parse_self_describing_(DlmsDataType container_type, uint8_t elem_idx, uint8_t elem_count,
+                              const AxdrDescriptorPattern& pat, uint8_t& consumed);
+  bool match_pattern_(DlmsDataType container_type, uint8_t elem_idx, uint8_t elem_count,
                       const AxdrDescriptorPattern& pat, uint8_t& consumed);
-  static float apply_scaler(float value, int8_t scaler);
-  void emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptures& c);
+  void emit_object_(const AxdrDescriptorPattern& pat, const AxdrCapture& c);
 };
 
 }
