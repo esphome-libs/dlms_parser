@@ -1,6 +1,7 @@
 #pragma once
 
 #include "axdr_parser.h"
+#include "obis_id.h"
 #include "decryption/aes_128_gcm_decryptor.h"
 #include "utils.h"
 #include <cstdint>
@@ -11,25 +12,19 @@ namespace dlms_parser {
 // Facade — composes frame decoder, APDU handler, decryptor, and AXDR parser.
 class DlmsParser final : NonCopyableAndNonMovable {
  public:
-  explicit DlmsParser(Aes128GcmDecryptor* decryptor = nullptr);
+  explicit DlmsParser(DlmsDataCallback dlmsDataCallback, Aes128GcmDecryptor* decryptor = nullptr);
 
   void set_skip_crc_check(bool skip);
   void set_decryption_key(const Aes128GcmDecryptionKey& key) const;
   void set_authentication_key(const Aes128GcmAuthenticationKey& key) const;
 
-  // Load built-in patterns (T1, T2, T3, U.ZPA).
+  // Load built-in patterns.
   void load_default_patterns();
 
-  // Register a custom AXDR pattern (priority 0 — tried before built-in patterns).
-  void register_pattern(const char* dsl);
-  void register_pattern(const char* name, const char* dsl, int priority = 0);
-  // Register with a default OBIS (used when the pattern captures no OBIS).
-  void register_pattern(const char* name, const char* dsl, int priority, std::span<const uint8_t, 6> default_obis);
+  void register_pattern(const char* name, const char* dsl, int priority, ObisId default_obis);
 
   // Parse a full frame (in-place). buf is modified during parsing.
-  // Fires cooked_cb for each matched COSEM object.
-  // Optionally fires raw_cb with unmodified captures before conversion.
-  ParseResult parse(std::span<uint8_t> buf, const DlmsDataCallback& cooked_cb);
+  ParseResult parse(std::span<uint8_t> buf);
 
  private:
   Aes128GcmDecryptor* decryptor_;

@@ -27,7 +27,7 @@ static bool is_mbus_short_frame(const std::span<const uint8_t> data) {
   return static_cast<uint8_t>(data[1] + data[2]) == data[3];
 }
 
-DlmsParser::DlmsParser(Aes128GcmDecryptor* decryptor) : decryptor_(decryptor) {}
+DlmsParser::DlmsParser(DlmsDataCallback dlmsDataCallback, Aes128GcmDecryptor* decryptor) : decryptor_(decryptor), axdr_parser_(std::move(dlmsDataCallback)) {}
 
 void DlmsParser::set_skip_crc_check(const bool skip) {
   skip_crc_check_ = skip;
@@ -55,19 +55,11 @@ void DlmsParser::load_default_patterns() {
   axdr_parser_.register_pattern("swappedTagObis-value-scalerUnit", "TOW, TV, TSU", 100);
 }
 
-void DlmsParser::register_pattern(const char* dsl) {
-  axdr_parser_.register_pattern("CUSTOM", dsl, 0);
-}
-
-void DlmsParser::register_pattern(const char* name, const char* dsl, const int priority) {
-  axdr_parser_.register_pattern(name, dsl, priority);
-}
-
-void DlmsParser::register_pattern(const char* name, const char* dsl, const int priority, const std::span<const uint8_t, 6> default_obis) {
+void DlmsParser::register_pattern(const char* name, const char* dsl, const int priority, const ObisId default_obis) {
   axdr_parser_.register_pattern(name, dsl, priority, default_obis);
 }
 
-ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& cooked_cb) {
+ParseResult DlmsParser::parse(std::span<uint8_t> buf) {
   if (buf.empty()) {
     Logger::log(LogLevel::ERROR, "Empty buffer passed to parse()");
     return {};
@@ -104,11 +96,15 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& co
   const auto axdr = parse_apdu_in_place(decoded, decryptor_);
   if (axdr.empty()) return {};
 
+  Logger::log(LogLevel::VERY_VERBOSE, "Unencrypted AXDR payload:");
+  log_span_as_hex(LogLevel::VERY_VERBOSE, axdr);
+  Logger::log(LogLevel::VERY_VERBOSE, "============");
+
   // Step 3: AXDR parse — loop over successive top-level containers
   ParseResult result;
   size_t offset = 0;
   while (offset < axdr.size()) {
-    auto [count, bytes_consumed] = axdr_parser_.parse(axdr.subspan(offset), cooked_cb);
+    auto [count, bytes_consumed] = axdr_parser_.parse(axdr.subspan(offset));
     if (bytes_consumed == 0) break;
     result.count += count;
     result.bytes_consumed += bytes_consumed;
@@ -118,10 +114,6 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf, const DlmsDataCallback& co
   if(result.count == 0) {
     Logger::log(LogLevel::ERROR, "No COSEM objects found in AXDR payload");
   }
-
-  Logger::log(LogLevel::VERY_VERBOSE, "Unencrypted AXDR payload:");
-  log_span_as_hex(LogLevel::VERY_VERBOSE, axdr);
-  Logger::log(LogLevel::VERY_VERBOSE, "============");
 
   return result;
 }

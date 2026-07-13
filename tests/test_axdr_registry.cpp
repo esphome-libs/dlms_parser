@@ -3,16 +3,18 @@
 #include <cstring>
 #include <ostream>
 
+#include "tests/log_fixture.h"
 #include "dlms_parser/axdr_parser.h"
+#include "dlms_parser/obis_id.h"
 
 using namespace dlms_parser;
 
-TEST_CASE("AxdrParser Pattern Registry - Tokenization and Parsing") {
-  AxdrParser parser;
+TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Tokenization and Parsing") {
+  AxdrParser parser([](const auto&) {});
 
   SUBCASE("Basic Tokens") {
     parser.register_pattern("test", "F,C,L", 10);
-    REQUIRE(parser.patterns_size() == 1);
+    REQUIRE(parser.patterns().size() == 1);
     const auto& pat = parser.patterns()[0];
 
     CHECK(std::string_view(pat.name) == "test");
@@ -26,7 +28,7 @@ TEST_CASE("AxdrParser Pattern Registry - Tokenization and Parsing") {
   SUBCASE("Whitespace and Empty Tokens") {
     // Should gracefully trim spaces, tabs, newlines, and ignore empty tokens (,,)
     parser.register_pattern("ws", "  F \n, \t C ,,, L \r ", 10);
-    REQUIRE(parser.patterns_size() == 1);
+    REQUIRE(parser.patterns().size() == 1);
     const auto& pat = parser.patterns()[0];
 
     CHECK(pat.steps[0].type == AxdrTokenType::EXPECT_TO_BE_FIRST);
@@ -38,7 +40,7 @@ TEST_CASE("AxdrParser Pattern Registry - Tokenization and Parsing") {
   SUBCASE("Garbage Tokens") {
     // Unrecognized tokens should be safely ignored
     parser.register_pattern("garbage", "F, INVALID_TOKEN, L", 10);
-    REQUIRE(parser.patterns_size() == 1);
+    REQUIRE(parser.patterns().size() == 1);
     const auto& pat = parser.patterns()[0];
 
     CHECK(pat.steps[0].type == AxdrTokenType::EXPECT_TO_BE_FIRST);
@@ -75,19 +77,19 @@ TEST_CASE("AxdrParser Pattern Registry - Tokenization and Parsing") {
   }
 }
 
-TEST_CASE("AxdrParser Pattern Registry - Comprehensive Token Mapping") {
-  AxdrParser parser;
+TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Comprehensive Token Mapping") {
+  AxdrParser parser([](const auto&) {});
 
   // Test all primary token aliases
   parser.register_pattern("all_tokens", "SelfDesc,TC,O,TO,TOW,A,TA,TS,TU,V,TV,TDTM,TSTR,DN,UP,TSU", 10);
-  REQUIRE(parser.patterns_size() == 1);
+  REQUIRE(parser.patterns().size() == 1);
   const auto& pat = parser.patterns()[0];
 
   size_t i = 0;
   CHECK(pat.steps[i++].type == AxdrTokenType::SELF_DESC);
   // TC
   CHECK(pat.steps[i].type == AxdrTokenType::EXPECT_TYPE_EXACT);
-  CHECK(pat.steps[i++].param_u8_a == DLMS_DATA_TYPE_UINT16);
+  CHECK(pat.steps[i++].param_u8_a == static_cast<uint8_t>(DlmsDataType::UINT16));
   CHECK(pat.steps[i++].type == AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED);
   // O
   CHECK(pat.steps[i++].type == AxdrTokenType::EXPECT_OBIS6_UNTAGGED);
@@ -127,12 +129,12 @@ TEST_CASE("AxdrParser Pattern Registry - Comprehensive Token Mapping") {
   CHECK(pat.steps[i].type == AxdrTokenType::END_OF_PATTERN);
 }
 
-TEST_CASE("AxdrParser Pattern Registry - Structure Expansion S(...)") {
-  AxdrParser parser;
+TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Structure Expansion S(...)") {
+  AxdrParser parser([](const auto&) {});
 
   SUBCASE("Simple structure") {
     parser.register_pattern("struct", "S(TO,TV)", 10);
-    REQUIRE(parser.patterns_size() == 1);
+    REQUIRE(parser.patterns().size() == 1);
     const auto& pat = parser.patterns()[0];
 
     CHECK(pat.steps[0].type == AxdrTokenType::EXPECT_STRUCTURE_N);
@@ -191,15 +193,15 @@ TEST_CASE("AxdrParser Pattern Registry - Structure Expansion S(...)") {
   }
 }
 
-TEST_CASE("AxdrParser Pattern Registry - Priority and Array Management") {
-  AxdrParser parser;
+TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Priority and Array Management") {
+  AxdrParser parser([](const auto&) {});
 
   SUBCASE("Priority Sorting") {
     parser.register_pattern("low", "F", 50);
     parser.register_pattern("high", "F", 10);
     parser.register_pattern("med", "F", 30);
 
-    REQUIRE(parser.patterns_size() == 3);
+    REQUIRE(parser.patterns().size() == 3);
     // Lower number = higher priority, sorted to the front
     CHECK(std::string_view(parser.patterns()[0].name) == "high");
     CHECK(std::string_view(parser.patterns()[1].name) == "med");
@@ -211,54 +213,53 @@ TEST_CASE("AxdrParser Pattern Registry - Priority and Array Management") {
     parser.register_pattern("second", "F", 20);
     parser.register_pattern("third", "F", 20);
 
-    REQUIRE(parser.patterns_size() == 3);
+    REQUIRE(parser.patterns().size() == 3);
     CHECK(std::string_view(parser.patterns()[0].name) == "first");
     CHECK(std::string_view(parser.patterns()[1].name) == "second");
     CHECK(std::string_view(parser.patterns()[2].name) == "third");
   }
 
   SUBCASE("Default OBIS assignment") {
-    const uint8_t obis[] = {1, 0, 15, 8, 0, 255};
+    constexpr ObisId obis(1, 0, 15, 8, 0, 255);
     parser.register_pattern("def_obis", "F", 10, obis);
 
     const auto& pat = parser.patterns()[0];
-    CHECK(pat.has_default_obis == true);
-    CHECK(std::memcmp(pat.default_obis.data(), obis, 6) == 0);
+    CHECK(pat.default_obis == obis);
   }
 
   SUBCASE("Default OBIS Flag Independence") {
-    const uint8_t obis[] = {1, 0, 15, 8, 0, 255};
+    constexpr ObisId obis(1, 0, 15, 8, 0, 255);
     parser.register_pattern("with_obis", "F", 10, obis);
     parser.register_pattern("without_obis", "L", 5); // Higher priority, inserted first
 
     // Pattern 0 (without_obis) should NOT have the default OBIS
-    CHECK(parser.patterns()[0].has_default_obis == false);
+    CHECK(parser.patterns()[0].default_obis.empty() == true);
     // Pattern 1 (with_obis) SHOULD have it
-    CHECK(parser.patterns()[1].has_default_obis == true);
+    CHECK(parser.patterns()[1].default_obis == obis);
   }
 
   SUBCASE("Clear patterns") {
     parser.register_pattern("test", "F", 10);
-    CHECK(parser.patterns_size() == 1);
+    CHECK(parser.patterns().size() == 1);
 
     parser.clear_patterns();
-    CHECK(parser.patterns_size() == 0);
+    CHECK(parser.patterns().size() == 0);
 
     parser.register_pattern("test2", "L", 10);
-    CHECK(parser.patterns_size() == 1);
+    CHECK(parser.patterns().size() == 1);
     CHECK(std::string_view(parser.patterns()[0].name) == "test2");
   }
 }
 
-TEST_CASE("AxdrParser Pattern Registry - Limits and Edge Cases") {
-  AxdrParser parser;
+TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Limits and Edge Cases") {
+  AxdrParser parser([](const auto&) {});
 
   SUBCASE("Max Patterns Limit (32)") {
     for (int i = 0; i < 40; i++) {
       parser.register_pattern("spam", "F", i);
     }
     // Hard limit is MAX_PATTERNS = 32
-    CHECK(parser.patterns_size() == 32);
+    CHECK(parser.patterns().size() == 32);
     // Since priority was 'i', 0-31 got inserted. The others gracefully overwrote the end
     // or were rejected, keeping the system stable without out-of-bounds writes.
   }
@@ -268,13 +269,13 @@ TEST_CASE("AxdrParser Pattern Registry - Limits and Edge Cases") {
     for (int i = 0; i < 32; i++) {
       parser.register_pattern("filler", "V", 10);
     }
-    CHECK(parser.patterns_size() == 32);
+    CHECK(parser.patterns().size() == 32);
 
     // Insert a higher priority pattern (priority 1)
     parser.register_pattern("high_prio", "F", 1);
 
     // It should displace the last element and take the first position
-    CHECK(parser.patterns_size() == 32);
+    CHECK(parser.patterns().size() == 32);
     CHECK(std::string_view(parser.patterns()[0].name) == "high_prio");
     CHECK(parser.patterns()[0].steps[0].type == AxdrTokenType::EXPECT_TO_BE_FIRST);
   }
