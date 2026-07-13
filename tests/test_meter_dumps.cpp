@@ -191,6 +191,17 @@ TEST_CASE("Integration: HDLC") {
     );
   }
 
+  SUBCASE("Iskra 550 (3 segmented frames) with leading M-Bus short frame") {
+    std::vector<uint8_t> frame{0x10, 0x40, 0x01, 0x41, 0x16};
+    frame.insert(frame.end(), std::begin(dlms::test_data::iskra550_raw_frame), std::end(dlms::test_data::iskra550_raw_frame));
+    run_meter_test(
+      frame,
+      dlms::test_data::iskra550_expected_count,
+      dlms::test_data::iskra550_expected_strings,
+      dlms::test_data::iskra550_expected_floats
+    );
+  }
+
   SUBCASE("Iskra 550 (3 segmented frames) and the same data at the end. Should ignore the duplicated part") {
     std::vector<uint8_t> duplicated_frame(std::begin(dlms::test_data::iskra550_raw_frame), std::end(dlms::test_data::iskra550_raw_frame));
     duplicated_frame.insert(duplicated_frame.end(), std::begin(dlms::test_data::iskra550_raw_frame), std::end(dlms::test_data::iskra550_raw_frame));
