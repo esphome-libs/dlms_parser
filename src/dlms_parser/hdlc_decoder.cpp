@@ -1,4 +1,5 @@
 #include "hdlc_decoder.h"
+#include "utils.h"
 #include "log.h"
 #include <algorithm>
 
@@ -62,13 +63,20 @@ static size_t address_length(const std::span<const uint8_t> p) {
 static constexpr uint8_t HDLC_FLAG    = 0x7E;
 static constexpr uint8_t HDLC_SEG_BIT = 0x08;  // bit 3 of frame-type byte: "more frames follow"
 
-std::span<uint8_t> decode_hdlc_frames_in_place(std::span<uint8_t> buf, bool skip_crc_check) {
+std::span<uint8_t> decode_hdlc_frames_in_place(std::span<uint8_t> buf, const bool skip_crc_check) {
   size_t read_offset = 0;
   size_t write_offset = 0;
   bool is_first = true;
 
   do {
     const auto remaining = buf.subspan(read_offset);
+
+    if (is_mbus_short_frame(remaining)) {
+      Logger::log(LogLevel::VERBOSE, "HDLC: skipping M-Bus short frame at offset %zu", read_offset);
+      read_offset += 5;
+      continue;
+    }
+
     if (remaining.size() < 4 || remaining[0] != HDLC_FLAG) {
       Logger::log(LogLevel::WARNING, "HDLC: invalid frame at offset %zu", read_offset);
       return {};
