@@ -79,4 +79,9 @@ uint32_t read_ber_length(std::span<const uint8_t> buf, size_t& pos);
 int get_data_type_size(DlmsDataType type);
 bool is_value_data_type(DlmsDataType type);
 
+inline bool is_mbus_short_frame(const std::span<const uint8_t> data) {
+  if (data.size() < 5 || data[0] != 0x10 || data[4] != 0x16) return false;
+  return static_cast<uint8_t>(data[1] + data[2]) == data[3];
+}
+
 }

@@ -114,6 +114,39 @@ TEST_CASE_FIXTURE(LogFixture, "HDLC Decoder - Payload Decoding (decode)") {
     CHECK(multi_frame[4] == 0xEE);
   }
 
+  SUBCASE("M-Bus short frames are ignored before, between, and after HDLC frames") {
+    constexpr uint8_t mbus_short_frame[] = {0x10, 0x40, 0x01, 0x41, 0x16};
+    std::vector<uint8_t> transmission(std::begin(mbus_short_frame), std::end(mbus_short_frame));
+
+    auto frame1 = BASE_FRAME;
+    frame1.erase(frame1.begin() + 13);
+    update_frame_length(frame1, true);
+
+    std::vector<uint8_t> frame2 = {
+      0x7E, 0xA0, 0x00,
+      0x03, 0x21, 0x93,
+      0x11, 0x22,
+      0xCC, 0xDD, 0xEE,
+      0x33, 0x44,
+      0x7E
+    };
+    update_frame_length(frame2);
+
+    transmission.insert(transmission.end(), frame1.begin(), frame1.end());
+    transmission.insert(transmission.end(), std::begin(mbus_short_frame), std::end(mbus_short_frame));
+    transmission.insert(transmission.end(), std::begin(mbus_short_frame), std::end(mbus_short_frame));
+    transmission.insert(transmission.end(), frame2.begin(), frame2.end());
+    transmission.insert(transmission.end(), std::begin(mbus_short_frame), std::end(mbus_short_frame));
+
+    const auto result = decode_hdlc_frames_in_place(transmission, true);
+    REQUIRE(result.size() == 5);
+    CHECK(result[0] == 0xAA);
+    CHECK(result[1] == 0xBB);
+    CHECK(result[2] == 0xCC);
+    CHECK(result[3] == 0xDD);
+    CHECK(result[4] == 0xEE);
+  }
+
   SUBCASE("LLC stripping ONLY occurs on first frame of segmented payload") {
     std::vector<uint8_t> multi_frame;
     auto frame1 = BASE_FRAME;
@@ -224,6 +257,13 @@ TEST_CASE_FIXTURE(LogFixture, "HDLC Decoder - Address Length Decoding") {
 }
 
 TEST_CASE_FIXTURE(LogFixture, "HDLC Decoder - Malformed Frame Handling") {
+
+  SUBCASE("M-Bus short frame with invalid checksum is not ignored") {
+    std::vector<uint8_t> transmission = {0x10, 0x40, 0x01, 0x42, 0x16};
+    transmission.insert(transmission.end(), BASE_FRAME.begin(), BASE_FRAME.end());
+
+    CHECK(decode_hdlc_frames_in_place(transmission, true).empty());
+  }
 
   SUBCASE("Length field mismatch vs buffer boundaries") {
     auto frame = BASE_FRAME;
