@@ -27,7 +27,7 @@ endif()
 FetchContent_Declare(
   doctest
   GIT_REPOSITORY https://github.com/doctest/doctest
-  GIT_TAG v2.5.0)
+  GIT_TAG v2.5.3)
 FetchContent_MakeAvailable(doctest)
 include("${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake")
 
@@ -59,7 +59,7 @@ target_include_directories(dlms_cryptography SYSTEM INTERFACE $<TARGET_PROPERTY:
 FetchContent_Populate(
   cmake_template
   GIT_REPOSITORY https://github.com/cpp-best-practices/cmake_template
-  GIT_TAG a3971f5b4588a5f57a44317a0f7e29827add13f1)
+  GIT_TAG b86318abbf55a657a11a0cf2acce69f221841b22)
 include(${cmake_template_SOURCE_DIR}/cmake/CompilerWarnings.cmake)
 include(${cmake_template_SOURCE_DIR}/cmake/Sanitizers.cmake)
 

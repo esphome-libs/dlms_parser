@@ -260,7 +260,7 @@ bool AxdrParser::skip_data_(const DlmsDataType type) {
 
     if (this->pos_ + skip_bytes > this->buffer_.size()) return false;
 
-    Logger::log(LogLevel::VERY_VERBOSE, "Skipping %s (%u bytes) at pos %zu", to_string(type), skip_bytes, this->pos_);
+    Logger::log(LogLevel::VERY_VERBOSE, "Skipping %s (%" PRIu32 " bytes) at pos %zu", to_string(type), skip_bytes, this->pos_);
     this->pos_ += skip_bytes;
   }
   return true;
@@ -593,7 +593,7 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
     capture.obis = pat.default_obis;
   }
 
-  Logger::log(LogLevel::VERBOSE, "Pattern '%s' matched at pos %u - class_id=%d", pat.name ? pat.name : "UNKNOWN", capture.elem_idx, capture.class_id ? capture.class_id : pat.default_class_id);
+  Logger::log(LogLevel::VERBOSE, "Pattern '%s' matched at pos %" PRIu32 " - class_id=%d", pat.name ? pat.name : "UNKNOWN", capture.elem_idx, capture.class_id ? capture.class_id : pat.default_class_id);
   Logger::log(LogLevel::VERBOSE, "  type=%s len=%zu scaler=%d unit=%d", to_string(capture.value_type), capture.value.size(), capture.scaler, capture.unit_enum);
 
   dlmsDataCallback_(capture);

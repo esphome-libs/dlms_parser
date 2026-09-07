@@ -3,6 +3,7 @@
 #include "log.h"
 #include <algorithm>
 #include <array>
+#include <cinttypes>
 
 namespace dlms_parser {
 
@@ -184,7 +185,7 @@ std::span<uint8_t> parse_apdu_in_place(std::span<uint8_t> buf, Aes128GcmDecrypto
         Logger::log(LogLevel::ERROR, "Decryption failed (auth tag mismatch?)");
         return {};
       }
-      Logger::log(LogLevel::VERBOSE, "Decrypted %u bytes", payload_len);
+      Logger::log(LogLevel::VERBOSE, "Decrypted %" PRIu32 " bytes", payload_len);
       buf = buf.subspan(pos, payload_len);
       continue;  // re-enter loop to process decrypted content
     }
