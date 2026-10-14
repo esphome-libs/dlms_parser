@@ -441,3 +441,40 @@ TEST_CASE_FIXTURE(LogFixture, "Integration: MBus") {
     );
   }
 }
+
+// ---------------------------------------------------------
+// Valid telegrams that carry no COSEM objects
+// ---------------------------------------------------------
+TEST_CASE_FIXTURE(LogFixture, "Integration: valid telegram without COSEM objects is not logged as an error") {
+  dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
+  dlms_parser::DlmsParser parser([](const auto&) {}, &decryptor);
+  parser.load_default_patterns();
+
+  SUBCASE("ZPA AM375 relay states (https://github.com/esphome/esphome/issues/18576)") {
+    std::vector<uint8_t> frame{
+      0x0F,                               // DATA-NOTIFICATION
+      0x00, 0x00, 0x00, 0x00,             // long-invoke-id-and-priority
+      0x00,                               // date-time = null
+      0x02, 0x02,                         // STRUCTURE(2)
+      0x16, 0x00,                         //   ENUM = 0
+      0x01, 0x04,                         //   ARRAY(4)
+      0x02, 0x02, 0x11, 0x01, 0x16, 0x01, //     STRUCTURE(2): UINT8 = 1, ENUM = 1
+      0x02, 0x02, 0x11, 0x02, 0x16, 0x00, //     STRUCTURE(2): UINT8 = 2, ENUM = 0
+      0x02, 0x02, 0x11, 0x03, 0x16, 0x01, //     STRUCTURE(2): UINT8 = 3, ENUM = 1
+      0x02, 0x02, 0x11, 0x04, 0x16, 0x00, //     STRUCTURE(2): UINT8 = 4, ENUM = 0
+    };
+    auto [n, consumed] = parser.parse(frame);
+    CHECK(n == 0);
+    CHECK(consumed == 30);
+    CHECK(contains("[DBG] No COSEM objects found in AXDR payload"));
+    CHECK_FALSE(contains("[ERR]"));
+  }
+
+  SUBCASE("Kaifa MA304H3E") {
+    std::vector<uint8_t> frame(std::begin(dlms::test_data::hdlc_kaifa_ma304h3e_raw_frame), std::end(dlms::test_data::hdlc_kaifa_ma304h3e_raw_frame));
+    auto [n, consumed] = parser.parse(frame);
+    CHECK(n == 0);
+    CHECK(contains("[DBG] No COSEM objects found in AXDR payload"));
+    CHECK_FALSE(contains("[ERR]"));
+  }
+}

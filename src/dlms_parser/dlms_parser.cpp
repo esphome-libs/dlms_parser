@@ -107,7 +107,8 @@ ParseResult DlmsParser::parse(std::span<uint8_t> buf) {
   }
 
   if(result.count == 0) {
-    Logger::log(LogLevel::ERROR, "No COSEM objects found in AXDR payload");
+    // Not an error: some meters push valid telegrams without OBIS codes (e.g. relay states).
+    Logger::log(LogLevel::DEBUG, "No COSEM objects found in AXDR payload");
   }
 
   return result;
