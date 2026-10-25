@@ -176,6 +176,7 @@ int main(int argc, char* argv[]) {
   std::string_view file_path;
   std::string_view key_str;
   std::vector<std::string> custom_patterns;
+  std::vector<std::string> custom_flat_patterns;
   bool skip_defaults = false;
   bool skip_crc = false;
   int verbosity = 0;
@@ -187,6 +188,9 @@ int main(int argc, char* argv[]) {
     }
     else if (arg == "-p" && i + 1 < argc) {
       custom_patterns.emplace_back(argv[++i]);
+    }
+    else if (arg == "-f" && i + 1 < argc) {
+      custom_flat_patterns.emplace_back(argv[++i]);
     }
     else if (arg == "-P") {
       skip_defaults = true;
@@ -216,6 +220,11 @@ int main(int argc, char* argv[]) {
       "Options:\n"
       "  -k <hex_key>        AES-128-GCM decryption key (32 hex chars)\n"
       "  -p <dsl>            Register a custom pattern (repeatable)\n"
+      "  -f <fields>         Register a custom flat-positional pattern (repeatable):\n"
+      "                      comma-separated \"obis\" or \"obis~hexbytes\" entries, e.g.\n"
+      "                      \"0.0.96.1.4.255~464F4F303031, 0.0.1.0.0.255, 0.0.96.1.1.255\"\n"
+      "                      (the ~hexbytes suffix is an optional literal-prefix guard,\n"
+      "                      hex-encoded so it can hold any byte value)\n"
       "  -P                  Skip loading default patterns\n"
       "  -C                  Skip CRC/checksum validation\n"
       "  -v                  Verbose logging\n"
@@ -224,8 +233,13 @@ int main(int argc, char* argv[]) {
       "Examples:\n"
       "  {} tests/dumps/hdlc_norway_han_1phase.log\n"
       "  {} -k 36C66639E48A8CA4D6BC8B282A793BBB tests/dumps/mbus_netz_noe_p1.log\n"
-      "  {} -p \"TO, TV\" -k 5C316162209EBB790B52EB0E7FC5B11C tests/dumps/hdlc_landis_gyr_e450.log\n",
-      argv[0], argv[0], argv[0], argv[0]);
+      "  {} -p \"TO, TV\" -k 5C316162209EBB790B52EB0E7FC5B11C tests/dumps/hdlc_landis_gyr_e450.log\n"
+      "  {} -f \"0.0.96.1.4.255~5A50413348414E3030323030, 0.0.1.0.0.255, 0.0.96.1.1.255, "
+      "0.0.96.3.10.255, 0.0.17.0.0.255, 0.1.96.3.10.255, 0.2.96.3.10.255, 0.3.96.3.10.255, "
+      "0.4.96.3.10.255, 0.0.96.14.0.255, 1.0.1.7.0.255, 1.0.21.7.0.255, 1.0.41.7.0.255, "
+      "1.0.61.7.0.255, 1.0.2.7.0.255, 1.0.22.7.0.255, 1.0.42.7.0.255, 1.0.62.7.0.255, "
+      "1.0.1.8.0.255, 1.0.1.8.1.255, 1.0.1.8.2.255, 1.0.2.8.0.255\" -P <file>  # ZPA AM375\n",
+      argv[0], argv[0], argv[0], argv[0], argv[0]);
     return 1;
   }
 
@@ -314,6 +328,12 @@ int main(int argc, char* argv[]) {
   }
   for (const auto& pat : custom_patterns) {
     parser.register_pattern("CUSTOM", pat.c_str(), 0, {});
+  }
+  for (const auto& pat : custom_flat_patterns) {
+    if (!parser.register_flat_positional_pattern("CUSTOM_FLAT", 0, pat.c_str())) {
+      std::cerr << std::format("Error: malformed -f field list: {}\n", pat);
+      return 1;
+    }
   }
 
   std::cout << std::format("Input:   {} ({} bytes)\n", file_path, data.size());

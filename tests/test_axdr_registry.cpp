@@ -326,3 +326,59 @@ TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Limits and Edge Cas
     CHECK(pat.steps[0].param_u8_a == 16);
   }
 }
+
+namespace {
+
+// "ZPA3HAN00200" as hex, for the ~hexbytes guard syntax.
+constexpr const char* kZpaHex = "5A50413348414E3030323030";
+
+bool prefix_equals(const FlatFieldSpec& field, const std::string_view ascii) {
+  return field.expected_prefix_len == ascii.size() &&
+         std::ranges::equal(std::span(field.expected_prefix).first(field.expected_prefix_len), ascii);
+}
+
+}
+
+TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - FLAT_POSITIONAL from text") {
+  AxdrParser parser([](const auto&) {});
+
+  SUBCASE("Valid field list with a hex literal guard") {
+    const std::string dsl = std::string("0.0.96.1.4.255~") + kZpaHex + ", 0.0.1.0.0.255, 0.0.96.1.1.255";
+    const bool ok = parser.register_flat_positional_pattern("flat", 10, dsl.c_str());
+    REQUIRE(ok);
+    REQUIRE(parser.patterns().size() == 1);
+    const auto& pat = parser.patterns()[0];
+
+    CHECK(pat.steps[0].type == AxdrTokenType::FLAT_POSITIONAL);
+    REQUIRE(pat.flat_field_count == 3);
+    CHECK(pat.flat_fields[0].obis == ObisId(0, 0, 96, 1, 4, 255));
+    CHECK(prefix_equals(pat.flat_fields[0], "ZPA3HAN00200"));
+    CHECK(pat.flat_fields[1].obis == ObisId(0, 0, 1, 0, 0, 255));
+    CHECK(pat.flat_fields[1].expected_prefix_len == 0);
+    CHECK(pat.flat_fields[2].obis == ObisId(0, 0, 96, 1, 1, 255));
+  }
+
+  SUBCASE("Whitespace around commas and '~' is tolerated") {
+    const std::string dsl = std::string("  0.0.96.1.4.255 ~ ") + kZpaHex + "  ,  0.0.1.0.0.255  ";
+    const bool ok = parser.register_flat_positional_pattern("flat", 10, dsl.c_str());
+    REQUIRE(ok);
+    const auto& pat = parser.patterns()[0];
+    REQUIRE(pat.flat_field_count == 2);
+    CHECK(prefix_equals(pat.flat_fields[0], "ZPA3HAN00200"));
+  }
+
+  SUBCASE("Malformed input rejects the whole registration") {
+    CHECK_FALSE(parser.register_flat_positional_pattern("flat", 10, "0.0.0.0.0.0~0000000000000000000000000000000000")); // one byte too long
+    CHECK_FALSE(parser.register_flat_positional_pattern("flat", 10, "0.0.96.1.4=bad, 0.0.1.0.0.255"));
+    CHECK_FALSE(parser.register_flat_positional_pattern("flat", 10, "0.0.96.1.4.999.255")); // too long OBIS code
+    CHECK_FALSE(parser.register_flat_positional_pattern("flat", 10, "0.0.96.1.4.255~ZZ"));  // matcher not hex
+    CHECK_FALSE(parser.register_flat_positional_pattern("flat", 10, "0.0.96.1.4.255~5A5")); // matcher odd length
+    CHECK_FALSE(parser.register_flat_positional_pattern("flat", 10, "0.0.96.1.4.255~")); // empty matcher
+    CHECK_FALSE(parser.register_flat_positional_pattern("flat", 10, "0.0.96.1.4.255,")); // trailing empty field
+    CHECK_FALSE(parser.register_flat_positional_pattern("flat", 10, ",0.0.96.1.4.255,")); // leading empty field
+    CHECK_FALSE(parser.register_flat_positional_pattern("flat", 10, "0.0.96.1.4.255,,0.0.1.0.0.255")); // empty field in the middle
+    CHECK_FALSE(parser.register_flat_positional_pattern("flat", 10, ""));
+    CHECK_FALSE(parser.register_flat_positional_pattern("flat", 10, nullptr));
+    CHECK(parser.patterns().empty());
+  }
+}

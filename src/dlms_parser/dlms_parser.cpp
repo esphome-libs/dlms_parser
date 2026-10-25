@@ -54,6 +54,16 @@ void DlmsParser::register_pattern(const char* name, const char* dsl, const int p
   axdr_parser_.register_pattern(name, dsl, priority, default_obis);
 }
 
+bool DlmsParser::register_flat_positional_pattern(const char* name, const int priority,
+                                                   const std::span<const FlatFieldSpec> fields) {
+  return axdr_parser_.register_flat_positional_pattern(name, priority, fields);
+}
+
+bool DlmsParser::register_flat_positional_pattern(const char* name, const int priority,
+                                                   const char* field_list) {
+  return axdr_parser_.register_flat_positional_pattern(name, priority, field_list);
+}
+
 ParseResult DlmsParser::parse(std::span<uint8_t> buf) {
   if (buf.empty()) {
     Logger::log(LogLevel::ERROR, "Empty buffer passed to parse()");

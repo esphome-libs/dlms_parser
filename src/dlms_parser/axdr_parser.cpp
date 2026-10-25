@@ -5,6 +5,8 @@
 #include <cstdio>
 #include <cstring>
 #include <algorithm>
+#include <charconv>
+#include <limits>
 #include <utility>
 
 namespace dlms_parser {
@@ -462,6 +464,39 @@ bool AxdrParser::parse_self_describing_(const DlmsDataType container_type, const
   return true;
 }
 
+bool AxdrParser::parse_flat_positional_(const DlmsDataType container_type, const uint8_t elem_idx,
+                                        const uint8_t elem_count, const AxdrDescriptorPattern& pat,
+                                        uint8_t& consumed) {
+  // Whole-container matcher, like SelfDesc: only fires at element 0 of a STRUCTURE whose
+  // element count matches this pattern's known field count exactly.
+  if (container_type != DlmsDataType::STRUCTURE || elem_idx != 0) return false;
+  if (elem_count != pat.flat_field_count) return false;
+
+  std::array<AxdrCapture, AxdrDescriptorPattern::MAX_FLAT_FIELDS> caps;
+
+  for (uint8_t i = 0; i < elem_count; i++) {
+    const auto& field = pat.flat_fields[i];
+    caps[i].elem_idx = static_cast<uint32_t>(this->pos_);
+    caps[i].obis = field.obis;
+    if (!this->capture_generic_value_(caps[i])) return false;
+
+    if (field.expected_prefix_len > 0) {
+      if (caps[i].value.size() < field.expected_prefix_len ||
+          !std::ranges::equal(caps[i].value.first(field.expected_prefix_len),
+                              std::span(field.expected_prefix).first(field.expected_prefix_len))) {
+        return false;
+      }
+    }
+  }
+
+  for (uint8_t i = 0; i < elem_count; i++) {
+    this->emit_object_(pat, caps[i]);
+  }
+
+  consumed = elem_count;
+  return true;
+}
+
 bool AxdrParser::match_pattern_(const DlmsDataType container_type, const uint8_t elem_idx, const uint8_t elem_count,
                                 const AxdrDescriptorPattern& pat, uint8_t& consumed) {
   AxdrCapture cap{};
@@ -571,6 +606,9 @@ bool AxdrParser::match_pattern_(const DlmsDataType container_type, const uint8_t
         break;
       case AxdrTokenType::SELF_DESC: {
         return this->parse_self_describing_(container_type, elem_idx, elem_count, pat, consumed);
+      }
+      case AxdrTokenType::FLAT_POSITIONAL: {
+        return this->parse_flat_positional_(container_type, elem_idx, elem_count, pat, consumed);
       }
       case AxdrTokenType::GOING_DOWN: level++; break;
       case AxdrTokenType::GOING_UP:   level--; break;
@@ -725,6 +763,10 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
     }
   }
 
+  return this->insert_pattern_(pat);
+}
+
+AxdrDescriptorPattern& AxdrParser::insert_pattern_(AxdrDescriptorPattern pat) {
   // Find sorted position for insertion into the fixed array patterns_
   size_t insert_pos = 0;
   while (insert_pos < this->patterns_count_ && this->patterns_[insert_pos].priority <= pat.priority) {
@@ -750,6 +792,117 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
     return this->patterns_[insert_pos];
   }
   return this->patterns_[MAX_PATTERNS - 1];
+}
+
+bool AxdrParser::register_flat_positional_pattern(const char* name, const int priority,
+                                                   const std::span<const FlatFieldSpec> fields) {
+  AxdrDescriptorPattern pat{};
+  pat.name = name;
+  pat.priority = priority;
+  std::ranges::fill(pat.steps, AxdrPatternStep{ AxdrTokenType::END_OF_PATTERN });
+  pat.steps[0] = { AxdrTokenType::FLAT_POSITIONAL };
+
+  if (fields.size() > AxdrDescriptorPattern::MAX_FLAT_FIELDS) return false;
+
+  static_assert(AxdrDescriptorPattern::MAX_FLAT_FIELDS <= std::numeric_limits<uint8_t>::max(), "Truncation of flat pattern fields");
+  pat.flat_field_count = static_cast<uint8_t>(fields.size());
+  std::ranges::copy(fields.first(pat.flat_field_count), pat.flat_fields.begin());
+
+  this->insert_pattern_(pat);
+  return true;
+}
+
+std::optional<FlatFieldSpec> FlatFieldSpec::with_prefix(const ObisId o, const std::span<const uint8_t> prefix) {
+  if (prefix.size() > MAX_PREFIX_BYTES) return std::nullopt;
+  FlatFieldSpec spec{ o };
+  spec.expected_prefix_len = static_cast<uint8_t>(prefix.size());
+  std::ranges::copy(prefix, spec.expected_prefix.begin());
+  return spec;
+}
+
+namespace {
+
+// Parses "a.b.c.d.e.f" (6 dot-separated decimal bytes) into an ObisId.
+bool parse_obis_text(const std::string_view text, ObisId& out) {
+  size_t part_start = 0;
+  size_t part_idx = 0;
+  for (size_t i = 0; i <= text.size(); i++) {
+    if (i != text.size() && text[i] != '.') continue;
+    if (part_idx >= 6) return false;
+    const std::string_view num = text.substr(part_start, i - part_start);
+    part_start = i + 1;
+    uint8_t v = 0;
+    const auto [ptr, ec] = std::from_chars(num.data(), num.data() + num.size(), v);
+    if (ec != std::errc{} || ptr != num.data() + num.size()) return false;
+    out.v[part_idx++] = v;
+  }
+  return part_idx == 6;
+}
+
+// Parses a contiguous hex string (even length, no separators) into raw bytes.
+bool parse_hex_bytes(const std::string_view hex, const std::span<uint8_t> out, size_t& out_len) {
+  if (hex.size() % 2 != 0 || hex.size() / 2 > out.size()) return false;
+  out_len = hex.size() / 2;
+  for (size_t i = 0; i < out_len; i++) {
+    const auto [ptr, ec] = std::from_chars(hex.data() + i * 2, hex.data() + i * 2 + 2, out[i], 16);
+    if (ec != std::errc{} || ptr != hex.data() + i * 2 + 2) return false;
+  }
+  return true;
+}
+
+} // namespace
+
+bool AxdrParser::register_flat_positional_pattern(const char* name, const int priority,
+                                                   const char* field_list) {
+  if (field_list == nullptr) return false;
+  const std::string_view text{ field_list };
+
+  auto trim = [](const std::string_view s) -> std::string_view {
+    const size_t b = s.find_first_not_of(" \t\r\n");
+    if (b == std::string_view::npos) return {};
+    const size_t e = s.find_last_not_of(" \t\r\n");
+    return s.substr(b, e - b + 1);
+  };
+
+  std::array<FlatFieldSpec, AxdrDescriptorPattern::MAX_FLAT_FIELDS> fields{};
+  size_t field_count = 0;
+  size_t start = 0;
+
+  for (size_t i = 0; i <= text.size(); i++) {
+    if (i != text.size() && text[i] != ',') continue;
+    const std::string_view token = trim(text.substr(start, i - start));
+    start = i + 1;
+    if (token.empty()) return false;
+    if (field_count >= fields.size()) return false;
+
+    std::string_view obis_part = token;
+    std::string_view hex_part{};
+    if (const size_t tilde = token.find('~'); tilde != std::string_view::npos) {
+      obis_part = trim(token.substr(0, tilde));
+      hex_part = trim(token.substr(tilde + 1));
+      if (hex_part.empty()) return false;
+    }
+
+    ObisId obis{};
+    if (!parse_obis_text(obis_part, obis)) return false;
+
+    if (hex_part.empty()) {
+      fields[field_count++] = FlatFieldSpec{ obis };
+      continue;
+    }
+
+    std::array<uint8_t, FlatFieldSpec::MAX_PREFIX_BYTES> prefix_bytes{};
+    size_t prefix_len = 0;
+    if (!parse_hex_bytes(hex_part, prefix_bytes, prefix_len)) return false;
+
+    auto spec = FlatFieldSpec::with_prefix(obis, std::span(prefix_bytes).first(prefix_len));
+    if (!spec) return false;
+    fields[field_count++] = *spec;
+  }
+
+  if (field_count == 0) return false;
+  return this->register_flat_positional_pattern(name, priority,
+      std::span<const FlatFieldSpec>(fields.data(), field_count));
 }
 
 }  // namespace dlms_parser

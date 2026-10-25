@@ -22,6 +22,8 @@ class DlmsParser final : NonCopyableAndNonMovable {
   void load_default_patterns();
 
   void register_pattern(const char* name, const char* dsl, int priority, ObisId default_obis);
+  bool register_flat_positional_pattern(const char* name, int priority, std::span<const FlatFieldSpec> fields);
+  bool register_flat_positional_pattern(const char* name, int priority, const char* field_list);
 
   // Parse a full frame (in-place). buf is modified during parsing.
   ParseResult parse(std::span<uint8_t> buf);

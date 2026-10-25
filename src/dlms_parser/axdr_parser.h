@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <span>
 #include <string_view>
 
@@ -28,6 +29,7 @@ enum class AxdrTokenType : uint8_t {
   EXPECT_SCALER_TAGGED,
   EXPECT_UNIT_ENUM_TAGGED,
   SELF_DESC,
+  FLAT_POSITIONAL,
   GOING_DOWN,
   GOING_UP,
   END_OF_PATTERN = 0xFF
@@ -38,12 +40,35 @@ struct AxdrPatternStep final {
   uint8_t param_u8_a{ 0 };
 };
 
+struct FlatFieldSpec final {
+  ObisId obis{};
+
+  // Optional guard: if expected_prefix_len > 0, the captured value at this position must
+  // start with these bytes or the whole FLAT_POSITIONAL match is rejected.
+  static constexpr size_t MAX_PREFIX_BYTES = 16;
+  std::array<uint8_t, MAX_PREFIX_BYTES> expected_prefix{};
+  uint8_t expected_prefix_len{ 0 };
+
+  constexpr FlatFieldSpec() = default;
+  constexpr explicit FlatFieldSpec(const ObisId o) : obis(o) {}
+
+  // Returns an empty optional if prefix has more than MAX_PREFIX_BYTES bytes.
+  static std::optional<FlatFieldSpec> with_prefix(ObisId o, std::span<const uint8_t> prefix);
+};
+
 struct AxdrDescriptorPattern final {
   const char* name{ nullptr };
   int priority{ 0 };
   AxdrPatternStep steps[32]{};
   uint16_t default_class_id{ 0 };
   ObisId default_obis{};
+
+  // Only used by FLAT_POSITIONAL patterns: one field spec per element of a fixed-size,
+  // untagged STRUCTURE (vendor sends bare values, no per-element class-id/OBIS/attribute
+  // metadata — position is the only thing identifying a field).
+  static constexpr size_t MAX_FLAT_FIELDS = 32;
+  std::array<FlatFieldSpec, MAX_FLAT_FIELDS> flat_fields{};
+  uint8_t flat_field_count{ 0 };
 };
 
 struct AxdrCapture final {
@@ -81,6 +106,18 @@ public:
 
   // Register a named pattern from the DSL string, e.g. "TC,TO,TS,TV".
   void register_pattern(const char* name, const char* dsl, int priority, ObisId default_obis = {});
+
+  // Register a pattern for a fixed-size STRUCTURE whose elements carry no per-element OBIS/class-id
+  // tagging at all — fields[i] describes element i.
+  bool register_flat_positional_pattern(const char* name, int priority, std::span<const FlatFieldSpec> fields);
+
+  // Same, but parsed from text at runtime: comma-separated "obis" or "obis~hexbytes"
+  // entries, e.g. "0.0.96.1.4.255~5A50413348414E3030323030, 0.0.1.0.0.255".
+  // The "~hexbytes" suffix is optional and sets that field's expected_prefix guard.
+  // Returns false (registers nothing) if field_list is malformed. The parsed OBIS codes
+  // and prefix bytes are copied.
+  bool register_flat_positional_pattern(const char* name, int priority, const char* field_list);
+
   void clear_patterns();
 
   // Parse AXDR bytes. Fires cooked_cb and/or raw_cb for each pattern match.
@@ -96,6 +133,7 @@ private:
   std::array<AxdrDescriptorPattern, MAX_PATTERNS> patterns_;
   size_t patterns_count_{ 0 };
   AxdrDescriptorPattern& register_pattern_dsl_(const char* name, std::string_view dsl, int priority);
+  AxdrDescriptorPattern& insert_pattern_(AxdrDescriptorPattern pat);
 
   // Parse-time state — reset at the start of each parse() call
   std::span<const uint8_t> buffer_{};
@@ -119,6 +157,8 @@ private:
   bool capture_generic_value_(AxdrCapture& c);
   bool try_match_patterns_(DlmsDataType container_type, uint8_t elem_idx, uint8_t elem_count);
   bool parse_self_describing_(DlmsDataType container_type, uint8_t elem_idx, uint8_t elem_count,
+                              const AxdrDescriptorPattern& pat, uint8_t& consumed);
+  bool parse_flat_positional_(DlmsDataType container_type, uint8_t elem_idx, uint8_t elem_count,
                               const AxdrDescriptorPattern& pat, uint8_t& consumed);
   bool match_pattern_(DlmsDataType container_type, uint8_t elem_idx, uint8_t elem_count,
                       const AxdrDescriptorPattern& pat, uint8_t& consumed);

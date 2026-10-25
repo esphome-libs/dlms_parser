@@ -20,6 +20,8 @@
 #include "tests/expected/raw_energomera.h"
 #include "tests/expected/raw_salzburg_netz.h"
 #include "tests/expected/raw_egd_example.h"
+#include "tests/expected/raw_zpa_am375_flat_novemerenicz_20260415.h"
+#include "tests/expected/raw_zpa_am375_flat_predistribuce_20260924.h"
 #include "tests/expected/hdlc_iskra550.h"
 #include "tests/expected/hdlc_norway_han_1phase.h"
 #include "tests/expected/hdlc_norway_han_3phase.h"
@@ -32,6 +34,20 @@
 #include "tests/expected/hdlc_kamstrup_omnipower.h"
 #include "tests/expected/mbus_netz_noe_p1.h"
 #include "tests/expected/mbus_kaifa_ma309m.h"
+
+namespace {
+
+// ZPA AM375 "flat push" layout: this firmware drops the per-element class-id/OBIS
+// wrapper entirely and sends a bare STRUCTURE of 22 values. The utility's documentation
+// uses a slightly different format than what one real meter produces.
+constexpr const char* kZpaAm375FlatFields =
+    "0.0.96.1.4.255~5A50413348414E3030323030, 0.0.1.0.0.255, 0.0.96.1.1.255, "
+    "0.0.96.3.10.255, 0.0.17.0.0.255, 0.1.96.3.10.255, 0.2.96.3.10.255, 0.3.96.3.10.255, "
+    "0.4.96.3.10.255, 0.0.96.14.0.255, 1.0.1.7.0.255, 1.0.21.7.0.255, 1.0.41.7.0.255, "
+    "1.0.61.7.0.255, 1.0.2.7.0.255, 1.0.22.7.0.255, 1.0.42.7.0.255, 1.0.62.7.0.255, "
+    "1.0.1.8.0.255, 1.0.1.8.1.255, 1.0.1.8.2.255, 1.0.2.8.0.255";
+
+} // namespace
 
 template<typename Aes128GcmDecryptor = dlms_parser::Aes128GcmDecryptorMbedTls>
 void run_meter_test(std::span<const uint8_t> payload,
@@ -144,6 +160,63 @@ TEST_CASE_FIXTURE(LogFixture, "Integration: RAW APDU") {
       dlms::test_data::egd_example_expected_strings,
       dlms::test_data::egd_example_expected_floats
     );
+  }
+
+  SUBCASE("ZPA AM375 flat/untagged push layout, real packets from PRE Distribuce's meter") {
+    run_meter_test(
+      dlms::test_data::zpa_am375_flat_predistribuce_20260924_raw_frame,
+      dlms::test_data::zpa_am375_flat_predistribuce_20260924_expected_count,
+      dlms::test_data::zpa_am375_flat_predistribuce_20260924_expected_strings,
+      dlms::test_data::zpa_am375_flat_predistribuce_20260924_expected_floats,
+      [](dlms_parser::DlmsParser& p) {
+        REQUIRE(p.register_flat_positional_pattern("zpaAm375-flatLayout", 55, kZpaAm375FlatFields));
+      }
+    );
+  }
+
+  SUBCASE("ZPA AM375 flat/untagged push layout, novemereni.cz official datasheet") {
+    run_meter_test(
+      dlms::test_data::zpa_am375_flat_novemerenicz_20260415_raw_frame,
+      dlms::test_data::zpa_am375_flat_novemerenicz_20260415_expected_count,
+      dlms::test_data::zpa_am375_flat_novemerenicz_20260415_expected_strings,
+      dlms::test_data::zpa_am375_flat_novemerenicz_20260415_expected_floats,
+      [](dlms_parser::DlmsParser& p) {
+        REQUIRE(p.register_flat_positional_pattern("zpaAm375-flatLayout", 55, kZpaAm375FlatFields));
+      }
+    );
+  }
+
+  SUBCASE("ZPA AM375 flat layout - version-string guard rejects a lookalike telegram") {
+    // Same shape (STRUCTURE of 22, same field types) but a different device-ID string -
+    // must not be claimed by the ZPA pattern just because the element count happens to match.
+    std::vector<uint8_t> mutated(std::begin(dlms::test_data::zpa_am375_flat_predistribuce_20260924_raw_frame),
+                                  std::end(dlms::test_data::zpa_am375_flat_predistribuce_20260924_raw_frame));
+    mutated[10] = 'X';  // first byte of the "ZPA3HAN00200" guard field
+    dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
+    dlms_parser::DlmsParser parser([](const auto&) {}, &decryptor);
+    parser.load_default_patterns();
+    REQUIRE(parser.register_flat_positional_pattern("zpaAm375-flatLayout", 55, kZpaAm375FlatFields));
+    auto [n, consumed] = parser.parse(mutated);
+    CHECK(n == 0);
+  }
+
+  SUBCASE("no partial success when N-th field rejects the pattern") {
+    std::vector<uint8_t> raw_frame {
+      0x0F,                                                             // data-notification
+      0x00, 0x00, 0x00, 0x03,                                           // long-invoke-id-and-priority
+      0x00,                                                             // date-time = null
+      0x02, 0x02,                                                       // structure(2)
+      0x16, 0x01,                                                       // enum = 1 (0.0.96.3.10.255)
+      0x09, 0x11, 0x5A, 0x50, 0x41, 0x33, 0x48, 0x41, 0x4E, 0x30, 0x30, 0x32, 0x30, 0x30,
+      0x00, 0x00, 0x00, 0x00, 0x00,                                     // a non-matching string
+    };
+
+    dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
+    dlms_parser::DlmsParser parser([](const auto&) {}, &decryptor);
+    parser.load_default_patterns();
+    REQUIRE(parser.register_flat_positional_pattern("pwned", 55, "0.0.96.3.10.255, 0.0.96.1.4.255~00"));
+    auto [n, consumed] = parser.parse(std::span{raw_frame.begin(), raw_frame.end()});
+    CHECK(n == 0);
   }
 
 }

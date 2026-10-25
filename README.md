@@ -91,6 +91,18 @@ parser.register_pattern("TOW, TV, TSU");          // Landis+Gyr swapped OBIS
 | `DN`           | descend into nested structure                  | control token                   |
 | `UP`           | return from nested structure                   | control token                   |
 
+### Flat positional patterns
+
+Some meters send multiple fields in a sequence and without any self-describing metadata.
+On such meters, pass the push data list explicitly:
+
+```cpp
+// Comma-separated list of OBIS codes. Decoding might be gated behind
+// a match of raw binary data (in hex) against a given field.
+parser.register_flat_positional_pattern("ZPA AM375", 0,
+  "0.0.96.1.4.255~5A50413348414E3030323030, 0.0.1.0.0.255, 0.0.96.1.1.255" /* ... */);
+```
+
 ## How to add the library to your project
 
 ### PlatformIO package
