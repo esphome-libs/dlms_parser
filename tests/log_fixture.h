@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dlms_parser/log.h"
-#include <doctest.h>
+#include <doctest/doctest.h>
 #include <cstdio>
 #include <format>
 #include <string>

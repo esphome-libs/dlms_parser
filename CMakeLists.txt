@@ -17,6 +17,8 @@ cmake_policy(SET CMP0092 NEW) # don't add "/W3" to the compilation flags when us
 project(dlms_parser)
 enable_testing()
 include(FetchContent)
+option(DLMS_ENABLE_SANITIZERS "Build dlms_parser and its tests with ASan/UBSan" ON)
+option(DLMS_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" ON)
 set(CMAKE_CXX_SCAN_FOR_MODULES 0) # For clang, module scanning requires "clang-scan-deps". It is not included in some Linux distros.
 
 if(MINGW)
@@ -29,7 +31,8 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/doctest/doctest
   GIT_TAG v2.5.3)
 FetchContent_MakeAvailable(doctest)
-include("${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake")
+list(APPEND CMAKE_MODULE_PATH "${doctest_SOURCE_DIR}/scripts/cmake" "${doctest_DIR}")
+include(doctest)
 
 # mbedtls
 set(ENABLE_PROGRAMS OFF CACHE INTERNAL "")
@@ -42,13 +45,16 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(mbedtls)
 
 # bearssl
-FetchContent_Populate(
+FetchContent_Declare(
   bearssl
   GIT_REPOSITORY https://bearssl.org/git/BearSSL
   GIT_TAG v0.6)
-file(GLOB_RECURSE bearssl_sources CONFIGURE_DEPENDS "${bearssl_SOURCE_DIR}/src/*.c")
-add_library(bearssl STATIC ${bearssl_sources})
-target_include_directories(bearssl SYSTEM PUBLIC "${bearssl_SOURCE_DIR}/inc" PRIVATE "${bearssl_SOURCE_DIR}/src")
+FetchContent_MakeAvailable(bearssl) # BearSSL has no CMakeLists.txt, so this only populates the source dir
+if(NOT TARGET bearssl) # a dependency provider may have already defined this as an imported target
+  file(GLOB_RECURSE bearssl_sources CONFIGURE_DEPENDS "${bearssl_SOURCE_DIR}/src/*.c")
+  add_library(bearssl STATIC ${bearssl_sources})
+  target_include_directories(bearssl SYSTEM PUBLIC "${bearssl_SOURCE_DIR}/inc" PRIVATE "${bearssl_SOURCE_DIR}/src")
+endif()
 
 # Combine mbedtls and bearssl into a single "crypto" target to simplify linking
 add_library(dlms_cryptography INTERFACE)
@@ -56,10 +62,12 @@ target_link_libraries(dlms_cryptography INTERFACE mbedtls bearssl)
 target_include_directories(dlms_cryptography SYSTEM INTERFACE $<TARGET_PROPERTY:mbedtls,INTERFACE_INCLUDE_DIRECTORIES>) # disable warnings for mbedtls headers
 
 # cmake_template for warnings and sanitizers
-FetchContent_Populate(
+FetchContent_Declare(
   cmake_template
   GIT_REPOSITORY https://github.com/cpp-best-practices/cmake_template
-  GIT_TAG b86318abbf55a657a11a0cf2acce69f221841b22)
+  GIT_TAG b86318abbf55a657a11a0cf2acce69f221841b22
+  SOURCE_SUBDIR cmake) # no CMakeLists.txt there, so this only populates instead of add_subdirectory-ing the whole template project
+FetchContent_MakeAvailable(cmake_template)
 include(${cmake_template_SOURCE_DIR}/cmake/CompilerWarnings.cmake)
 include(${cmake_template_SOURCE_DIR}/cmake/Sanitizers.cmake)
 
@@ -70,7 +78,7 @@ target_compile_features(dlms_parser PUBLIC cxx_std_20)
 
 # enable warnings
 add_library(dlms_parser_warnings INTERFACE)
-myproject_set_project_warnings(dlms_parser_warnings ON "" "" "" "")
+myproject_set_project_warnings(dlms_parser_warnings ${DLMS_WARNINGS_AS_ERRORS} "" "" "" "")
 if(NOT MSVC)
   # We use `vsnprintf(buffer.data(), buffer.size(), fmt, args);` inside logging function.
   # Thus this warning is a false positive.
@@ -80,7 +88,7 @@ target_link_libraries(dlms_parser PUBLIC dlms_parser_warnings)
 
 # enable sanitizers
 add_library(dlms_parser_sanitizers INTERFACE)
-myproject_enable_sanitizers(dlms_parser_sanitizers ON ON ON OFF OFF)
+myproject_enable_sanitizers(dlms_parser_sanitizers ${DLMS_ENABLE_SANITIZERS} ${DLMS_ENABLE_SANITIZERS} ${DLMS_ENABLE_SANITIZERS} OFF OFF)
 target_link_libraries(dlms_parser PUBLIC dlms_parser_sanitizers)
 if(MSVC)
   cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH MSVC_TOOLS_DIR)
