@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<DataNotification LongInvokeId="008E551A">
+  <DateTime Value="2026-11-22 20:30:00.00 -01:00" />
+  <STRUCTURE Qty="12">
+    <OCTETSTRING Value="ISK1030799999999" />
+    <OCTETSTRING Value="" />
+    <ENUM Value="1" Unit="a" />
+    <OCTETSTRING Value="0001" />
+    <UINT32 Value="60896257" />
+    <UINT32 Value="28592659" />
+    <UINT32 Value="32303598" />
+    <UINT32 Value="33" />
+    <UINT32 Value="17" />
+    <UINT32 Value="16" />
+    <UINT32 Value="19620794" />
+    <UINT32 Value="11234771" />
+  </STRUCTURE>
+</DataNotification>

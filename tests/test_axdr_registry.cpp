@@ -81,7 +81,7 @@ TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Comprehensive Token
   AxdrParser parser([](const auto&) {});
 
   // Test all primary token aliases
-  parser.register_pattern("all_tokens", "SelfDesc,TC,O,TO,TOW,A,TA,TS,TU,V,TV,TDTM,TSTR,DN,UP,TSU", 10);
+  parser.register_pattern("all_tokens", "SelfDesc,TC,O,TO,TOW,A,TA,TS,TU,V,TV,TDTM,TSTR,DN,UP,TSU,IDX(1),CNT(2)", 10);
   REQUIRE(parser.patterns().size() == 1);
   const auto& pat = parser.patterns()[0];
 
@@ -125,8 +125,104 @@ TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Comprehensive Token
   CHECK(pat.steps[i++].type == AxdrTokenType::EXPECT_SCALER_TAGGED);
   CHECK(pat.steps[i++].type == AxdrTokenType::EXPECT_UNIT_ENUM_TAGGED);
   CHECK(pat.steps[i++].type == AxdrTokenType::GOING_UP);
+  // IDX(1) (element index)
+  CHECK(pat.steps[i].type == AxdrTokenType::EXPECT_ELEMENT_INDEX);
+  CHECK(pat.steps[i++].param_u8_a == 1);
+  // CNT(2) (element count)
+  CHECK(pat.steps[i].type == AxdrTokenType::EXPECT_ELEMENT_COUNT);
+  CHECK(pat.steps[i++].param_u8_a == 2);
 
   CHECK(pat.steps[i].type == AxdrTokenType::END_OF_PATTERN);
+}
+
+TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Element Index IDX(n) and Element Count CNT(n)") {
+  AxdrParser parser([](const auto&) {});
+
+  SUBCASE("Valid IDX(n) and CNT(n), including range bounds CNT(1), IDX(0), CNT(127) and IDX(126)") {
+    parser.register_pattern("pos", "CNT(18), IDX(0), TSTR", 10);
+    parser.register_pattern("max", "CNT(127), IDX(126), TV", 20);
+    parser.register_pattern("min", "CNT(1), IDX(0), TV", 30);
+    REQUIRE(parser.patterns().size() == 3);
+
+    const auto& pos = parser.patterns()[0];
+    CHECK(pos.steps[0].type == AxdrTokenType::EXPECT_ELEMENT_COUNT);
+    CHECK(pos.steps[0].param_u8_a == 18);
+    CHECK(pos.steps[1].type == AxdrTokenType::EXPECT_ELEMENT_INDEX);
+    CHECK(pos.steps[1].param_u8_a == 0);
+    CHECK(pos.steps[2].type == AxdrTokenType::EXPECT_VALUE_OCTET_STRING);
+    CHECK(pos.steps[3].type == AxdrTokenType::END_OF_PATTERN);
+
+    const auto& max = parser.patterns()[1];
+    CHECK(max.steps[0].type == AxdrTokenType::EXPECT_ELEMENT_COUNT);
+    CHECK(max.steps[0].param_u8_a == 127);
+    CHECK(max.steps[1].type == AxdrTokenType::EXPECT_ELEMENT_INDEX);
+    CHECK(max.steps[1].param_u8_a == 126);
+
+    const auto& min = parser.patterns()[2];
+    CHECK(min.steps[0].type == AxdrTokenType::EXPECT_ELEMENT_COUNT);
+    CHECK(min.steps[0].param_u8_a == 1);
+    CHECK(min.steps[1].type == AxdrTokenType::EXPECT_ELEMENT_INDEX);
+    CHECK(min.steps[1].param_u8_a == 0);
+  }
+
+  SUBCASE("Spaces inside the parentheses are trimmed") {
+    parser.register_pattern("spaced", "CNT( 18 ), IDX(\t2 ), TV", 10);
+    REQUIRE(parser.patterns().size() == 1);
+    const auto& pat = parser.patterns()[0];
+    CHECK(pat.steps[0].type == AxdrTokenType::EXPECT_ELEMENT_COUNT);
+    CHECK(pat.steps[0].param_u8_a == 18);
+    CHECK(pat.steps[1].type == AxdrTokenType::EXPECT_ELEMENT_INDEX);
+    CHECK(pat.steps[1].param_u8_a == 2);
+  }
+
+  SUBCASE("Out of range IDX(n) (>126) and CNT(n) (0 or >127) reject the pattern") {
+    for (const char* dsl : { "CNT(0), V", "CNT(128), V", "IDX(127), V", "CNT(255), V", "IDX(256), V" }) {
+      INFO("dsl: ", dsl);
+      parser.register_pattern("out_of_range", dsl, 10);
+      CHECK(parser.patterns().size() == 0);
+    }
+    CHECK(contains("Pattern 'out_of_range': invalid positional token 'CNT(0)' - pattern rejected"));
+    CHECK(contains("Pattern 'out_of_range': invalid positional token 'IDX(256)' - pattern rejected"));
+  }
+
+  SUBCASE("Invalid IDX() and CNT() arguments reject the pattern") {
+    for (const char* dsl : { "F, IDX(), C", "F, IDX(x), C", "F, CNT(), C", "F, CNT(256), C", "F, IDX(-1), C", "F, CNT(1x), C", "F, IDX(1O), C" }) {
+      INFO("dsl: ", dsl);
+      parser.register_pattern("invalid", dsl, 10);
+      CHECK(parser.patterns().size() == 0);
+    }
+    CHECK(contains("Pattern 'invalid': invalid positional token 'IDX()' - pattern rejected"));
+  }
+
+  SUBCASE("Positional token without closing parenthesis rejects the pattern") {
+    parser.register_pattern("unclosed", "IDX(2, TV", 10);
+    CHECK(parser.patterns().size() == 0);
+    CHECK(contains("Pattern 'unclosed': invalid positional token 'IDX(2, TV' - pattern rejected"));
+  }
+
+  SUBCASE("Huge arguments that would wrap 32/64-bit unsigned reject the pattern, not taken as IDX(0)") {
+    // 4294967296 = 2^32, 18446744073709551616 = 2^64: naive value * 10 accumulation wraps to 0
+    parser.register_pattern("wrap_32", "IDX(4294967296), V", 10);
+    parser.register_pattern("wrap_64", "CNT(18446744073709551616), V", 10);
+    CHECK(parser.patterns().size() == 0);
+  }
+
+  SUBCASE("IDX(n) inside S(...) rejects the pattern") {
+    parser.register_pattern("struct_pos", "S(IDX(1), TV)", 10);
+    CHECK(parser.patterns().size() == 0);
+    CHECK(contains("Pattern 'struct_pos': positional token 'IDX(1)' not allowed inside S(...) - pattern rejected"));
+  }
+
+  SUBCASE("CNT(n) inside S(...) rejects the pattern") {
+    parser.register_pattern("struct_cnt", "S(CNT(2), TO, TV)", 10);
+    CHECK(parser.patterns().size() == 0);
+    CHECK(contains("Pattern 'struct_cnt': positional token 'CNT(2)' not allowed inside S(...) - pattern rejected"));
+  }
+
+  SUBCASE("Lone IDX(n) inside S(...) rejects the pattern") {
+    parser.register_pattern("struct_lone", "S(IDX(1))", 10);
+    CHECK(parser.patterns().size() == 0);
+  }
 }
 
 TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Structure Expansion S(...)") {
@@ -254,28 +350,28 @@ TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Priority and Array 
 TEST_CASE_FIXTURE(LogFixture, "AxdrParser Pattern Registry - Limits and Edge Cases") {
   AxdrParser parser([](const auto&) {});
 
-  SUBCASE("Max Patterns Limit (32)") {
-    for (int i = 0; i < 40; i++) {
+  SUBCASE("Max Patterns Limit (64)") {
+    for (int i = 0; i < 70; i++) {
       parser.register_pattern("spam", "F", i);
     }
-    // Hard limit is MAX_PATTERNS = 32
-    CHECK(parser.patterns().size() == 32);
-    // Since priority was 'i', 0-31 got inserted. The others gracefully overwrote the end
+    // Hard limit is MAX_PATTERNS = 64
+    CHECK(parser.patterns().size() == 64);
+    // Since priority was 'i', 0-63 got inserted. The others gracefully overwrote the end
     // or were rejected, keeping the system stable without out-of-bounds writes.
   }
 
   SUBCASE("High Priority Insertion When Full") {
     // Fill the registry with priority 10
-    for (int i = 0; i < 32; i++) {
+    for (int i = 0; i < 64; i++) {
       parser.register_pattern("filler", "V", 10);
     }
-    CHECK(parser.patterns().size() == 32);
+    CHECK(parser.patterns().size() == 64);
 
     // Insert a higher priority pattern (priority 1)
     parser.register_pattern("high_prio", "F", 1);
 
     // It should displace the last element and take the first position
-    CHECK(parser.patterns().size() == 32);
+    CHECK(parser.patterns().size() == 64);
     CHECK(std::string_view(parser.patterns()[0].name) == "high_prio");
     CHECK(parser.patterns()[0].steps[0].type == AxdrTokenType::EXPECT_TO_BE_FIRST);
   }

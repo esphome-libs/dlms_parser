@@ -1,0 +1,66 @@
+Input: tests/dumps/hdlc_iskra_am550_si_5s.log (134 bytes)
+
+=== HDLC frame 1 (134 bytes) ===
+7E                                     <-- opening flag
+A0 84                                  <-- format, length=132
+CF                                       <-- dst addr (1B)
+02 23                                    <-- src addr (2B)
+13                                     <-- control byte
+D1 C7                                  <-- HCS (OK)
+... FCS: 1D 64 (OK)
+E6 E7 00                               <-- LLC header
+Payload: 119 bytes
+7E                                     <-- closing flag
+
+=== APDU: DATA-NOTIFICATION ===
+0F                                     <-- DATA-NOTIFICATION tag
+00 8E 54 DC                              <-- Long-Invoke-ID
+0C                                     <-- DateTime: 12 raw bytes
+  07 EA 0B 16 07 14 18 32 00 FF C4 00
+  = 2026-11-22 20:24:50.00 -01:00
+
+=== AXDR payload (101 bytes) ===
+02                                     <-- STRUCTURE
+  12                                   <-- 18 elements
+  --- element [1/18] ---
+  09                                     <-- OCTET_STRING
+    10                                   <-- length = 16
+    49 53 4B 31 30 33 30 37 39 39 39 39 39 39 39 39
+    = "ISK1030799999999"
+  --- element [2/18] ---
+  09                                     <-- OCTET_STRING
+    0B                                   <-- length = 11
+    49 53 4B 39 39 39 39 39 39 39 39
+    = "ISK99999999"
+  --- element [3/18] ---
+  06 00 00 0D B9                             <-- UINT32 = 3513 (0x00000DB9)
+  --- element [4/18] ---
+  06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+  --- element [5/18] ---
+  06 00 00 08 B2                             <-- UINT32 = 2226 (0x000008B2)
+  --- element [6/18] ---
+  06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+  --- element [7/18] ---
+  12 09 87                                   <-- UINT16 = 2439
+  --- element [8/18] ---
+  12 09 82                                   <-- UINT16 = 2434
+  --- element [9/18] ---
+  12 09 76                                   <-- UINT16 = 2422
+  --- element [10/18] ---
+  12 01 E5                                   <-- UINT16 = 485
+  --- element [11/18] ---
+  12 02 C9                                   <-- UINT16 = 713
+  --- element [12/18] ---
+  12 02 0B                                   <-- UINT16 = 523
+  --- element [13/18] ---
+  06 00 00 03 8D                             <-- UINT32 = 909 (0x0000038D)
+  --- element [14/18] ---
+  06 00 00 06 01                             <-- UINT32 = 1537 (0x00000601)
+  --- element [15/18] ---
+  06 00 00 04 2A                             <-- UINT32 = 1066 (0x0000042A)
+  --- element [16/18] ---
+  06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+  --- element [17/18] ---
+  06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+  --- element [18/18] ---
+  06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)

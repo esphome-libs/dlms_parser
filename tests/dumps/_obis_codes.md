@@ -102,3 +102,9 @@
 - Encrypted dumps (kmswest, kaifa) are not included -- OBIS codes not visible without decryption key.
 - Energomera dump uses a non-standard raw format; some OBIS codes are manufacturer-specific.
 - Meter name prefixes (hdlc_, mbus_, raw_) omitted from the Meters column for readability.
+
+## Positional telegrams (no OBIS in data)
+
+| Meter | Note |
+|-------|------|
+| iskra_am550_si | OBIS implied by element index (`CNT(18), IDX(n)` patterns), see `tests/expected/hdlc_iskra_am550_si.h` |

@@ -162,8 +162,8 @@ AxdrParser::AxdrParser(DlmsDataCallback dlmsDataCallback) : dlmsDataCallback_(st
 {}
 
 void AxdrParser::register_pattern(const char* name, const char* dsl, const int priority, const ObisId default_obis) {
-  auto& pat = this->register_pattern_dsl_(name, dsl, priority);
-  pat.default_obis = default_obis;
+  auto* pat = this->register_pattern_dsl_(name, dsl, priority);
+  if (pat) pat->default_obis = default_obis;
 }
 
 void AxdrParser::clear_patterns() {
@@ -569,6 +569,12 @@ bool AxdrParser::match_pattern_(const DlmsDataType container_type, const uint8_t
         cap.has_scaler_unit = true;
         consume_one();
         break;
+      case AxdrTokenType::EXPECT_ELEMENT_INDEX:
+        if (elem_idx != param_u8_a) return false;
+        break;
+      case AxdrTokenType::EXPECT_ELEMENT_COUNT:
+        if (elem_count != param_u8_a) return false;
+        break;
       case AxdrTokenType::SELF_DESC: {
         return this->parse_self_describing_(container_type, elem_idx, elem_count, pat, consumed);
       }
@@ -577,6 +583,9 @@ bool AxdrParser::match_pattern_(const DlmsDataType container_type, const uint8_t
       case AxdrTokenType::END_OF_PATTERN: break;
     }
   }
+
+  // A pattern must consume input; guard-only or empty patterns would match every element
+  if (static_cast<uint32_t>(this->pos_) == initial_position) return false;
 
   if (consumed == 0) consumed = 1;
 
@@ -603,7 +612,7 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
 // DSL parser (Zero-Allocation Implementation)
 // ---------------------------------------------------------------------------
 
-AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const std::string_view dsl, const int priority) {
+AxdrDescriptorPattern* AxdrParser::register_pattern_dsl_(const char* name, const std::string_view dsl, const int priority) {
   AxdrDescriptorPattern pat{};
   pat.name = name;
   pat.priority = priority;
@@ -611,6 +620,8 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
   // Fill step array with the sentinel value since we don't track step count directly
   std::ranges::fill(pat.steps, AxdrPatternStep{AxdrTokenType::END_OF_PATTERN});
   size_t step_count = 0;
+  // Set on invalid IDX(n)/CNT(n) usage: the whole pattern is rejected, since dropping a guard would widen it
+  bool invalid = false;
 
   // Helper lambda to trim string_view bounds instead of creating new substrings
   auto trim = [](const std::string_view s) -> std::string_view {
@@ -645,8 +656,39 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
     }
   };
 
+  // Positional tokens: IDX(n) element index 0..126, CNT(n) element count 1..127 (A-XDR short-form)
+  auto is_positional = [](const std::string_view tok) { return tok.starts_with("IDX(") || tok.starts_with("CNT("); };
+
+  // Parses decimal digits only (0..255). Returns false on empty, non-digit or overflow.
+  auto parse_u8_param = [](const std::string_view digits, uint8_t& out) {
+    if (digits.empty()) return false;
+    unsigned value = 0;
+    for (const char c : digits) {
+      if (c < '0' || c > '9') return false;
+      value = value * 10 + static_cast<unsigned>(c - '0');
+      if (value > 255) return false;
+    }
+    out = static_cast<uint8_t>(value);
+    return true;
+  };
+
   auto process_simple_token = [&](const std::string_view tok) {
-    if      (tok == "SelfDesc") add_step(AxdrTokenType::SELF_DESC);
+    if (is_positional(tok)) {
+      // Argument is the text between '(' and the final ')', trimmed. Without a final ')' the token is invalid.
+      // The size is >= 5 when it ends with ')', since "IDX(" / "CNT(" cannot end with ')'.
+      const bool is_index = tok.starts_with("IDX(");
+      uint8_t n = 0;
+      const bool in_range = tok.ends_with(')') && parse_u8_param(trim(tok.substr(4, tok.size() - 5)), n) &&
+                            (is_index ? n <= 126 : (n >= 1 && n <= 127));
+      if (in_range) {
+        add_step(is_index ? AxdrTokenType::EXPECT_ELEMENT_INDEX : AxdrTokenType::EXPECT_ELEMENT_COUNT, n);
+      } else {
+        Logger::log(LogLevel::WARNING, "Pattern '%s': invalid positional token '%.*s' - pattern rejected",
+                    name ? name : "", static_cast<int>(tok.size()), tok.data());
+        invalid = true;
+      }
+    }
+    else if (tok == "SelfDesc") add_step(AxdrTokenType::SELF_DESC);
     else if (tok == "F")  add_step(AxdrTokenType::EXPECT_TO_BE_FIRST);
     else if (tok == "L")  add_step(AxdrTokenType::EXPECT_TO_BE_LAST);
     else if (tok == "C")  add_step(AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED);
@@ -715,6 +757,13 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
           add_step(AxdrTokenType::GOING_DOWN);
           // Process inner tokens sequentially onto the steps array without shifting future tokens
           for (size_t j = 0; j < inner_count; ++j) {
+            // IDX/CNT compare against the outer sequence, so they are not allowed inside S(...)
+            if (is_positional(inner_tokens[j])) {
+              Logger::log(LogLevel::WARNING, "Pattern '%s': positional token '%.*s' not allowed inside S(...) - pattern rejected",
+                          name ? name : "", static_cast<int>(inner_tokens[j].size()), inner_tokens[j].data());
+              invalid = true;
+              continue;
+            }
             process_simple_token(inner_tokens[j]);
           }
           add_step(AxdrTokenType::GOING_UP);
@@ -724,6 +773,8 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
       process_simple_token(tok);
     }
   }
+
+  if (invalid) return nullptr;
 
   // Find sorted position for insertion into the fixed array patterns_
   size_t insert_pos = 0;
@@ -738,7 +789,7 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
     }
     this->patterns_[insert_pos] = pat;
     this->patterns_count_++;
-    return this->patterns_[insert_pos];
+    return &this->patterns_[insert_pos];
   }
 
   // If full, default to end-overwrite safety, although standard usage expects patterns to fit MAX_PATTERNS
@@ -747,9 +798,9 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const
       this->patterns_[j] = this->patterns_[j - 1];
     }
     this->patterns_[insert_pos] = pat;
-    return this->patterns_[insert_pos];
+    return &this->patterns_[insert_pos];
   }
-  return this->patterns_[MAX_PATTERNS - 1];
+  return &this->patterns_[MAX_PATTERNS - 1];
 }
 
 }  // namespace dlms_parser

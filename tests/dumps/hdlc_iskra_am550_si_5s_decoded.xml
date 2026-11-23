@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<DataNotification LongInvokeId="008E54DC">
+  <DateTime Value="2026-11-22 20:24:50.00 -01:00" />
+  <STRUCTURE Qty="18">
+    <OCTETSTRING Value="ISK1030799999999" />
+    <OCTETSTRING Value="ISK99999999" />
+    <UINT32 Value="3513" />
+    <UINT32 Value="0" />
+    <UINT32 Value="2226" />
+    <UINT32 Value="0" />
+    <UINT16 Value="2439" />
+    <UINT16 Value="2434" />
+    <UINT16 Value="2422" />
+    <UINT16 Value="485" />
+    <UINT16 Value="713" />
+    <UINT16 Value="523" />
+    <UINT32 Value="909" />
+    <UINT32 Value="1537" />
+    <UINT32 Value="1066" />
+    <UINT32 Value="0" />
+    <UINT32 Value="0" />
+    <UINT32 Value="0" />
+  </STRUCTURE>
+</DataNotification>

@@ -21,6 +21,7 @@
 #include "tests/expected/raw_salzburg_netz.h"
 #include "tests/expected/raw_egd_example.h"
 #include "tests/expected/hdlc_iskra550.h"
+#include "tests/expected/hdlc_iskra_am550_si.h"
 #include "tests/expected/hdlc_norway_han_1phase.h"
 #include "tests/expected/hdlc_norway_han_3phase.h"
 #include "tests/expected/hdlc_landis_gyr_zmf100.h"
@@ -78,6 +79,56 @@ void run_meter_test(std::span<const uint8_t> payload,
     INFO("Expected value: ", expected.second, " | Actual value: ", captured_floats[expected.first]);
     CHECK(static_cast<double>(captured_floats[expected.first]) == doctest::Approx(static_cast<double>(expected.second)));
   }
+}
+
+// Iskra AM550 positional patterns: one row per element index (see tests/expected/hdlc_iskra_am550_si.h).
+struct PositionalPattern {
+  const char* name;  // must outlive the parser (stored by pointer)
+  const char* dsl;
+  dlms_parser::ObisId obis;
+};
+
+constexpr PositionalPattern iskra_am550_5s_patterns[] = {
+  {"AM550 5s #0",  "CNT(18), IDX(0), TSTR", dlms_parser::ObisId(0, 0, 42, 0, 0, 255)},
+  {"AM550 5s #1",  "CNT(18), IDX(1), TSTR", dlms_parser::ObisId(0, 0, 96, 1, 0, 255)},
+  {"AM550 5s #2",  "CNT(18), IDX(2), TV",   dlms_parser::ObisId(1, 0, 1, 7, 0, 255)},
+  {"AM550 5s #3",  "CNT(18), IDX(3), TV",   dlms_parser::ObisId(1, 0, 2, 7, 0, 255)},
+  {"AM550 5s #4",  "CNT(18), IDX(4), TV",   dlms_parser::ObisId(1, 0, 3, 7, 0, 255)},
+  {"AM550 5s #5",  "CNT(18), IDX(5), TV",   dlms_parser::ObisId(1, 0, 4, 7, 0, 255)},
+  {"AM550 5s #6",  "CNT(18), IDX(6), TV",   dlms_parser::ObisId(1, 0, 32, 7, 0, 255)},
+  {"AM550 5s #7",  "CNT(18), IDX(7), TV",   dlms_parser::ObisId(1, 0, 52, 7, 0, 255)},
+  {"AM550 5s #8",  "CNT(18), IDX(8), TV",   dlms_parser::ObisId(1, 0, 72, 7, 0, 255)},
+  {"AM550 5s #9",  "CNT(18), IDX(9), TV",   dlms_parser::ObisId(1, 0, 31, 7, 0, 255)},
+  {"AM550 5s #10", "CNT(18), IDX(10), TV",  dlms_parser::ObisId(1, 0, 51, 7, 0, 255)},
+  {"AM550 5s #11", "CNT(18), IDX(11), TV",  dlms_parser::ObisId(1, 0, 71, 7, 0, 255)},
+  {"AM550 5s #12", "CNT(18), IDX(12), TV",  dlms_parser::ObisId(1, 0, 21, 7, 0, 255)},
+  {"AM550 5s #13", "CNT(18), IDX(13), TV",  dlms_parser::ObisId(1, 0, 41, 7, 0, 255)},
+  {"AM550 5s #14", "CNT(18), IDX(14), TV",  dlms_parser::ObisId(1, 0, 61, 7, 0, 255)},
+  {"AM550 5s #15", "CNT(18), IDX(15), TV",  dlms_parser::ObisId(1, 0, 22, 7, 0, 255)},
+  {"AM550 5s #16", "CNT(18), IDX(16), TV",  dlms_parser::ObisId(1, 0, 42, 7, 0, 255)},
+  {"AM550 5s #17", "CNT(18), IDX(17), TV",  dlms_parser::ObisId(1, 0, 62, 7, 0, 255)},
+};
+
+constexpr PositionalPattern iskra_am550_15min_patterns[] = {
+  {"AM550 15min #0", "CNT(12), IDX(0), TSTR", dlms_parser::ObisId(0, 0, 42, 0, 0, 255)},
+  {"AM550 15min #4", "CNT(12), IDX(4), TV",   dlms_parser::ObisId(1, 0, 1, 8, 0, 255)},
+  {"AM550 15min #5", "CNT(12), IDX(5), TV",   dlms_parser::ObisId(1, 0, 1, 8, 1, 255)},
+  {"AM550 15min #6", "CNT(12), IDX(6), TV",   dlms_parser::ObisId(1, 0, 1, 8, 2, 255)},
+  {"AM550 15min #7", "CNT(12), IDX(7), TV",   dlms_parser::ObisId(1, 0, 2, 8, 0, 255)},
+  {"AM550 15min #8", "CNT(12), IDX(8), TV",   dlms_parser::ObisId(1, 0, 2, 8, 1, 255)},
+  {"AM550 15min #9", "CNT(12), IDX(9), TV",   dlms_parser::ObisId(1, 0, 2, 8, 2, 255)},
+  {"AM550 15min #10", "CNT(12), IDX(10), TV",  dlms_parser::ObisId(1, 0, 3, 8, 0, 255)},
+  {"AM550 15min #11", "CNT(12), IDX(11), TV",  dlms_parser::ObisId(1, 0, 4, 8, 0, 255)},
+};
+
+// Registers the patterns of one telegram layout. Only patterns whose CNT(n) matches the frame apply.
+template<size_t N>
+std::function<void(dlms_parser::DlmsParser&)> am550_setup(const PositionalPattern (&patterns)[N]) {
+  return [&patterns](dlms_parser::DlmsParser& parser) {
+    for (const auto& p : patterns) {
+      parser.register_pattern(p.name, p.dsl, 10, p.obis);
+    }
+  };
 }
 
 // ---------------------------------------------------------
@@ -192,6 +243,63 @@ TEST_CASE_FIXTURE(LogFixture, "Integration: HDLC") {
     dlms_parser::DlmsParser parser([](const auto&) {}, &decryptor);
     auto [n, consumed] = parser.parse(duplicated_frame);
     CHECK(n == 0);
+  }
+
+  SUBCASE("Iskra AM550 Slovenia 5s (positional)") {
+    run_meter_test(
+      dlms::test_data::iskra_am550_5s_raw_frame,
+      dlms::test_data::iskra_am550_5s_expected_count,
+      dlms::test_data::iskra_am550_5s_expected_strings,
+      dlms::test_data::iskra_am550_5s_expected_floats,
+      am550_setup(iskra_am550_5s_patterns)
+    );
+  }
+
+  SUBCASE("Iskra AM550 Slovenia 15min (positional)") {
+    run_meter_test(
+      dlms::test_data::iskra_am550_15min_raw_frame,
+      dlms::test_data::iskra_am550_15min_expected_count,
+      dlms::test_data::iskra_am550_15min_expected_strings,
+      dlms::test_data::iskra_am550_15min_expected_floats,
+      am550_setup(iskra_am550_15min_patterns)
+    );
+  }
+
+  SUBCASE("Iskra AM550 positional frames without custom patterns yield no objects") {
+    run_meter_test(dlms::test_data::iskra_am550_5s_raw_frame, 0, {}, {});
+    run_meter_test(dlms::test_data::iskra_am550_15min_raw_frame, 0, {}, {});
+  }
+
+  SUBCASE("Iskra AM550 15min frame with only the 5s (CNT(18)) patterns registered") {
+    // The CNT(18) guard must reject the 12-element telegram.
+    run_meter_test(
+      dlms::test_data::iskra_am550_15min_raw_frame,
+      0,
+      {},
+      {},
+      am550_setup(iskra_am550_5s_patterns)
+    );
+  }
+
+  SUBCASE("Iskra AM550: rejected and guard-only patterns never match") {
+    const auto obis = dlms_parser::ObisId(1, 0, 1, 7, 0, 255);
+    const auto register_guards = [obis](dlms_parser::DlmsParser& p) {
+      p.register_pattern("rejected S(IDX(1))", "S(IDX(1))", 10, obis);  // IDX inside S(...) is rejected
+      p.register_pattern("guard CNT(18), IDX(2)", "CNT(18), IDX(2)", 10, obis);  // consumes nothing
+      p.register_pattern("guard F, L", "F, L", 10, obis);  // consumes nothing
+    };
+    run_meter_test(dlms::test_data::iskra_am550_5s_raw_frame, 0, {}, {}, register_guards);
+
+    run_meter_test(
+      dlms::test_data::iskra_am550_5s_raw_frame,
+      1,
+      {},
+      {{"1.0.1.7.0.255", 3513.0f}},
+      [obis, register_guards](dlms_parser::DlmsParser& p) {
+        register_guards(p);
+        p.register_pattern("value CNT(18), IDX(2), TV", "CNT(18), IDX(2), TV", 10, obis);
+      }
+    );
   }
 
   SUBCASE("Norway HAN 1-phase (Aidon)") {

@@ -27,6 +27,8 @@ enum class AxdrTokenType : uint8_t {
   EXPECT_STRUCTURE_N,
   EXPECT_SCALER_TAGGED,
   EXPECT_UNIT_ENUM_TAGGED,
+  EXPECT_ELEMENT_INDEX,  // IDX(n): element index within container == param_u8_a
+  EXPECT_ELEMENT_COUNT,  // CNT(n): container element count == param_u8_a
   SELF_DESC,
   GOING_DOWN,
   GOING_UP,
@@ -90,12 +92,13 @@ public:
   [[nodiscard]] std::span<const AxdrDescriptorPattern> patterns() const { return { patterns_.data(), patterns_count_ }; }
 
 private:
-  static constexpr size_t MAX_PATTERNS = 32;
+  static constexpr size_t MAX_PATTERNS = 64;
 
   // Pattern registry
   std::array<AxdrDescriptorPattern, MAX_PATTERNS> patterns_;
   size_t patterns_count_{ 0 };
-  AxdrDescriptorPattern& register_pattern_dsl_(const char* name, std::string_view dsl, int priority);
+  // Returns nullptr if the pattern was rejected (invalid IDX/CNT usage)
+  AxdrDescriptorPattern* register_pattern_dsl_(const char* name, std::string_view dsl, int priority);
 
   // Parse-time state — reset at the start of each parse() call
   std::span<const uint8_t> buffer_{};

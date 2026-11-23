@@ -57,6 +57,19 @@ Pattern priority matters:
 - `register_pattern(dsl)` uses priority `0`
 - built-ins start at priority `10`
 
+Positional structures (no OBIS in the data) are matched by element index `IDX(n)` and element count `CNT(n)`.
+Slovenian Iskra AM550 pushes a flat 18-element STRUCTURE; element 2 is active power+ (`1.0.1.7.0.255`):
+```c++
+parser.register_pattern("AM550 P+", "CNT(18), IDX(2), TV", 0, dlms_parser::ObisId(1, 0, 1, 7, 0, 255));
+parser.register_pattern("AM550 ID", "CNT(18), IDX(0), TSTR", 0, dlms_parser::ObisId(0, 0, 42, 0, 0, 255));
+```
+- Elements without a pattern are tried against the built-in patterns. If an unregistered element could start a built-in
+  multi-element pattern (e.g. `TO, TV`), it may consume the next element too, so register patterns for such elements as well.
+- `IDX`/`CNT` apply to the sequence being scanned, including nested ones the parser descends into, so combine `IDX` with `CNT`.
+  Inside `S(...)` they are rejected.
+- An invalid argument (e.g. `IDX()`, `IDX(x)`, `CNT(0)`, `IDX(127)`) rejects the whole pattern (logged as a warning).
+- YAML block style needs no quoting: `pattern: CNT(18), IDX(2), TV`. Flow style (`{ ... }`) needs quotes because of the commas.
+
 Common examples:
 
 ```cpp
@@ -74,6 +87,8 @@ parser.register_pattern("TOW, TV, TSU");          // Landis+Gyr swapped OBIS
 | `SelfDesc`     | array of value descriptions followed by values | definitions array + values      |
 | `F`            | first element guard                            | position check only             |
 | `L`            | last element guard                             | position check only             |
+| `IDX(n)`       | element index guard, 0-based (`n` = 0..126)    | position check only             |
+| `CNT(n)`       | element count guard (`n` = 1..127)             | position check only             |
 | `C`            | class ID, 2-byte uint16 without tag            | `00 03`                         |
 | `TC`           | tagged class ID                                | `12 00 03`                      |
 | `O`            | OBIS code, 6-byte octet string without tag     | `01 00 01 08 00 FF`             |
